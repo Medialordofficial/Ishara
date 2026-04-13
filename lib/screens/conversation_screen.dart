@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
@@ -13,7 +14,8 @@ class ConversationScreen extends StatefulWidget {
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
-class _ConversationScreenState extends State<ConversationScreen> {
+class _ConversationScreenState extends State<ConversationScreen>
+    with TickerProviderStateMixin {
   CameraController? _cameraController;
   final ApiService _api = ApiService();
   final TtsService _tts = TtsService();
@@ -23,19 +25,25 @@ class _ConversationScreenState extends State<ConversationScreen> {
   bool _isCameraReady = false;
   bool _isListening = false;
   Timer? _captureTimer;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
     _initCamera();
-    _addSystemMessage('Ishara Conversation Mode active. Point camera at signer.');
+    _addSystemMessage(
+      'Point the camera at the signer, then tap "Interpret" to begin.',
+    );
   }
 
   Future<void> _initCamera() async {
     final cameras = await availableCameras();
     if (cameras.isEmpty) return;
 
-    // Use front camera
     final frontCamera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.front,
       orElse: () => cameras.first,
@@ -48,9 +56,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     );
 
     await _cameraController!.initialize();
-    if (mounted) {
-      setState(() => _isCameraReady = true);
-    }
+    if (mounted) setState(() => _isCameraReady = true);
   }
 
   void _addSystemMessage(String text) {
@@ -61,6 +67,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   void _startInterpreting() {
     setState(() => _isInterpreting = true);
+    _pulseController.repeat(reverse: true);
     _captureTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _captureAndInterpret();
     });
@@ -68,32 +75,31 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   void _stopInterpreting() {
     _captureTimer?.cancel();
+    _pulseController.stop();
+    _pulseController.reset();
     setState(() => _isInterpreting = false);
   }
 
   Future<void> _captureAndInterpret() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+    if (_cameraController == null || !_cameraController!.value.isInitialized)
       return;
-    }
 
     try {
       final image = await _cameraController!.takePicture();
       final bytes = await image.readAsBytes();
-
       final interpretation = await _api.interpretSign(bytes);
-      if (interpretation.isNotEmpty) {
+
+      if (interpretation.isNotEmpty &&
+          interpretation.toLowerCase() != 'no sign detected') {
         setState(() {
-          _messages.add(ChatMessage(
-            text: interpretation,
-            sender: MessageSender.deaf,
-          ));
+          _messages.add(
+            ChatMessage(text: interpretation, sender: MessageSender.deaf),
+          );
         });
         await _tts.speak(interpretation);
         _scrollToBottom();
       }
-    } catch (e) {
-      // Silently handle — don't spam errors during continuous capture
-    }
+    } catch (_) {}
   }
 
   void _scrollToBottom() {
@@ -114,6 +120,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     _cameraController?.dispose();
     _tts.dispose();
     _scrollController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -124,55 +131,150 @@ class _ConversationScreenState extends State<ConversationScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.sign_language, color: AppColors.primary),
+            Icon(
+              Icons.sign_language,
+              color: _isInterpreting
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
+              size: 22,
+            ),
             const SizedBox(width: 8),
             const Text('Conversation'),
           ],
         ),
+        actions: [
+          if (_messages.length > 1)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              onPressed: () => setState(() {
+                _messages.clear();
+                _addSystemMessage(
+                  'Chat cleared. Tap "Interpret" to start again.',
+                );
+              }),
+            ),
+        ],
       ),
       body: Column(
         children: [
-          // Camera preview
-          Container(
-            height: 280,
-            margin: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _isInterpreting
-                    ? AppColors.primary
-                    : AppColors.surfaceLight,
-                width: _isInterpreting ? 2 : 1,
-              ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: _isCameraReady
-                ? CameraPreview(_cameraController!)
-                : const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(color: AppColors.primary),
-                        SizedBox(height: 12),
-                        Text('Starting camera...',
-                            style: TextStyle(color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ),
-          ),
+          // ── Camera preview ──
+          AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              final borderColor = _isInterpreting
+                  ? Color.lerp(
+                      AppColors.primary.withValues(alpha: 0.4),
+                      AppColors.primary,
+                      _pulseController.value,
+                    )!
+                  : AppColors.surfaceLight;
 
-          // Chat messages
+              return Container(
+                height: 240,
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: borderColor, width: 2),
+                  boxShadow: _isInterpreting
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            blurRadius: 16,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (_isCameraReady)
+                      CameraPreview(_cameraController!)
+                    else
+                      Container(
+                        color: AppColors.surface,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    // Live badge
+                    if (_isInterpreting)
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.danger,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'LIVE',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+
+          // ── Chat messages ──
           Expanded(
             child: _messages.isEmpty
                 ? Center(
-                    child: Text(
-                      'Tap the button below to start interpreting',
-                      style: TextStyle(color: AppColors.textSecondary),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 40,
+                          color: AppColors.surfaceLight,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Interpreted signs will appear here',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
                       return _ChatBubble(message: _messages[index]);
@@ -180,35 +282,44 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   ),
           ),
 
-          // Controls
+          // ── Controls ──
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Interpret button (deaf user signs)
                 _ControlButton(
-                  icon: _isInterpreting ? Icons.stop : Icons.sign_language,
-                  label: _isInterpreting ? 'Stop' : 'Interpret Signs',
+                  icon: _isInterpreting
+                      ? Icons.stop_rounded
+                      : Icons.sign_language,
+                  label: _isInterpreting ? 'Stop' : 'Interpret',
                   color: AppColors.primary,
                   isActive: _isInterpreting,
                   onTap: _isInterpreting
                       ? _stopInterpreting
                       : _startInterpreting,
                 ),
-                // Listen button (hearing user speaks)
                 _ControlButton(
-                  icon: _isListening ? Icons.mic_off : Icons.mic,
+                  icon: _isListening
+                      ? Icons.mic_off_rounded
+                      : Icons.mic_rounded,
                   label: _isListening ? 'Stop' : 'Listen',
                   color: AppColors.info,
                   isActive: _isListening,
                   onTap: () {
-                    // TODO: Implement speech-to-text
                     setState(() => _isListening = !_isListening);
                   },
                 ),
@@ -221,9 +332,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 }
 
+// ── Chat bubble ──────────────────────────────────────────
+
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
-
   const _ChatBubble({required this.message});
 
   @override
@@ -232,17 +344,24 @@ class _ChatBubble extends StatelessWidget {
     final isSystem = message.sender == MessageSender.system;
 
     if (isSystem) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: Text(
-          message.text,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-            fontStyle: FontStyle.italic,
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message.text,
+              style: GoogleFonts.inter(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
-          textAlign: TextAlign.center,
         ),
       );
     }
@@ -250,35 +369,50 @@ class _ChatBubble extends StatelessWidget {
     return Align(
       alignment: isDeaf ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.symmetric(vertical: 3),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isDeaf ? AppColors.primary : AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(16).copyWith(
-            bottomRight: isDeaf ? const Radius.circular(4) : null,
-            bottomLeft: !isDeaf ? const Radius.circular(4) : null,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(isDeaf ? 18 : 4),
+            bottomRight: Radius.circular(isDeaf ? 4 : 18),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isDeaf ? '🤟 Signed' : '🎤 Spoken',
-              style: TextStyle(
-                fontSize: 10,
-                color: isDeaf
-                    ? AppColors.secondary.withValues(alpha: 0.7)
-                    : AppColors.textSecondary,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isDeaf ? '🤟' : '🎤',
+                  style: const TextStyle(fontSize: 10),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isDeaf ? 'Signed' : 'Spoken',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isDeaf
+                        ? AppColors.secondary.withValues(alpha: 0.6)
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               message.text,
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 color: isDeaf ? AppColors.secondary : AppColors.textPrimary,
                 fontSize: 15,
+                height: 1.4,
               ),
             ),
           ],
@@ -287,6 +421,8 @@ class _ChatBubble extends StatelessWidget {
     );
   }
 }
+
+// ── Control button ───────────────────────────────────────
 
 class _ControlButton extends StatelessWidget {
   final IconData icon;
@@ -312,24 +448,29 @@ class _ControlButton extends StatelessWidget {
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: isActive ? color : color.withValues(alpha: 0.15),
+              color: isActive ? color : color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
               border: Border.all(color: color, width: 2),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                      ),
+                    ]
+                  : null,
             ),
-            child: Icon(
-              icon,
-              color: isActive ? Colors.white : color,
-              size: 28,
-            ),
+            child: Icon(icon, color: isActive ? Colors.white : color, size: 28),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
+            style: GoogleFonts.inter(
+              color: isActive ? color : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

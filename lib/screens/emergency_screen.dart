@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
 import '../utils/constants.dart';
@@ -131,42 +132,71 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          const SizedBox(height: 20),
-          Icon(Icons.emergency, size: 64, color: AppColors.danger),
+          const SizedBox(height: 12),
+          // Pulsing icon
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.danger.withValues(alpha: 0.1),
+            ),
+            child: Icon(Icons.emergency, size: 48, color: AppColors.danger),
+          ),
           const SizedBox(height: 16),
           Text(
             'One-Tap Emergency',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Select the type of help you need.\nIshara will call emergency services and speak for you.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            'Select the type of help you need.\nIshara will speak for you.',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           // Emergency type selector
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: _emergencyTypes.map((type) {
               final isSelected = _selectedType == type['type'];
               return GestureDetector(
-                onTap: () => setState(() => _selectedType = type['type']),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _selectedType = type['type']);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   width: 100,
-                  height: 100,
+                  height: 110,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? (type['color'] as Color).withValues(alpha: 0.2)
+                        ? (type['color'] as Color).withValues(alpha: 0.15)
                         : AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected
                           ? type['color'] as Color
                           : AppColors.surfaceLight,
                       width: isSelected ? 2 : 1,
                     ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: (type['color'] as Color).withValues(
+                                alpha: 0.2,
+                              ),
+                              blurRadius: 12,
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -176,15 +206,15 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                         color: type['color'] as Color,
                         size: 36,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Text(
                         type['label'] as String,
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           color: AppColors.textPrimary,
                           fontSize: 13,
                           fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                       ),
                     ],
@@ -209,15 +239,23 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 boxShadow: _selectedType != null
                     ? [
                         BoxShadow(
-                          color: AppColors.danger.withValues(alpha: 0.4),
-                          blurRadius: 30,
+                          color: AppColors.danger.withValues(alpha: 0.5),
+                          blurRadius: 40,
                           spreadRadius: 5,
+                        ),
+                        BoxShadow(
+                          color: AppColors.danger.withValues(alpha: 0.2),
+                          blurRadius: 80,
+                          spreadRadius: 10,
                         ),
                       ]
                     : null,
               ),
               child: _isSending
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    )
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

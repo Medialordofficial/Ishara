@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/sound_alert.dart';
 import '../utils/constants.dart';
 
@@ -94,28 +95,43 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
         color: _flashColor,
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            // Status indicator
+            const SizedBox(height: 24),
+            // Status indicator with outer glow ring
             AnimatedBuilder(
               animation: _pulseController,
               builder: (context, child) {
+                final pulseSize = _isListening
+                    ? _pulseController.value * 30
+                    : 0.0;
                 return Container(
-                  width: 120 + (_isListening ? _pulseController.value * 20 : 0),
-                  height:
-                      120 + (_isListening ? _pulseController.value * 20 : 0),
+                  width: 140 + pulseSize,
+                  height: 140 + pulseSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _isListening
                         ? AppColors.info.withValues(
-                            alpha: 0.15 + _pulseController.value * 0.1,
+                            alpha: 0.08 + _pulseController.value * 0.08,
                           )
-                        : AppColors.surfaceLight,
+                        : AppColors.surfaceLight.withValues(alpha: 0.5),
                     border: Border.all(
                       color: _isListening
-                          ? AppColors.info
-                          : AppColors.textSecondary,
-                      width: 2,
+                          ? AppColors.info.withValues(
+                              alpha: 0.4 + _pulseController.value * 0.4,
+                            )
+                          : AppColors.surfaceLight,
+                      width: 2.5,
                     ),
+                    boxShadow: _isListening
+                        ? [
+                            BoxShadow(
+                              color: AppColors.info.withValues(
+                                alpha: 0.15 + _pulseController.value * 0.1,
+                              ),
+                              blurRadius: 24 + _pulseController.value * 16,
+                              spreadRadius: _pulseController.value * 4,
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Icon(
                     _isListening ? Icons.hearing : Icons.hearing_disabled,

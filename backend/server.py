@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Ishara Backend Server
 FastAPI bridge between the Flutter app and Gemma 4 via Ollama.
@@ -57,7 +59,7 @@ async def _chat(prompt: str, image_b64: str | None = None) -> str:
     if image_b64:
         payload["images"] = [image_b64]
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=10)) as client:
         r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
         r.raise_for_status()
         return r.json().get("response", "")

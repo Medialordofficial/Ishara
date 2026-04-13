@@ -30,7 +30,7 @@ class ApiService {
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
-      return json['interpretation'] ?? '';
+      return json['sign'] ?? '';
     }
     throw Exception('Sign interpretation failed: ${response.statusCode}');
   }
@@ -56,22 +56,17 @@ class ApiService {
     throw Exception('Speech-to-text failed: ${response.statusCode}');
   }
 
-  /// Classify an audio clip for sound awareness
-  Future<Map<String, dynamic>> classifySound(Uint8List audioBytes) async {
+  /// Classify a sound description for sound awareness
+  Future<Map<String, dynamic>> classifySound(String description) async {
     final uri = Uri.parse('$_baseUrl/classify-sound');
-    final request = http.MultipartRequest('POST', uri)
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'audio',
-          audioBytes,
-          filename: 'audio.wav',
-        ),
-      );
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'description': description}),
+    );
 
-    final response = await request.send();
     if (response.statusCode == 200) {
-      final body = await response.stream.bytesToString();
-      return jsonDecode(body);
+      return jsonDecode(response.body);
     }
     throw Exception('Sound classification failed: ${response.statusCode}');
   }
@@ -95,7 +90,7 @@ class ApiService {
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
-      return json['reading'] ?? '';
+      return json['description'] ?? '';
     }
     throw Exception('World reading failed: ${response.statusCode}');
   }
@@ -106,7 +101,7 @@ class ApiService {
     required double longitude,
     required String emergencyType,
   }) async {
-    final uri = Uri.parse('$_baseUrl/emergency');
+    final uri = Uri.parse('$_baseUrl/emergency-message');
     final response = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},

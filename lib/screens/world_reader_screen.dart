@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
@@ -63,8 +64,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
       final bytes = await image.readAsBytes();
       final question = _questionController.text.trim();
 
-      final result =
-          await _api.readWorld(bytes, question: question.isNotEmpty ? question : null);
+      final result = await _api.readWorld(
+        bytes,
+        question: question.isNotEmpty ? question : null,
+      );
 
       setState(() {
         _readResult = result;
@@ -74,7 +77,8 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
       await _tts.speak(result);
     } catch (e) {
       setState(() {
-        _readResult = 'Unable to read. Make sure the backend server is running.';
+        _readResult =
+            'Unable to read. Make sure the backend server is running.';
         _isReading = false;
       });
     }
@@ -126,7 +130,8 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   CircularProgressIndicator(
-                                      color: AppColors.success),
+                                    color: AppColors.success,
+                                  ),
                                   SizedBox(height: 12),
                                   Text(
                                     'Reading...',
@@ -147,7 +152,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                               height: 200,
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: AppColors.success.withValues(alpha: 0.5),
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   width: 2,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
@@ -157,7 +164,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                       ],
                     )
                   : const Center(
-                      child: CircularProgressIndicator(color: AppColors.success),
+                      child: CircularProgressIndicator(
+                        color: AppColors.success,
+                      ),
                     ),
             ),
           ),
@@ -173,8 +182,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                 hintStyle: const TextStyle(color: AppColors.textSecondary),
                 filled: true,
                 fillColor: AppColors.surface,
-                prefixIcon:
-                    const Icon(Icons.help_outline, color: AppColors.textSecondary),
+                prefixIcon: const Icon(
+                  Icons.help_outline,
+                  color: AppColors.textSecondary,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -188,13 +199,24 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
           GestureDetector(
             onTap: _isReading ? null : _captureAndRead,
             child: Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: _isReading ? AppColors.surfaceLight : AppColors.success,
                 shape: BoxShape.circle,
+                boxShadow: !_isReading
+                    ? [
+                        BoxShadow(
+                          color: AppColors.success.withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
               ),
               child: Icon(
-                Icons.camera_alt,
+                _isReading
+                    ? Icons.hourglass_top_rounded
+                    : Icons.camera_alt_rounded,
                 color: _isReading ? AppColors.textSecondary : Colors.white,
                 size: 32,
               ),
@@ -218,8 +240,11 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                     ? Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.auto_stories,
-                              size: 36, color: AppColors.textSecondary),
+                          Icon(
+                            Icons.auto_stories,
+                            size: 36,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'Point at a document, label, sign, or menu\nand tap the camera button',

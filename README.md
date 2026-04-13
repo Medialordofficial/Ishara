@@ -1,4 +1,5 @@
 <p align="center">
+  <img src="assets/images/ishara_logo.png" alt="Ishara Logo" width="200"/>
   <h1 align="center">🤟 Ishara</h1>
   <p align="center"><i>Every gesture, understood.</i></p>
 </p>

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../data/sign_dictionary.dart';
 import '../utils/constants.dart';
+import 'ai_chat_screen.dart';
 import 'conversation_screen.dart';
 import 'emergency_screen.dart';
 import 'learn_signs_screen.dart';
 import 'settings_screen.dart';
+import 'sign_dictionary_screen.dart';
 import 'sound_awareness_screen.dart';
 import 'world_reader_screen.dart';
 
@@ -50,6 +53,16 @@ class _HomeScreenState extends State<HomeScreen> {
       title: AppStrings.learnSignsMode,
       icon: Icons.school_outlined,
       builder: () => const LearnSignsScreen(),
+    ),
+    _ModeEntry(
+      title: 'Sign Dictionary',
+      icon: Icons.menu_book_rounded,
+      builder: () => const SignDictionaryScreen(),
+    ),
+    _ModeEntry(
+      title: 'Ishara AI',
+      icon: Icons.smart_toy_rounded,
+      builder: () => const AiChatScreen(),
     ),
   ];
 
@@ -158,11 +171,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 50),
+          const SizedBox(height: 40),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 32,
-            runSpacing: 40,
+            spacing: 28,
+            runSpacing: 36,
             children: modes
                 .map(
                   (mode) => _PremiumCircularButton(
@@ -178,12 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchTab(BuildContext context) {
-    final filtered = AppConstants.dictionary.where((entry) {
-      final text = entry['name']!.toLowerCase();
-      final desc = entry['description']!.toLowerCase();
-      final q = _searchQuery.toLowerCase();
-      return text.contains(q) || desc.contains(q);
-    }).toList();
+    final results = SignDictionary.search(_searchQuery);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
@@ -198,81 +206,186 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 4),
+          Text(
+            '${SignDictionary.allSigns.length} signs across ${SignDictionary.categories.length} categories',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 20),
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(30),
               boxShadow: AppColors.premiumShadows,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: TextField(
               controller: _searchController,
               onChanged: (val) => setState(() => _searchQuery = val),
-              decoration: const InputDecoration(
-                hintText: 'Search for signs...',
-                hintStyle: TextStyle(color: AppColors.textSecondary),
+              decoration: InputDecoration(
+                hintText: 'Search signs, phrases, alphabet...',
+                hintStyle: const TextStyle(color: AppColors.textSecondary),
                 border: InputBorder.none,
-                icon: Icon(Icons.search, color: AppColors.primary),
+                icon: const Icon(Icons.search, color: AppColors.primary),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear,
+                            color: AppColors.textSecondary),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 120),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final sign = filtered[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: Row(
+            child: _searchQuery.isEmpty
+                ? _buildCategoryList()
+                : _buildSearchResults(results),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryList() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 120),
+      itemCount: SignDictionary.categories.length,
+      itemBuilder: (context, index) {
+        final cat = SignDictionary.categories[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const SignDictionaryScreen(),
+            ));
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Text(cat.icon, style: const TextStyle(fontSize: 30)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(sign['emoji']!, style: const TextStyle(fontSize: 32)),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              sign['name']!,
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              sign['description']!,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        cat.name,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${cat.signs.length} signs',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+                const Icon(Icons.chevron_right,
+                    color: AppColors.textSecondary),
+              ],
             ),
           ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchResults(List<SignEntry> results) {
+    if (results.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              'No signs found for "$_searchQuery"',
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 120),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final sign = results[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Text(sign.emoji, style: const TextStyle(fontSize: 30)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sign.word,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sign.description,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -347,30 +460,34 @@ class _PremiumCircularButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              boxShadow: AppColors.premiumShadows,
+      child: SizedBox(
+        width: 90,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                boxShadow: AppColors.premiumShadows,
+              ),
+              child: Icon(entry.icon, color: AppColors.primary, size: 36),
             ),
-            child: Icon(entry.icon, color: AppColors.primary, size: 40),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            entry.title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 12),
+            Text(
+              entry.title,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

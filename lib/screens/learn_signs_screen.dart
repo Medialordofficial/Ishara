@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import '../data/sign_dictionary.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 
@@ -10,86 +11,34 @@ class LearnSignsScreen extends StatefulWidget {
   State<LearnSignsScreen> createState() => _LearnSignsScreenState();
 }
 
-class _LearnSignsScreenState extends State<LearnSignsScreen> {
+class _LearnSignsScreenState extends State<LearnSignsScreen>
+    with TickerProviderStateMixin {
   CameraController? _cameraController;
   final ApiService _api = ApiService();
   bool _isCameraReady = false;
   bool _isPracticing = false;
   int _currentSignIndex = 0;
   String _feedback = '';
+  String _selectedCategory = 'Greetings & Basics';
+  late AnimationController _bounceController;
 
-  final List<Map<String, String>> _signs = [
-    {
-      'name': 'Hello',
-      'description': 'Wave your open hand side to side',
-      'emoji': '👋',
-    },
-    {
-      'name': 'Thank You',
-      'description': 'Touch your chin with fingertips, then move hand forward',
-      'emoji': '🙏',
-    },
-    {
-      'name': 'Please',
-      'description': 'Rub your chest in a circular motion with flat hand',
-      'emoji': '🤲',
-    },
-    {
-      'name': 'Yes',
-      'description': 'Make a fist and nod it up and down like a head nodding',
-      'emoji': '✅',
-    },
-    {
-      'name': 'No',
-      'description': 'Extend index and middle finger, snap them against thumb',
-      'emoji': '❌',
-    },
-    {
-      'name': 'Help',
-      'description': 'Place fist on open palm and raise both hands together',
-      'emoji': '🆘',
-    },
-    {
-      'name': 'Water',
-      'description':
-          'Extend three middle fingers, tap index finger on chin twice',
-      'emoji': '💧',
-    },
-    {
-      'name': 'Food',
-      'description': 'Bunch fingertips together and tap them to your mouth',
-      'emoji': '🍽️',
-    },
-    {
-      'name': 'Medicine',
-      'description': 'Rock middle finger in the palm of your other hand',
-      'emoji': '💊',
-    },
-    {
-      'name': 'Pain',
-      'description': 'Point both index fingers toward each other and twist',
-      'emoji': '🤕',
-    },
-    {
-      'name': 'Doctor',
-      'description': 'Tap your wrist with fingertips (like taking a pulse)',
-      'emoji': '👨‍⚕️',
-    },
-    {
-      'name': 'Emergency',
-      'description': 'Wave hand back and forth rapidly above your head',
-      'emoji': '🚨',
-    },
-  ];
-
-  String get _currentCategory {
-    if (_currentSignIndex < 6) return 'Basic Communication';
-    return 'Medical & Emergency';
+  List<SignEntry> get _currentSigns {
+    try {
+      return SignDictionary.categories
+          .firstWhere((c) => c.name == _selectedCategory)
+          .signs;
+    } catch (_) {
+      return SignDictionary.categories.first.signs;
+    }
   }
 
   @override
   void initState() {
     super.initState();
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _initCamera();
   }
 
@@ -109,9 +58,7 @@ class _LearnSignsScreenState extends State<LearnSignsScreen> {
     );
 
     await _cameraController!.initialize();
-    if (mounted) {
-      setState(() => _isCameraReady = true);
-    }
+    if (mounted) setState(() => _isCameraReady = true);
   }
 
   Future<void> _checkSign() async {
@@ -127,20 +74,18 @@ class _LearnSignsScreenState extends State<LearnSignsScreen> {
     try {
       final image = await _cameraController!.takePicture();
       final bytes = await image.readAsBytes();
+      final sign = _currentSigns[_currentSignIndex];
 
-      final result = await _api.evaluateSign(
-        bytes,
-        _signs[_currentSignIndex]['name']!,
-      );
+      final result = await _api.evaluateSign(bytes, sign.word);
 
       setState(() {
         _feedback = result['feedback'] ?? 'Great attempt! Keep practicing.';
         _isPracticing = false;
       });
+      _bounceController.forward().then((_) => _bounceController.reverse());
     } catch (e) {
       setState(() {
-        _feedback =
-            'Connect to the Ishara server to get feedback on your signs.';
+        _feedback = 'Connect to the Ishara server to get AI feedback.';
         _isPracticing = false;
       });
     }
@@ -148,7 +93,7 @@ class _LearnSignsScreenState extends State<LearnSignsScreen> {
 
   void _nextSign() {
     setState(() {
-      _currentSignIndex = (_currentSignIndex + 1) % _signs.length;
+      _currentSignIndex = (_currentSignIndex + 1) % _currentSigns.length;
       _feedback = '';
     });
   }
@@ -156,7 +101,7 @@ class _LearnSignsScreenState extends State<LearnSignsScreen> {
   void _prevSign() {
     setState(() {
       _currentSignIndex =
-          (_currentSignIndex - 1 + _signs.length) % _signs.length;
+          (_currentSignIndex - 1 + _currentSigns.length) % _currentSigns.length;
       _feedback = '';
     });
   }
@@ -164,275 +109,369 @@ class _LearnSignsScreenState extends State<LearnSignsScreen> {
   @override
   void dispose() {
     _cameraController?.dispose();
+    _bounceController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final sign = _signs[_currentSignIndex];
+    final signs = _currentSigns;
+    final sign = signs[_currentSignIndex];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Learn Signs')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
-          _LearningHero(
-            category: _currentCategory,
-            progress: '${_currentSignIndex + 1} / ${_signs.length}',
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: AppColors.premiumShadows,
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Learn Signs',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_currentSignIndex + 1}/${signs.length}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(sign['emoji']!, style: const TextStyle(fontSize: 34)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            sign['name']!,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(color: AppColors.warning),
+            const SizedBox(height: 12),
+
+            // Category selector
+            SizedBox(
+              height: 44,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: SignDictionary.categories.length,
+                itemBuilder: (context, index) {
+                  final cat = SignDictionary.categories[index];
+                  final selected = _selectedCategory == cat.name;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        _selectedCategory = cat.name;
+                        _currentSignIndex = 0;
+                        _feedback = '';
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: selected ? null : AppColors.premiumShadows,
+                        ),
+                        child: Text(
+                          '${cat.icon} ${cat.name}',
+                          style: TextStyle(
+                            color: selected
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
-                          const SizedBox(height: 4),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Main content - scrollable
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // Sign card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: AppColors.premiumShadows,
+                      ),
+                      child: Column(
+                        children: [
+                          Text(sign.emoji,
+                              style: const TextStyle(fontSize: 48)),
+                          const SizedBox(height: 8),
                           Text(
-                            'Practice prompt',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            sign.word,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            sign.description,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 15,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          // Steps
+                          ...sign.steps.asMap().entries.map((entry) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '${entry.key + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      entry.value,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 12),
+                          // Progress bar
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: LinearProgressIndicator(
+                              value: (_currentSignIndex + 1) / signs.length,
+                              backgroundColor: AppColors.background,
+                              color: AppColors.primary,
+                              minHeight: 8,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  sign['description']!,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 16),
-                LinearProgressIndicator(
-                  value: (_currentSignIndex + 1) / _signs.length,
-                  backgroundColor: AppColors.surfaceLight,
-                  color: AppColors.warning,
-                  borderRadius: BorderRadius.circular(999),
-                  minHeight: 10,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            height: 320,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: _isCameraReady
-                ? Stack(
-                    children: [
-                      CameraPreview(_cameraController!),
-                      Center(
-                        child: Container(
-                          width: 210,
-                          height: 210,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: AppColors.warning.withValues(alpha: 0.8),
-                              width: 2,
+                    const SizedBox(height: 16),
+
+                    // Camera preview
+                    Container(
+                      height: 240,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: AppColors.premiumShadows,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _isCameraReady
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CameraPreview(_cameraController!),
+                                Center(
+                                  child: Container(
+                                    width: 160,
+                                    height: 160,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.6),
+                                        width: 2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.primary),
                             ),
-                            borderRadius: BorderRadius.circular(22),
-                          ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Feedback
+                    if (_feedback.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: AppColors.premiumShadows,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.smart_toy,
+                                    color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'AI Coach',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _feedback,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  )
-                : const Center(
-                    child: CircularProgressIndicator(color: AppColors.warning),
-                  ),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Coach feedback',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 14),
-                if (_feedback.isEmpty)
-                  const _LearnEmptyState()
-                else
-                  Text(_feedback, style: Theme.of(context).textTheme.bodyLarge),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _prevSign,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  label: const Text('Previous'),
+                    const SizedBox(height: 100),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: FilledButton.icon(
-                  onPressed: _isPracticing ? null : _checkSign,
-                  icon: _isPracticing
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.verified_rounded),
-                  label: Text(_isPracticing ? 'Checking...' : 'Check my sign'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.warning,
-                    foregroundColor: AppColors.secondary,
-                    minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
+            ),
+
+            // Bottom controls - thumb accessible
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  GestureDetector(
+                    onTap: _prevSign,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        shape: BoxShape.circle,
+                        boxShadow: AppColors.premiumShadows,
+                      ),
+                      child: const Icon(Icons.arrow_back_rounded,
+                          color: AppColors.primary, size: 28),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _nextSign,
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  label: const Text('Next'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LearningHero extends StatelessWidget {
-  final String category;
-  final String progress;
-
-  const _LearningHero({required this.category, required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF5DD), Color(0xFFFFE8BA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  category,
-                  style: const TextStyle(
-                    color: AppColors.warning,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                  GestureDetector(
+                    onTap: _isPracticing ? null : _checkSign,
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: _isPracticing
+                            ? AppColors.textSecondary
+                            : AppColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: _isPracticing
+                          ? const Center(
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.verified_rounded,
+                              color: Colors.white, size: 34),
+                    ),
                   ),
-                ),
+                  GestureDetector(
+                    onTap: _nextSign,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        shape: BoxShape.circle,
+                        boxShadow: AppColors.premiumShadows,
+                      ),
+                      child: const Icon(Icons.arrow_forward_rounded,
+                          color: AppColors.primary, size: 28),
+                    ),
+                  ),
+                ],
               ),
-              const Spacer(),
-              Text(progress, style: Theme.of(context).textTheme.titleMedium),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Practice with a clearer learning loop.',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(color: AppColors.secondary),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'See the prompt, perform the sign in frame, and let Ishara review your attempt with feedback.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.secondaryLight),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LearnEmptyState extends StatelessWidget {
-  const _LearnEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.school_outlined,
-            size: 40,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Feedback will appear here',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Perform the sign in frame and tap “Check my sign” to get feedback from the backend.',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

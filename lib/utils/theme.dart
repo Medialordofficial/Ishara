@@ -30,23 +30,24 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
-        shadowColor: AppColors.secondary,
-        elevation: 0,
+        shadowColor: AppColors.primary.withValues(alpha: 0.1),
+        elevation: 16,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(28),
+          side: const BorderSide(color: Colors.transparent),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.secondary,
-          foregroundColor: AppColors.secondary,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.surface,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(24),
           ),
-          elevation: 0,
+          elevation: 8,
+          shadowColor: AppColors.primary.withValues(alpha: 0.3),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w700,

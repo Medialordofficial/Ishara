@@ -1,20 +1,40 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFFD4A843); // Golden from logo
-  static const Color primaryDark = Color(0xFFB8922E);
-  static const Color secondary = Color(0xFF172033); // Deep navy from logo
-  static const Color secondaryLight = Color(0xFF31415F);
-  static const Color background = Color(0xFFF8F5EF);
+  static const Color primary = Color(0xFF0A66C2); // Premium Blue
+  static const Color primaryDark = Color(0xFF004182);
+  static const Color secondary = Color(0xFFE8F0FE); // Soft Blue background
+  static const Color secondaryLight = Color(0xFFF3F7FF);
+  static const Color background = Color(
+    0xFFF7F9FF,
+  ); // Clean premium white-blue tint
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceLight = Color(0xFFF1EBE1);
-  static const Color border = Color(0xFFE4DDD0);
-  static const Color textPrimary = Color(0xFF172033);
-  static const Color textSecondary = Color(0xFF6F7A8F);
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
-  static const Color danger = Color(0xFFE53935);
-  static const Color info = Color(0xFF2F6FED);
+  static const Color surfaceLight = Color(0xFFF8FAFF);
+  static const Color border = Color(0xFFE5E9F2);
+  static const Color textPrimary = Color(0xFF1E2638);
+  static const Color textSecondary = Color(0xFF7B849C);
+
+  // Adjusted status colors for a more premium look
+  static const Color success = Color(0xFF34A853);
+  static const Color warning = Color(0xFFFBBC05);
+  static const Color danger = Color(0xFFEA4335);
+  static const Color info = Color(0xFF4285F4);
+
+  // Soft Shadows for Neumorphic/Premium Feel
+  static List<BoxShadow> get premiumShadows => [
+    BoxShadow(
+      color: const Color(0xFF8C9AB5).withValues(alpha: 0.15),
+      blurRadius: 24,
+      offset: const Offset(0, 10),
+      spreadRadius: -2,
+    ),
+    BoxShadow(
+      color: const Color(0xFFFFFFFF).withValues(alpha: 0.8),
+      blurRadius: 16,
+      offset: const Offset(-8, -8),
+      spreadRadius: 2,
+    ),
+  ];
 }
 
 class AppStrings {

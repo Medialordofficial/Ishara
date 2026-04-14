@@ -16,6 +16,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   List<_ModeEntry> get _modeEntries => [
     _ModeEntry(
@@ -103,14 +111,13 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Premium Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Good Morning,',
                     style: TextStyle(
                       color: AppColors.textSecondary,
@@ -119,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  const Text(
                     'Welcome back',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -152,8 +159,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 50),
-
-          // Floating Circular Action Buttons
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 32,
@@ -173,10 +178,100 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchTab(BuildContext context) {
-    return Center(
-      child: Text(
-        'Search coming soon',
-        style: Theme.of(context).textTheme.bodyMedium,
+    final filtered = AppConstants.dictionary.where((entry) {
+      final text = entry['name']!.toLowerCase();
+      final desc = entry['description']!.toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      return text.contains(q) || desc.contains(q);
+    }).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sign Dictionary',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: AppColors.premiumShadows,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              decoration: const InputDecoration(
+                hintText: 'Search for signs...',
+                hintStyle: TextStyle(color: AppColors.textSecondary),
+                border: InputBorder.none,
+                icon: Icon(Icons.search, color: AppColors.primary),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 120),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final sign = filtered[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Text(sign['emoji']!, style: const TextStyle(fontSize: 32)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sign['name']!,
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              sign['description']!,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

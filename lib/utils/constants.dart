@@ -56,3 +56,20 @@ class ApiConfig {
   static const int defaultPort = 8000;
   static String get baseUrl => 'http://$defaultHost:$defaultPort';
 }
+
+class AppConstants {
+  static const List<Map<String, String>> dictionary = [
+    {'name': 'Hello', 'description': 'Wave your open hand side to side', 'emoji': '👋'},
+    {'name': 'Thank You', 'description': 'Touch your chin with fingertips, then move hand forward', 'emoji': '🙏'},
+    {'name': 'Please', 'description': 'Rub your chest in a circular motion with flat hand', 'emoji': '🤲'},
+    {'name': 'Yes', 'description': 'Make a fist and nod it up and down like a head nodding', 'emoji': '✅'},
+    {'name': 'No', 'description': 'Extend index and middle finger, snap them against thumb', 'emoji': '❌'},
+    {'name': 'Help', 'description': 'Place fist on open palm and raise both hands together', 'emoji': '🆘'},
+    {'name': 'Water', 'description': 'Extend three middle fingers, tap index finger on chin twice', 'emoji': '💧'},
+    {'name': 'Food', 'description': 'Bunch fingertips together and tap them to your mouth', 'emoji': '🍽️'},
+    {'name': 'Medicine', 'description': 'Rock middle finger in the palm of your other hand', 'emoji': '💊'},
+    {'name': 'Pain', 'description': 'Point both index fingers toward each other and twist', 'emoji': '🤕'},
+    {'name': 'Doctor', 'description': 'Tap your wrist with fingertips (like taking a pulse)', 'emoji': '👨‍⚕️'},
+    {'name': 'Emergency', 'description': 'Wave hand back and forth rapidly above your head', 'emoji': '🚨'}
+  ];
+}

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
@@ -95,174 +94,263 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.document_scanner, color: AppColors.success),
-            const SizedBox(width: 8),
-            const Text('World Reader'),
-          ],
-        ),
-      ),
-      body: Column(
+      appBar: AppBar(title: const Text('World Reader')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         children: [
-          // Camera preview
-          Expanded(
-            flex: 3,
-            child: Container(
-              margin: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.surfaceLight),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: _isCameraReady
-                  ? Stack(
-                      children: [
-                        CameraPreview(_cameraController!),
-                        // Scanning overlay
-                        if (_isReading)
-                          Container(
-                            color: AppColors.background.withValues(alpha: 0.5),
-                            child: const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                    color: AppColors.success,
+          _WorldReaderHero(onCapture: _isReading ? null : _captureAndRead),
+          const SizedBox(height: 18),
+          Container(
+            height: 320,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withValues(alpha: 0.06),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _isCameraReady
+                ? Stack(
+                    children: [
+                      CameraPreview(_cameraController!),
+                      if (_isReading)
+                        Container(
+                          color: Colors.black.withValues(alpha: 0.42),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(color: Colors.white),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Reading the scene...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    'Reading...',
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        // Crosshair
-                        if (!_isReading)
-                          Center(
-                            child: Container(
-                              width: 200,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: AppColors.success.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  width: 2,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              ],
                             ),
                           ),
-                      ],
-                    )
-                  : const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.success,
-                      ),
+                        )
+                      else
+                        Center(
+                          child: Container(
+                            width: 220,
+                            height: 220,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: AppColors.success.withValues(alpha: 0.8),
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                          ),
+                        ),
+                    ],
+                  )
+                : const Center(
+                    child: CircularProgressIndicator(color: AppColors.success),
+                  ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Optional question',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ask what the object says, what the sign means, or what stands out in the scene.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _questionController,
+                  decoration: const InputDecoration(
+                    hintText: 'What am I looking at?',
+                    prefixIcon: Icon(Icons.help_outline_rounded),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _isReading ? null : _captureAndRead,
+                  icon: Icon(
+                    _isReading
+                        ? Icons.hourglass_top_rounded
+                        : Icons.camera_alt_rounded,
+                  ),
+                  label: Text(_isReading ? 'Reading...' : 'Capture and read'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
                     ),
+                  ),
+                ),
+              ],
             ),
           ),
-
-          // Ask a question (optional)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: TextField(
-              controller: _questionController,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Ask a question about what you see (optional)',
-                hintStyle: const TextStyle(color: AppColors.textSecondary),
-                filled: true,
-                fillColor: AppColors.surface,
-                prefixIcon: const Icon(
-                  Icons.help_outline,
-                  color: AppColors.textSecondary,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reader output',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 14),
+                if (_readResult.isEmpty)
+                  const _WorldEmptyState()
+                else
+                  Text(
+                    _readResult,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorldReaderHero extends StatelessWidget {
+  final VoidCallback? onCapture;
+
+  const _WorldReaderHero({required this.onCapture});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEAFBF1), Color(0xFFD4F2DE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _WorldPill(),
+          const SizedBox(height: 16),
+          Text(
+            'Turn signs, menus, and scenes into clear answers.',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Point your camera at the world, ask a question if needed, and let Gemma describe what matters.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.secondaryLight),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: onCapture,
+            icon: const Icon(Icons.camera_enhance_rounded),
+            label: const Text('Open camera capture'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorldPill extends StatelessWidget {
+  const _WorldPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.visibility_rounded, size: 16, color: AppColors.success),
+          SizedBox(width: 8),
+          Text(
+            'Visual understanding',
+            style: TextStyle(
+              color: AppColors.success,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorldEmptyState extends StatelessWidget {
+  const _WorldEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.auto_stories_rounded,
+            size: 40,
+            color: AppColors.textSecondary,
           ),
           const SizedBox(height: 12),
-
-          // Capture button
-          GestureDetector(
-            onTap: _isReading ? null : _captureAndRead,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _isReading ? AppColors.surfaceLight : AppColors.success,
-                shape: BoxShape.circle,
-                boxShadow: !_isReading
-                    ? [
-                        BoxShadow(
-                          color: AppColors.success.withValues(alpha: 0.35),
-                          blurRadius: 16,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Icon(
-                _isReading
-                    ? Icons.hourglass_top_rounded
-                    : Icons.camera_alt_rounded,
-                color: _isReading ? AppColors.textSecondary : Colors.white,
-                size: 32,
-              ),
-            ),
+          Text(
+            'Nothing captured yet',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 12),
-
-          // Result
-          Expanded(
-            flex: 2,
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: SingleChildScrollView(
-                child: _readResult.isEmpty
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.auto_stories,
-                            size: 36,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Point at a document, label, sign, or menu\nand tap the camera button',
-                            style: TextStyle(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      )
-                    : Text(
-                        _readResult,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                          height: 1.5,
-                        ),
-                      ),
-              ),
-            ),
+          const SizedBox(height: 6),
+          Text(
+            'Point at a document, label, menu, or sign and tap capture to get a readable description.',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
           ),
         ],
       ),

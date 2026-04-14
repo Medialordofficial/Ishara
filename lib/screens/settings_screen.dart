@@ -3,7 +3,9 @@ import '../services/api_service.dart';
 import '../utils/constants.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool showAppBar;
+
+  const SettingsScreen({super.key, this.showAppBar = true});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -54,6 +56,168 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final content = ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (!widget.showAppBar) ...[
+          Text('Settings', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 6),
+          Text(
+            'Connect to your local Gemma 4 backend, tune the app, and get Ishara ready for daily use.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 24),
+        ],
+        // Server connection
+        Text(
+          'Server Connection',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Ishara runs Gemma 4 on your laptop. Enter the IP address of the machine running the backend.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+
+        // Host
+        TextField(
+          controller: _hostController,
+          decoration: InputDecoration(
+            labelText: 'Server Host / IP',
+            hintText: '192.168.1.x',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: AppColors.surface,
+          ),
+          keyboardType: TextInputType.url,
+        ),
+        const SizedBox(height: 12),
+
+        // Port
+        TextField(
+          controller: _portController,
+          decoration: InputDecoration(
+            labelText: 'Port',
+            hintText: '8000',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: AppColors.surface,
+          ),
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+
+        // Test button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isTesting ? null : _testConnection,
+            icon: _isTesting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.secondary,
+                    ),
+                  )
+                : const Icon(Icons.wifi_find),
+            label: Text(_isTesting ? 'Testing...' : 'Test Connection'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.secondary,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+
+        if (_connectionStatus.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(
+            _connectionStatus,
+            style: TextStyle(
+              color: _connectionStatus.contains('✅')
+                  ? AppColors.success
+                  : AppColors.danger,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+
+        const SizedBox(height: 32),
+        const Divider(color: AppColors.surfaceLight),
+        const SizedBox(height: 16),
+
+        // Quick start guide
+        Text(
+          'Quick Start',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+        ),
+        const SizedBox(height: 12),
+        _StepTile(
+          step: '1',
+          title: 'Install Ollama on your laptop',
+          subtitle: 'brew install ollama   (macOS)',
+        ),
+        _StepTile(
+          step: '2',
+          title: 'Pull Gemma 4',
+          subtitle: 'ollama pull gemma4',
+        ),
+        _StepTile(
+          step: '3',
+          title: 'Run the Ishara backend',
+          subtitle: 'cd backend && python server.py',
+        ),
+        _StepTile(
+          step: '4',
+          title: 'Enter your laptop\'s IP above',
+          subtitle: 'Find it: Settings → Wi-Fi → IP Address',
+        ),
+        _StepTile(
+          step: '5',
+          title: 'Test connection and start using!',
+          subtitle: 'Tap "Test Connection" above',
+        ),
+
+        const SizedBox(height: 32),
+        const Divider(color: AppColors.surfaceLight),
+        const SizedBox(height: 16),
+
+        // About
+        Text(
+          'About Ishara',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          AppStrings.fullTagline,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Powered by Gemma 4 via Ollama',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+
+    if (!widget.showAppBar) {
+      return content;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -65,158 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Server connection
-          Text(
-            'Server Connection',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Ishara runs Gemma 4 on your laptop. Enter the IP address of the machine running the backend.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-
-          // Host
-          TextField(
-            controller: _hostController,
-            decoration: InputDecoration(
-              labelText: 'Server Host / IP',
-              hintText: '192.168.1.x',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: AppColors.surface,
-            ),
-            keyboardType: TextInputType.url,
-          ),
-          const SizedBox(height: 12),
-
-          // Port
-          TextField(
-            controller: _portController,
-            decoration: InputDecoration(
-              labelText: 'Port',
-              hintText: '8000',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: AppColors.surface,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-
-          // Test button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isTesting ? null : _testConnection,
-              icon: _isTesting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.secondary,
-                      ),
-                    )
-                  : const Icon(Icons.wifi_find),
-              label: Text(_isTesting ? 'Testing...' : 'Test Connection'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.secondary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-
-          if (_connectionStatus.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              _connectionStatus,
-              style: TextStyle(
-                color: _connectionStatus.contains('✅')
-                    ? AppColors.success
-                    : AppColors.danger,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-
-          const SizedBox(height: 32),
-          const Divider(color: AppColors.surfaceLight),
-          const SizedBox(height: 16),
-
-          // Quick start guide
-          Text(
-            'Quick Start',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
-          ),
-          const SizedBox(height: 12),
-          _StepTile(
-            step: '1',
-            title: 'Install Ollama on your laptop',
-            subtitle: 'brew install ollama   (macOS)',
-          ),
-          _StepTile(
-            step: '2',
-            title: 'Pull Gemma 4',
-            subtitle: 'ollama pull gemma4',
-          ),
-          _StepTile(
-            step: '3',
-            title: 'Run the Ishara backend',
-            subtitle: 'cd backend && python server.py',
-          ),
-          _StepTile(
-            step: '4',
-            title: 'Enter your laptop\'s IP above',
-            subtitle: 'Find it: Settings → Wi-Fi → IP Address',
-          ),
-          _StepTile(
-            step: '5',
-            title: 'Test connection and start using!',
-            subtitle: 'Tap "Test Connection" above',
-          ),
-
-          const SizedBox(height: 32),
-          const Divider(color: AppColors.surfaceLight),
-          const SizedBox(height: 16),
-
-          // About
-          Text(
-            'About Ishara',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            AppStrings.fullTagline,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Powered by Gemma 4 via Ollama',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
+      body: content,
     );
   }
 }

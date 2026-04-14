@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
@@ -173,167 +172,265 @@ class _LearnSignsScreenState extends State<LearnSignsScreen> {
     final sign = _signs[_currentSignIndex];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.school, color: AppColors.warning),
-            const SizedBox(width: 8),
-            const Text('Learn Signs'),
-          ],
-        ),
-      ),
-      body: Column(
+      appBar: AppBar(title: const Text('Learn Signs')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         children: [
-          // Progress
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              children: [
-                Text(
-                  _currentCategory,
-                  style: TextStyle(
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${_currentSignIndex + 1} / ${_signs.length}',
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
+          _LearningHero(
+            category: _currentCategory,
+            progress: '${_currentSignIndex + 1} / ${_signs.length}',
           ),
-          LinearProgressIndicator(
-            value: (_currentSignIndex + 1) / _signs.length,
-            backgroundColor: AppColors.surfaceLight,
-            color: AppColors.warning,
-          ),
-
-          // Sign to learn
+          const SizedBox(height: 18),
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.warning.withValues(alpha: 0.3),
-              ),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(sign['emoji']!, style: const TextStyle(fontSize: 40)),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign: "${sign['name']}"',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.warning,
-                  ),
+                Row(
+                  children: [
+                    Text(sign['emoji']!, style: const TextStyle(fontSize: 34)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sign['name']!,
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(color: AppColors.warning),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Practice prompt',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   sign['description']!,
                   style: Theme.of(context).textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: (_currentSignIndex + 1) / _signs.length,
+                  backgroundColor: AppColors.surfaceLight,
+                  color: AppColors.warning,
+                  borderRadius: BorderRadius.circular(999),
+                  minHeight: 10,
                 ),
               ],
             ),
           ),
-
-          // Camera preview
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.surfaceLight),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: _isCameraReady
-                  ? CameraPreview(_cameraController!)
-                  : const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.warning,
+          const SizedBox(height: 18),
+          Container(
+            height: 320,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _isCameraReady
+                ? Stack(
+                    children: [
+                      CameraPreview(_cameraController!),
+                      Center(
+                        child: Container(
+                          width: 210,
+                          height: 210,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.8),
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
+                  )
+                : const Center(
+                    child: CircularProgressIndicator(color: AppColors.warning),
+                  ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Coach feedback',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 14),
+                if (_feedback.isEmpty)
+                  const _LearnEmptyState()
+                else
+                  Text(_feedback, style: Theme.of(context).textTheme.bodyLarge),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-
-          // Feedback
-          if (_feedback.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _feedback,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-          // Controls
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: _prevSign,
-                  icon: const Icon(Icons.arrow_back_ios),
-                  color: AppColors.textSecondary,
-                  iconSize: 28,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Previous'),
                 ),
-                // Check button
-                GestureDetector(
-                  onTap: _isPracticing ? null : _checkSign,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _isPracticing
-                          ? AppColors.surfaceLight
-                          : AppColors.warning,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: _isPracticing
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: AppColors.warning,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Check My Sign',
-                            style: TextStyle(
-                              color: AppColors.secondary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: FilledButton.icon(
+                  onPressed: _isPracticing ? null : _checkSign,
+                  icon: _isPracticing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
                           ),
+                        )
+                      : const Icon(Icons.verified_rounded),
+                  label: Text(_isPracticing ? 'Checking...' : 'Check my sign'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.warning,
+                    foregroundColor: AppColors.secondary,
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
                   ),
                 ),
-                IconButton(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: _nextSign,
-                  icon: const Icon(Icons.arrow_forward_ios),
-                  color: AppColors.textSecondary,
-                  iconSize: 28,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: const Text('Next'),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LearningHero extends StatelessWidget {
+  final String category;
+  final String progress;
+
+  const _LearningHero({required this.category, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF5DD), Color(0xFFFFE8BA)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  category,
+                  style: const TextStyle(
+                    color: AppColors.warning,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(progress, style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Practice with a clearer learning loop.',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'See the prompt, perform the sign in frame, and let Ishara review your attempt with feedback.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.secondaryLight),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LearnEmptyState extends StatelessWidget {
+  const _LearnEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.school_outlined,
+            size: 40,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Feedback will appear here',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Perform the sign in frame and tap “Check my sign” to get feedback from the backend.',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
           ),
         ],
       ),

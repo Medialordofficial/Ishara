@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
 import '../utils/constants.dart';
@@ -110,14 +109,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.emergency, color: AppColors.danger),
-            const SizedBox(width: 8),
-            const Text('Emergency SOS'),
-          ],
-        ),
+        title: const Text('Emergency SOS'),
         actions: [
           if (_emergencySent)
             IconButton(onPressed: _reset, icon: const Icon(Icons.refresh)),
@@ -128,293 +120,427 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   }
 
   Widget _buildEmergencySetup() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          // Pulsing icon
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.danger.withValues(alpha: 0.1),
-            ),
-            child: Icon(Icons.emergency, size: 48, color: AppColors.danger),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      children: [
+        _EmergencyHero(
+          selectedType: _selectedType,
+          isSending: _isSending,
+          onTap: _selectedType != null && !_isSending ? _sendEmergency : null,
+        ),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: AppColors.border),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'One-Tap Emergency',
-            style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Select the type of help you need.\nIshara will speak for you.',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          // Emergency type selector
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: _emergencyTypes.map((type) {
-              final isSelected = _selectedType == type['type'];
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() => _selectedType = type['type']);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 100,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? (type['color'] as Color).withValues(alpha: 0.15)
-                        : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected
-                          ? type['color'] as Color
-                          : AppColors.surfaceLight,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: (type['color'] as Color).withValues(
-                                alpha: 0.2,
-                              ),
-                              blurRadius: 12,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        type['icon'] as IconData,
-                        color: type['color'] as Color,
-                        size: 36,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        type['label'] as String,
-                        style: GoogleFonts.inter(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const Spacer(),
-          // SOS Button
-          GestureDetector(
-            onTap: _selectedType != null && !_isSending ? _sendEmergency : null,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _selectedType != null
-                    ? AppColors.danger
-                    : AppColors.surfaceLight,
-                boxShadow: _selectedType != null
-                    ? [
-                        BoxShadow(
-                          color: AppColors.danger.withValues(alpha: 0.5),
-                          blurRadius: 40,
-                          spreadRadius: 5,
-                        ),
-                        BoxShadow(
-                          color: AppColors.danger.withValues(alpha: 0.2),
-                          blurRadius: 80,
-                          spreadRadius: 10,
-                        ),
-                      ]
-                    : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Choose emergency type',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              child: _isSending
-                  ? const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.sos,
-                          size: 48,
-                          color: _selectedType != null
-                              ? Colors.white
-                              : AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'SOS',
-                          style: TextStyle(
-                            color: _selectedType != null
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+              const SizedBox(height: 6),
+              Text(
+                'Pick the type of help you need first. Ishara will generate a message and speak for you.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              ..._emergencyTypes.map((type) {
+                final isSelected = _selectedType == type['type'];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _EmergencyTypeCard(
+                    label: type['label'] as String,
+                    type: type['type'] as String,
+                    icon: type['icon'] as IconData,
+                    color: type['color'] as Color,
+                    isSelected: isSelected,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedType = type['type'] as String);
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: _selectedType != null && !_isSending
+              ? _sendEmergency
+              : null,
+          icon: _isSending
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.sos_rounded),
+          label: Text(
+            _isSending
+                ? 'Sending emergency message...'
+                : 'Send emergency message',
+          ),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
             ),
           ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildActiveEmergency() {
     return Column(
       children: [
-        // Status banner
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          color: AppColors.danger.withValues(alpha: 0.2),
-          child: Column(
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             children: [
-              const Icon(
-                Icons.check_circle,
-                color: AppColors.success,
-                size: 36,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Emergency message sent!',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE9E7),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: AppColors.danger.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.success,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Emergency message sent',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      _generatedMessage,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 18),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppColors.border),
                 ),
-                child: Text(
-                  _generatedMessage,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Operator chat',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Type here and Ishara will speak your message aloud for the operator.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    if (_chatMessages.isEmpty)
+                      const _EmergencyEmptyState()
+                    else
+                      ..._chatMessages.map(
+                        (message) => Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF2CC),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              message,
+                              style: const TextStyle(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        // Chat with operator
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            'Type messages below — they will be spoken aloud for the operator',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _chatMessages.length,
-            itemBuilder: (context, index) {
-              return Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    _chatMessages[index],
-                    style: const TextStyle(color: AppColors.secondary),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        // Text input
         Container(
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            border: const Border(top: BorderSide(color: AppColors.border)),
           ),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _chatController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Type to speak to operator...',
-                    hintStyle: const TextStyle(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: AppColors.surfaceLight,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
                   ),
                   onSubmitted: (_) => _sendChatMessage(),
                 ),
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _sendChatMessage,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.send,
-                    color: AppColors.secondary,
-                    size: 20,
-                  ),
+              const SizedBox(width: 10),
+              FilledButton(
+                onPressed: _sendChatMessage,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                  foregroundColor: Colors.white,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(18),
                 ),
+                child: const Icon(Icons.send_rounded),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _EmergencyHero extends StatelessWidget {
+  final String? selectedType;
+  final bool isSending;
+  final VoidCallback? onTap;
+
+  const _EmergencyHero({
+    required this.selectedType,
+    required this.isSending,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFE7E4), Color(0xFFFFD0CA)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _EmergencyPill(),
+          const SizedBox(height: 16),
+          Text(
+            'Fast help, without fighting the interface.',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Choose the emergency type and Ishara prepares a spoken text message for responders immediately.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.secondaryLight),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: onTap,
+            icon: isSending
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.sos_rounded),
+            label: Text(
+              selectedType == null
+                  ? 'Choose a type below'
+                  : 'Send ${selectedType![0].toUpperCase()}${selectedType!.substring(1)} emergency',
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmergencyPill extends StatelessWidget {
+  const _EmergencyPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.priority_high_rounded, size: 16, color: AppColors.danger),
+          SizedBox(width: 8),
+          Text(
+            'Priority response',
+            style: TextStyle(
+              color: AppColors.danger,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmergencyTypeCard extends StatelessWidget {
+  final String label;
+  final String type;
+  final IconData icon;
+  final Color color;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _EmergencyTypeCard({
+    required this.label,
+    required this.type,
+    required this.icon,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.12)
+              : AppColors.background,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isSelected ? color : AppColors.border,
+            width: isSelected ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap to route your emergency message correctly.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.arrow_forward_rounded,
+              color: isSelected ? color : AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmergencyEmptyState extends StatelessWidget {
+  const _EmergencyEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.forum_outlined,
+            size: 40,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No operator messages yet',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Your typed messages will appear here before being spoken aloud.',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

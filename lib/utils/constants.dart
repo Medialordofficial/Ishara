@@ -3,17 +3,18 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const Color primary = Color(0xFFD4A843); // Golden from logo
   static const Color primaryDark = Color(0xFFB8922E);
-  static const Color secondary = Color(0xFF1A2744); // Dark navy from logo
-  static const Color secondaryLight = Color(0xFF2D3F5E);
-  static const Color background = Color(0xFF0D1B2A);
-  static const Color surface = Color(0xFF1B2838);
-  static const Color surfaceLight = Color(0xFF243447);
-  static const Color textPrimary = Color(0xFFF5F5F5);
-  static const Color textSecondary = Color(0xFFB0BEC5);
+  static const Color secondary = Color(0xFF172033); // Deep navy from logo
+  static const Color secondaryLight = Color(0xFF31415F);
+  static const Color background = Color(0xFFF8F5EF);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceLight = Color(0xFFF1EBE1);
+  static const Color border = Color(0xFFE4DDD0);
+  static const Color textPrimary = Color(0xFF172033);
+  static const Color textSecondary = Color(0xFF6F7A8F);
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
   static const Color danger = Color(0xFFE53935);
-  static const Color info = Color(0xFF2196F3);
+  static const Color info = Color(0xFF2F6FED);
 }
 
 class AppStrings {

@@ -39,6 +39,7 @@ class HealthResponse(BaseModel):
 
 class SignResponse(BaseModel):
     sign: str
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 class SpeechToTextResponse(BaseModel):
     text: str
@@ -120,6 +121,9 @@ async def auth_middleware(request: Request, call_next):
 # ─── Rate Limiting ─────────────────────────────────────────
 
 _rate_store: dict[str, list[float]] = defaultdict(list)
+# WARNING: In-memory store only. Not safe for multi-worker deployments.
+# For production with multiple uvicorn workers, use Redis:
+#   pip install redis; store = redis.Redis(); store.expire(...)
 
 
 @app.middleware("http")
@@ -227,10 +231,23 @@ async def interpret_sign(image: UploadFile = File(...)):
         "Look at this image of a person making a sign language gesture. "
         "Identify the sign being made and translate it into English. "
         "If no clear sign is visible, say 'No sign detected'. "
-        "Reply with ONLY the translated word or short phrase, nothing else."
+        "Reply with ONLY a JSON object like: {\"sign\": \"Hello\", \"confidence\": 0.85} "
+        "where confidence is your certainty from 0.0 to 1.0."
     )
-    result = await _chat(prompt, b64)
-    return SignResponse(sign=result.strip())
+    raw = await _chat(prompt, b64)
+    sign = raw.strip()
+    confidence = 0.0
+    try:
+        import json as _json
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start >= 0 and end > start:
+            parsed = _json.loads(raw[start:end])
+            sign = str(parsed.get("sign", raw.strip()))
+            confidence = float(parsed.get("confidence", 0.0))
+    except (ValueError, KeyError):
+        pass
+    return SignResponse(sign=sign, confidence=confidence)
 
 
 # 1b. Conversation Mode — speech-to-text (placeholder; real STT via Whisper later)
@@ -408,6 +425,31 @@ async def health():
     except Exception:
         ollama_ok = False
     return HealthResponse(status="ok", ollama=ollama_ok, model=MODEL)
+
+
+# ─── User Feedback ─────────────────────────────────────────
+
+class FeedbackResponse(BaseModel):
+    received: bool
+
+class FeedbackRequest(BaseModel):
+    interpreted_sign: str = Field(max_length=200)
+    correct_sign: str = Field(max_length=200)
+    context: str = Field(default="", max_length=500)
+
+@app.post("/feedback", response_model=FeedbackResponse)
+async def feedback(req: FeedbackRequest):
+    """Log user correction for sign interpretation.
+
+    Enables continuous improvement: collect (interpreted, correct) pairs
+    and use them to build a fine-tuning dataset.
+    """
+    logger.info(
+        "FEEDBACK interpreted=%s correct=%s",
+        _sanitize_user_input(req.interpreted_sign),
+        _sanitize_user_input(req.correct_sign),
+    )
+    return FeedbackResponse(received=True)
 
 
 if __name__ == "__main__":

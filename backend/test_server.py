@@ -410,3 +410,105 @@ def test_openapi_schema_available():
     assert "/chat" in schema["paths"]
     assert "/interpret-sign" in schema["paths"]
     assert "/health" in schema["paths"]
+
+
+# ─── Feedback Endpoint ────────────────────────────────────
+
+
+def test_feedback_accepted():
+    """Feedback endpoint returns received=True for valid payload."""
+    r = client.post(
+        "/feedback",
+        json={"interpreted_sign": "Hello", "correct_sign": "Goodbye"},
+    )
+    assert r.status_code == 200
+    assert r.json()["received"] is True
+
+
+def test_feedback_with_context():
+    """Feedback accepts optional context field."""
+    r = client.post(
+        "/feedback",
+        json={
+            "interpreted_sign": "Thank you",
+            "correct_sign": "Please",
+            "context": "ASL lesson 3",
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["received"] is True
+
+
+def test_feedback_requires_fields():
+    """Feedback endpoint rejects missing required fields."""
+    r = client.post("/feedback", json={})
+    assert r.status_code == 422
+
+
+def test_feedback_rejects_oversized_fields():
+    """Feedback endpoint rejects fields exceeding max length."""
+    r = client.post(
+        "/feedback",
+        json={
+            "interpreted_sign": "A" * 201,
+            "correct_sign": "Hello",
+        },
+    )
+    assert r.status_code == 422
+
+
+def test_feedback_logged(caplog):
+    """Feedback corrections are logged for training data collection."""
+    import server
+    server._rate_store.clear()
+    with caplog.at_level(logging.INFO):
+        client.post(
+            "/feedback",
+            json={"interpreted_sign": "Hello", "correct_sign": "Goodbye"},
+        )
+    assert any("FEEDBACK" in rec.message for rec in caplog.records)
+
+
+# ─── Confidence Score ────────────────────────────────────
+
+
+def test_interpret_sign_response_has_confidence(monkeypatch):
+    """interpret_sign response includes confidence field."""
+    import server
+
+    async def mock_chat(prompt, b64=None):
+        return '{"sign": "Hello", "confidence": 0.92}'
+
+    monkeypatch.setattr(server, "_chat", mock_chat)
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    r = client.post(
+        "/interpret-sign",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "sign" in data
+    assert "confidence" in data
+    assert isinstance(data["confidence"], float)
+    assert 0.0 <= data["confidence"] <= 1.0
+
+
+def test_interpret_sign_fallback_on_non_json(monkeypatch):
+    """interpret_sign gracefully handles non-JSON LLM output."""
+    import server
+
+    async def mock_chat(prompt, b64=None):
+        return "Hello"
+
+    monkeypatch.setattr(server, "_chat", mock_chat)
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    r = client.post(
+        "/interpret-sign",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["sign"] == "Hello"
+    assert data["confidence"] == 0.0

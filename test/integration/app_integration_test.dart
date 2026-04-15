@@ -3,6 +3,7 @@
 // These exercise multi-service pipelines (navigation → screen → service)
 // without native plugins, using mocked HTTP + SharedPreferences.
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -146,6 +147,66 @@ void main() {
       final result = await api.classifySound('loud beeping');
       expect(result['sound'], 'alarm');
       expect(result['level'], 'critical');
+    });
+
+    test('interpretSign returns sign and confidence', () async {
+      SharedPreferences.setMockInitialValues({});
+      final api = ApiService();
+      api.httpClient = MockClient.streaming((req, _) async {
+        expect(req.url.path, '/interpret-sign');
+        return http.StreamedResponse(
+          Stream.value(
+            utf8.encode(jsonEncode({'sign': 'Hello', 'confidence': 0.91})),
+          ),
+          200,
+        );
+      });
+
+      final result =
+          await api.interpretSign(Uint8List.fromList([0xFF, 0xD8, 0xFF]));
+      expect(result['sign'], 'Hello');
+      expect((result['confidence'] as double), closeTo(0.91, 0.001));
+    });
+
+    test('sendFeedback round-trip returns true', () async {
+      SharedPreferences.setMockInitialValues({});
+      final api = ApiService();
+      late Map<String, dynamic> captured;
+      api.httpClient = MockClient((req) async {
+        captured = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response(jsonEncode({'received': true}), 200);
+      });
+
+      final ok = await api.sendFeedback(
+        interpretedSign: 'Hello',
+        correctSign: 'Thank you',
+        context: 'test-flow',
+      );
+      expect(ok, isTrue);
+      expect(captured['interpreted_sign'], 'Hello');
+      expect(captured['correct_sign'], 'Thank you');
+      expect(captured['context'], 'test-flow');
+    });
+
+    test('emergencyMessage returns structured JSON', () async {
+      SharedPreferences.setMockInitialValues({});
+      final api = ApiService();
+      api.httpClient = MockClient((req) async {
+        return http.Response(
+          jsonEncode({
+            'message': 'EMERGENCY: Medical help needed',
+            'location': '-1.286,36.817',
+          }),
+          200,
+        );
+      });
+
+      final result = await api.emergencyMessage(
+        latitude: -1.286,
+        longitude: 36.817,
+        emergencyType: 'medical',
+      );
+      expect(result['message'], contains('EMERGENCY'));
     });
   });
 }

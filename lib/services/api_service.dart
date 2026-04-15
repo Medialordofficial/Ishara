@@ -105,8 +105,9 @@ class ApiService {
     throw RetryExhaustedException(lastError ?? StateError('Retry exhausted'));
   }
 
-  /// Send a camera frame for sign language interpretation
-  Future<String> interpretSign(Uint8List imageBytes) async {
+  /// Send a camera frame for sign language interpretation.
+  /// Returns a map with 'sign' (String) and 'confidence' (double 0–1).
+  Future<Map<String, dynamic>> interpretSign(Uint8List imageBytes) async {
     await _ensureInitialized();
     return _retry(() async {
       final uri = Uri.parse('$_baseUrl/interpret-sign');
@@ -125,14 +126,44 @@ class ApiService {
           .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
-        final json = jsonDecode(body);
-        return json['sign'] ?? '';
+        final json = jsonDecode(body) as Map<String, dynamic>;
+        return {
+          'sign': (json['sign'] as String?) ?? '',
+          'confidence': (json['confidence'] as num?)?.toDouble() ?? 0.0,
+        };
       }
       throw ApiResponseException(
         'Sign interpretation failed',
         statusCode: response.statusCode,
       );
     });
+  }
+
+  /// Send user feedback on a sign interpretation to improve the model.
+  Future<bool> sendFeedback({
+    required String interpretedSign,
+    required String correctSign,
+    String context = '',
+  }) async {
+    await _ensureInitialized();
+    final uri = Uri.parse('$_baseUrl/feedback');
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ..._authHeaders},
+            body: jsonEncode({
+              'interpreted_sign': interpretedSign,
+              'correct_sign': correctSign,
+              'context': context,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      return response.statusCode == 200;
+    } catch (e) {
+      dev.log('sendFeedback error: $e', name: 'ApiService');
+      return false;
+    }
   }
 
   /// Send audio for speech-to-text

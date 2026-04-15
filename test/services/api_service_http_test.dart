@@ -155,10 +155,25 @@ void main() {
   });
 
   group('interpretSign', () {
-    test('sends multipart and returns sign', () async {
+    test('sends multipart and returns sign with confidence', () async {
       api.httpClient = MockClient.streaming((request, _) async {
         expect(request.url.path, '/interpret-sign');
         expect(request.method, 'POST');
+        return http.StreamedResponse(
+          Stream.value(
+            utf8.encode(jsonEncode({'sign': 'hello', 'confidence': 0.85})),
+          ),
+          200,
+        );
+      });
+
+      final result = await api.interpretSign(Uint8List.fromList([1, 2, 3]));
+      expect(result['sign'], 'hello');
+      expect(result['confidence'], closeTo(0.85, 0.001));
+    });
+
+    test('returns 0 confidence when field missing', () async {
+      api.httpClient = MockClient.streaming((request, _) async {
         return http.StreamedResponse(
           Stream.value(utf8.encode(jsonEncode({'sign': 'hello'}))),
           200,
@@ -166,7 +181,8 @@ void main() {
       });
 
       final result = await api.interpretSign(Uint8List.fromList([1, 2, 3]));
-      expect(result, 'hello');
+      expect(result['sign'], 'hello');
+      expect(result['confidence'], 0.0);
     });
 
     test('throws ApiResponseException on server error', () async {
@@ -312,6 +328,49 @@ void main() {
       );
       await api.ping();
       expect(api.isOnline, isFalse);
+    });
+  });
+
+  group('sendFeedback', () {
+    test('returns true on 200 response', () async {
+      api.httpClient = MockClient((request) async {
+        expect(request.url.path, '/feedback');
+        expect(request.method, 'POST');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['interpreted_sign'], 'Hello');
+        expect(body['correct_sign'], 'Goodbye');
+        return http.Response(jsonEncode({'received': true}), 200);
+      });
+
+      final ok = await api.sendFeedback(
+        interpretedSign: 'Hello',
+        correctSign: 'Goodbye',
+      );
+      expect(ok, isTrue);
+    });
+
+    test('returns false on server error', () async {
+      api.httpClient = MockClient(
+        (_) async => http.Response('error', 500),
+      );
+
+      final ok = await api.sendFeedback(
+        interpretedSign: 'Hello',
+        correctSign: 'Goodbye',
+      );
+      expect(ok, isFalse);
+    });
+
+    test('returns false on network exception', () async {
+      api.httpClient = MockClient(
+        (_) => throw http.ClientException('timeout'),
+      );
+
+      final ok = await api.sendFeedback(
+        interpretedSign: 'Hello',
+        correctSign: 'Goodbye',
+      );
+      expect(ok, isFalse);
     });
   });
 }

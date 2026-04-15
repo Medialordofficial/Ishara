@@ -35,6 +35,10 @@ class _ConversationScreenState extends State<ConversationScreen>
   String _signingStatus = 'Ready';
   double _poseConfidence = 0.0;
 
+  // Last interpreted sign + confidence for feedback UI
+  String _lastSign = '';
+  double _lastConfidence = 0.0;
+
   // Speech-to-text
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _speechAvailable = false;
@@ -218,11 +222,15 @@ class _ConversationScreenState extends State<ConversationScreen>
       // ━━━ End on-device ML gate ━━━
 
       final bytes = await image.readAsBytes();
-      final interpretation = await _api.interpretSign(bytes);
+      final result = await _api.interpretSign(bytes);
+      final interpretation = (result['sign'] as String?) ?? '';
+      final confidence = (result['confidence'] as double?) ?? 0.0;
 
       if (interpretation.isNotEmpty &&
           interpretation.toLowerCase() != 'no sign detected') {
         setState(() {
+          _lastSign = interpretation;
+          _lastConfidence = confidence;
           _messages.add(
             ChatMessage(text: interpretation, sender: MessageSender.deaf),
           );
@@ -242,6 +250,52 @@ class _ConversationScreenState extends State<ConversationScreen>
         ).showSnackBar(SnackBar(content: Text('Interpretation error: $e')));
       }
     }
+  }
+
+  void _showCorrectionDialog(String incorrectSign) {
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('What was the correct sign?'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'e.g. "Thank you"',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final correct = controller.text.trim();
+              Navigator.of(ctx).pop();
+              if (correct.isNotEmpty) {
+                final messenger = ScaffoldMessenger.of(context);
+                await _api.sendFeedback(
+                  interpretedSign: incorrectSign,
+                  correctSign: correct,
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Correction submitted — thank you!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _scrollToBottom() {
@@ -490,6 +544,107 @@ class _ConversationScreenState extends State<ConversationScreen>
                         fontSize: 15,
                         fontStyle: FontStyle.italic,
                       ),
+                    ),
+                  ),
+                // Confidence + feedback row after last sign interpretation
+                if (_lastSign.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Last: "$_lastSign"',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.auto_graph,
+                                    size: 12,
+                                    color: _lastConfidence >= 0.7
+                                        ? AppColors.success
+                                        : _lastConfidence >= 0.5
+                                            ? AppColors.warning
+                                            : AppColors.danger,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${(_lastConfidence * 100).toStringAsFixed(0)}% confidence',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: _lastConfidence >= 0.7
+                                          ? AppColors.success
+                                          : _lastConfidence >= 0.5
+                                              ? AppColors.warning
+                                              : AppColors.danger,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Semantics(
+                          button: true,
+                          label: 'Mark interpretation as correct',
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.thumb_up_outlined,
+                              size: 20,
+                              color: AppColors.success,
+                            ),
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              await _api.sendFeedback(
+                                interpretedSign: _lastSign,
+                                correctSign: _lastSign,
+                              );
+                              if (mounted) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Thanks for the feedback!'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        Semantics(
+                          button: true,
+                          label: 'Report incorrect interpretation',
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.thumb_down_outlined,
+                              size: 20,
+                              color: AppColors.danger,
+                            ),
+                            onPressed: () => _showCorrectionDialog(_lastSign),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 // Text input + mic + send

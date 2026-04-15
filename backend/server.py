@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Ishara API", version="1.0.0", lifespan=lifespan)
 
-ALLOWED_ORIGINS = os.getenv("ISHARA_CORS_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = os.getenv("ISHARA_CORS_ORIGINS", "").split(",") if os.getenv("ISHARA_CORS_ORIGINS") else ["http://localhost:8080", "http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -233,48 +233,55 @@ async def _chat(
     Uses /api/chat for proper role separation when available (text-only),
     and /api/generate for multimodal (image) requests.
     Temperature defaults to 0.1 for deterministic safety-critical outputs.
+    Retries once on timeout before raising HTTP 504.
     """
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
-            if image_b64:
-                # Multimodal path — /api/generate (only endpoint that accepts images)
-                payload: dict = {
-                    "model": MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "images": [image_b64],
-                    "options": {"temperature": temperature},
-                }
-                r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
-                r.raise_for_status()
-                return r.json().get("response", "")
-            else:
-                # Text-only path — /api/chat enforces role separation
-                payload = {
-                    "model": MODEL,
-                    "stream": False,
-                    "options": {"temperature": temperature},
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are Ishara AI, a helpful assistant for deaf and "
-                                "hard-of-hearing people. Follow instructions carefully "
-                                "and reply in the exact format requested."
-                            ),
-                        },
-                        {"role": "user", "content": prompt},
-                    ],
-                }
-                r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
-                r.raise_for_status()
-                return r.json().get("message", {}).get("content", "")
-    except httpx.ConnectError as exc:
-        raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?") from exc
-    except httpx.TimeoutException as exc:
-        raise HTTPException(status_code=504, detail="Ollama request timed out") from exc
-    except httpx.HTTPStatusError as exc:
-        raise HTTPException(status_code=502, detail=f"Ollama returned error: {exc.response.status_code}") from exc
+    last_exc: Exception | None = None
+    for attempt in range(2):  # 1 retry on transient timeout
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
+                if image_b64:
+                    # Multimodal path — /api/generate (only endpoint that accepts images)
+                    payload: dict = {
+                        "model": MODEL,
+                        "prompt": prompt,
+                        "stream": False,
+                        "images": [image_b64],
+                        "options": {"temperature": temperature},
+                    }
+                    r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
+                    r.raise_for_status()
+                    return r.json().get("response", "")
+                else:
+                    # Text-only path — /api/chat enforces role separation
+                    payload = {
+                        "model": MODEL,
+                        "stream": False,
+                        "options": {"temperature": temperature},
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You are Ishara AI, a helpful assistant for deaf and "
+                                    "hard-of-hearing people. Follow instructions carefully "
+                                    "and reply in the exact format requested."
+                                ),
+                            },
+                            {"role": "user", "content": prompt},
+                        ],
+                    }
+                    r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
+                    r.raise_for_status()
+                    return r.json().get("message", {}).get("content", "")
+        except httpx.ConnectError as exc:
+            raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?") from exc
+        except httpx.TimeoutException as exc:
+            last_exc = exc
+            if attempt == 0:
+                logger.warning("_chat timeout attempt 1, retrying...")
+                continue
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=502, detail=f"Ollama returned error: {exc.response.status_code}") from exc
+    raise HTTPException(status_code=504, detail="Ollama request timed out") from last_exc
 
 
 async def _read_upload(upload: UploadFile) -> str:
@@ -402,7 +409,7 @@ async def emergency_message(req: EmergencyRequest):
 # 3b. Emergency — operator chat
 class ChatRequest(BaseModel):
     message: str
-    context: str = ""
+    context: str = Field(default="", max_length=500)
 
 @app.post("/emergency-chat", response_model=ChatResponse)
 async def emergency_chat(req: ChatRequest):

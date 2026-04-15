@@ -128,7 +128,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     } else if (lower.contains('emergency') ||
         lower.contains('help') ||
         lower.contains('danger')) {
-      return 'In an emergency, use the Emergency SOS feature in the app. I can also teach you emergency signs like "help", "danger", and "call 911".';
+      return 'In an emergency, use the Emergency SOS feature in the app. I can also teach you emergency signs like "help", "danger", and "call ${_api.emergencyNumber}".';
     } else if (lower.contains('thank')) {
       return 'You\'re welcome! Is there anything else I can help you with?';
     } else if (lower.contains('love')) {

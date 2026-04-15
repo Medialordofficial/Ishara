@@ -15,9 +15,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.5.0] — 2025 Hackathon Release (Latest)
+## [1.6.0] — 2025 Hackathon Release (Latest)
 
-### Fixed — Critical
+### Fixed — Security
+- **CORS wildcard**: Default `ALLOWED_ORIGINS` changed from `"*"` to `["http://localhost:8080", "http://localhost:3000"]`; set `ISHARA_CORS_ORIGINS` env var for production hosts
+- **Context `max_length`**: `POST /emergency-chat` `context` field now has `max_length=500` (was unbounded)
+
+### Fixed — Reliability
+- **LLM retry**: `_chat()` now retries once on `httpx.TimeoutException`; client-facing 504 only raised after both attempts fail
+- **Hardcoded `911`** in AI chat offline fallback: replaced with `_api.emergencyNumber` (respects configured number)
+
+### Fixed — Accessibility
+- **CALL EMERGENCY SERVICES button**: Wrapped in `Semantics(button: true, label: 'Call emergency services', hint: '...')` for screen readers
+
+### Fixed — Code Quality
+- **Magic literals**: `0.5` confidence threshold and `0.3` signing threshold in `conversation_screen.dart` now reference `PoseThresholds.interpretConfidence` and `PoseThresholds.signingConfidence`
+- `PoseThresholds.interpretConfidence = 0.5` constant added to `constants.dart`
+
+### Fixed — Documentation
+- `TROUBLESHOOTING.md`: `OLLAMA_MODEL` → `ISHARA_MODEL`; `gemma3:4b/27b` → `gemma4`; updated RAM guidance and model pull commands
+
+### Added — Tests
+- **14 new Flutter ConversationScreen tests**: AppBar, spinner, system message, mic button, send button, TextField submit, clear behaviour, confidence bar Semantics, threshold constants
+- **4 new Flutter SettingsScreen tests**: Emergency Services section, default 112 value, help text, SharedPreferences load
+- **5 new backend tests**: context max_length 422 rejection, context at limit, 504 on timeout, retry success on first-attempt-timeout, CORS not wildcard
+- **Total: 207 Flutter + 66 backend = 273 tests, 0 failures**
+
+---
+
+## [1.5.0] — 2025 Hackathon Release
 - **Emergency type bug**: `ambulance` changed to `medical` to match API allowlist; was causing 400 errors on every Medical SOS
 - **Hardcoded `911`**: Emergency dial number now user-configurable (default 112 international); set in Settings → Emergency Services
 

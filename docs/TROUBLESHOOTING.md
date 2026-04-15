@@ -58,9 +58,9 @@
 3. **Distance** — keep hands within 0.5–1.5 m of the camera.
 4. **Speed** — slow down; the app captures a single frame every 2 seconds.
 5. **Submit corrections** — tap 👎 after wrong interpretations to send training feedback.
-6. **Model quality** — if using a smaller Ollama model (< 7B), switch to `gemma3:27b` for better vision accuracy:
+6. **Model quality** — if using a smaller Ollama model (< 7B), switch to `gemma4` (26B) for better vision accuracy:
    ```bash
-   OLLAMA_MODEL=gemma3:27b uvicorn server:app ...
+   ISHARA_MODEL=gemma4 uvicorn server:app ...
    ```
 
 ---
@@ -72,14 +72,14 @@
 **Solutions:**
 1. Verify Ollama is running:
    ```bash
-   ollama list   # Should show your model
-   ollama run gemma3:4b "hello"
+   ollama list   # Should show gemma4
+   ollama run gemma4 "hello"
    ```
 2. Pull the model if missing:
    ```bash
-   ollama pull gemma3:4b
+   ollama pull gemma4
    ```
-3. Check available RAM — Gemma 4B needs ~6 GB, 27B needs ~20 GB.
+3. Check available RAM — Gemma4 (26B) needs ~20 GB; use a quantised variant on smaller machines.
 4. Set the correct Ollama URL in `.env`:
    ```
    OLLAMA_URL=http://localhost:11434
@@ -166,7 +166,7 @@
 
 **Solutions:**
 1. Move the Ollama server closer to the device (same LAN, not VPN).
-2. Use a quantized model: `OLLAMA_MODEL=gemma3:4b-it-q4_K_M`.
+2. Use a quantised model: `ISHARA_MODEL=gemma4:latest-q4_K_M uvicorn server:app ...`.
 3. Reduce image quality before sending (consider adding compression in `_captureAndInterpret`).
 4. Check server CPU/GPU utilisation — use `ollama ps` to see if the model is loaded.
 5. Enable GPU offloading in Ollama: `OLLAMA_NUM_GPU=1`.

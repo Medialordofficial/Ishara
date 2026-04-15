@@ -406,24 +406,29 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ],
               const SizedBox(height: 20),
               // Direct emergency dial button
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: () => _dialEmergency(),
-                  icon: const Icon(Icons.phone, size: 20),
-                  label: const Text(
-                    'CALL EMERGENCY SERVICES',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
+              Semantics(
+                button: true,
+                label: 'Call emergency services',
+                hint: 'Dials your configured emergency number',
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _dialEmergency(),
+                    icon: const Icon(Icons.phone, size: 20),
+                    label: const Text(
+                      'CALL EMERGENCY SERVICES',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.danger,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.danger,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                      ),
                     ),
                   ),
                 ),

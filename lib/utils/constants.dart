@@ -62,6 +62,9 @@ class PoseThresholds {
   /// Min confidence to consider person is signing (0.0–1.0).
   static const double signingConfidence = 0.3;
 
+  /// Min LLM model confidence to announce/speak an interpreted sign (0.0–1.0).
+  static const double interpretConfidence = 0.5;
+
   /// Tolerance (px) added to shoulder-y when checking if hand is raised.
   static const double handRaiseTolerance = 80.0;
 

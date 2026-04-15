@@ -126,5 +126,79 @@ void main() {
       // Reset
       themeNotifier.value = ThemeMode.system;
     });
+
+    testWidgets('shows Emergency Services section after scrolling', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Emergency Services'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Emergency Services'), findsOneWidget);
+    });
+
+    testWidgets('Emergency Number field renders with default value 112', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Emergency Services'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Emergency Number'), findsOneWidget);
+      // Default value should be 112
+      final controllers = tester.widgetList<TextField>(find.byType(TextField));
+      final emergencyField = controllers.where(
+        (tf) => tf.controller?.text == '112',
+      );
+      expect(emergencyField, isNotEmpty);
+    });
+
+    testWidgets('Emergency Number section has descriptive help text', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Emergency Services'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('112 (international)'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Emergency Number loads from SharedPreferences', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'ishara_emergency_number': '999',
+      });
+
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Emergency Services'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      // Field should display the saved value
+      final controllers = tester.widgetList<TextField>(find.byType(TextField));
+      final savedField = controllers.where(
+        (tf) => tf.controller?.text == '999',
+      );
+      expect(savedField, isNotEmpty);
+    });
   });
 }

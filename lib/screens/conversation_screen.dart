@@ -232,7 +232,7 @@ class _ConversationScreenState extends State<ConversationScreen>
       // Only announce and speak results above the confidence threshold
       if (interpretation.isNotEmpty &&
           interpretation.toLowerCase() != 'no sign detected' &&
-          confidence >= 0.5) {
+          confidence >= PoseThresholds.interpretConfidence) {
         setState(() {
           _lastSign = interpretation;
           _lastConfidence = confidence;
@@ -450,10 +450,10 @@ class _ConversationScreenState extends State<ConversationScreen>
                             child: Row(
                               children: [
                                 Icon(
-                                  _poseConfidence > 0.3
+                                  _poseConfidence > PoseThresholds.signingConfidence
                                       ? Icons.person
                                       : Icons.person_outline,
-                                  color: _poseConfidence > 0.3
+                                  color: _poseConfidence > PoseThresholds.signingConfidence
                                       ? AppColors.success
                                       : Colors.white70,
                                   size: 16,
@@ -463,7 +463,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                                   child: Text(
                                     _signingStatus,
                                     style: TextStyle(
-                                      color: _poseConfidence > 0.3
+                                      color: _poseConfidence > PoseThresholds.signingConfidence
                                           ? AppColors.success
                                           : Colors.white70,
                                       fontSize: 11,
@@ -485,7 +485,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                                         backgroundColor: Colors.white.withValues(
                                           alpha: 0.2,
                                         ),
-                                        color: _poseConfidence > 0.3
+                                        color: _poseConfidence > PoseThresholds.signingConfidence
                                             ? AppColors.success
                                             : Colors.white54,
                                       ),
@@ -595,7 +595,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                                     size: 12,
                                     color: _lastConfidence >= 0.7
                                         ? AppColors.success
-                                        : _lastConfidence >= 0.5
+                                        : _lastConfidence >= PoseThresholds.interpretConfidence
                                             ? AppColors.warning
                                             : AppColors.danger,
                                   ),
@@ -607,7 +607,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                                       fontWeight: FontWeight.w600,
                                       color: _lastConfidence >= 0.7
                                           ? AppColors.success
-                                          : _lastConfidence >= 0.5
+                                          : _lastConfidence >= PoseThresholds.interpretConfidence
                                               ? AppColors.warning
                                               : AppColors.danger,
                                     ),

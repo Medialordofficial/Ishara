@@ -678,3 +678,73 @@ def test_chat_accepts_user_assistant_roles():
     })
     assert r.status_code in (200, 503, 504)
 
+
+
+def test_emergency_chat_context_too_long():
+    """Emergency chat rejects context strings exceeding 500 characters."""
+    r = client.post("/emergency-chat", json={
+        "message": "help",
+        "context": "x" * 501,
+    })
+    assert r.status_code == 422
+
+
+def test_emergency_chat_context_at_limit():
+    """Emergency chat accepts context at the 500 character limit."""
+    r = client.post("/emergency-chat", json={
+        "message": "help",
+        "context": "x" * 500,
+    })
+    # May be 503 (no Ollama) but should not be 422
+    assert r.status_code != 422
+
+
+def test_chat_on_timeout_returns_504(monkeypatch):
+    """endpoint returns HTTP 504 when all _chat retry attempts time out."""
+    import asyncio
+    import httpx
+    import server
+    from fastapi import HTTPException
+
+    async def always_timeout(prompt, b64=None, *, temperature=0.1):
+        raise HTTPException(status_code=504, detail="Ollama request timed out")
+
+    monkeypatch.setattr(server, "_chat", always_timeout)
+    r = client.post("/chat", json={"message": "hello", "history": []})
+    assert r.status_code == 504
+
+
+def test_chat_retry_on_first_timeout(monkeypatch):
+    """_chat retries once: first httpx call times out, second succeeds."""
+    import asyncio
+    import httpx
+    import server
+
+    call_count = 0
+
+    class FakeResponse:
+        def raise_for_status(self): pass
+        def json(self):
+            return {"message": {"content": "hello"}}
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, url, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise httpx.TimeoutException("first timeout")
+            return FakeResponse()
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: FakeClient())
+    result = asyncio.run(server._chat("test"))
+    assert result == "hello"
+    assert call_count == 2
+
+
+def test_cors_default_is_not_wildcard():
+    """ISHARA_CORS_ORIGINS defaulting to empty should NOT produce wildcard."""
+    import server
+    # ALLOWED_ORIGINS should not contain bare "*" when env var is unset
+    assert "*" not in server.ALLOWED_ORIGINS

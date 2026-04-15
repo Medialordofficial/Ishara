@@ -269,15 +269,18 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: SignDictionary.categories.length,
       itemBuilder: (context, index) {
         final cat = SignDictionary.categories[index];
-        return GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SignDictionaryScreen()),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(18),
+        return Semantics(
+          button: true,
+          label: '${cat.name} category, ${cat.signs.length} signs',
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SignDictionaryScreen()),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(20),
@@ -318,6 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Icon(Icons.chevron_right, color: AppColors.textSecondary),
               ],
             ),
+          ),
           ),
         );
       },
@@ -445,19 +449,28 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.white : AppColors.textSecondary,
-          size: 28,
+    return Semantics(
+      button: true,
+      label: icon == Icons.home_rounded
+          ? 'Home tab'
+          : icon == Icons.search_rounded
+              ? 'Search tab'
+              : 'Settings tab',
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+            size: 28,
+          ),
         ),
       ),
     );

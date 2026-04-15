@@ -1,6 +1,10 @@
 import 'package:flutter_tts/flutter_tts.dart';
 
 class TtsService {
+  static final TtsService _instance = TtsService._internal();
+  factory TtsService() => _instance;
+  TtsService._internal();
+
   final FlutterTts _tts = FlutterTts();
   bool _isInitialized = false;
 

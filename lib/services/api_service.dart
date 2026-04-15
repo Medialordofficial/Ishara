@@ -48,7 +48,7 @@ class ApiService {
         ),
       );
 
-    final response = await request.send();
+    final response = await request.send().timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
@@ -70,7 +70,7 @@ class ApiService {
         ),
       );
 
-    final response = await request.send();
+    final response = await request.send().timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
@@ -87,7 +87,7 @@ class ApiService {
       uri,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'description': description}),
-    );
+    ).timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -111,7 +111,7 @@ class ApiService {
       request.fields['question'] = question;
     }
 
-    final response = await request.send();
+    final response = await request.send().timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
@@ -136,7 +136,7 @@ class ApiService {
         'longitude': longitude,
         'emergency_type': emergencyType,
       }),
-    );
+    ).timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -163,7 +163,7 @@ class ApiService {
       )
       ..fields['target_sign'] = targetSign;
 
-    final response = await request.send();
+    final response = await request.send().timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       return jsonDecode(body);

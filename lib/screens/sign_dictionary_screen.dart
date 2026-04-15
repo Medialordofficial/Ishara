@@ -44,17 +44,21 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                 children: [
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            shape: BoxShape.circle,
-                            boxShadow: AppColors.premiumShadows,
+                      Semantics(
+                        button: true,
+                        label: 'Go back',
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              shape: BoxShape.circle,
+                              boxShadow: AppColors.premiumShadows,
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded,
+                                color: AppColors.primary),
                           ),
-                          child: const Icon(Icons.arrow_back_rounded,
-                              color: AppColors.primary),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -139,15 +143,19 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                     final selected = _selectedCategory == cat.name;
                     return Padding(
                       padding: const EdgeInsets.only(right: 10),
-                      child: GestureDetector(
-                        onTap: () => setState(() {
-                          _selectedCategory =
-                              selected ? null : cat.name;
-                        }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
+                      child: Semantics(
+                        button: true,
+                        label: '${cat.name} category',
+                        selected: selected,
+                        child: GestureDetector(
+                          onTap: () => setState(() {
+                            _selectedCategory =
+                                selected ? null : cat.name;
+                          }),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
                             color: selected
                                 ? AppColors.primary
@@ -184,6 +192,7 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                           ),
                         ),
                       ),
+                      ),
                     );
                   },
                 ),
@@ -215,9 +224,12 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
       itemCount: categories.length,
       itemBuilder: (context, index) {
         final cat = categories[index];
-        return GestureDetector(
-          onTap: () => setState(() => _selectedCategory = cat.name),
-          child: Container(
+        return Semantics(
+          button: true,
+          label: '${cat.name} category, ${cat.signs.length} signs',
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedCategory = cat.name),
+            child: Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
@@ -247,6 +259,7 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
               ],
             ),
           ),
+          ),
         );
       },
     );
@@ -274,9 +287,12 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
       itemCount: signs.length,
       itemBuilder: (context, index) {
         final sign = signs[index];
-        return GestureDetector(
-          onTap: () => _showSignDetail(sign),
-          child: Container(
+        return Semantics(
+          button: true,
+          label: '${sign.word} sign, tap for details',
+          child: GestureDetector(
+            onTap: () => _showSignDetail(sign),
+            child: Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -323,6 +339,7 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                     color: AppColors.textSecondary),
               ],
             ),
+          ),
           ),
         );
       },

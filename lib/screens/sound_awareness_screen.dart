@@ -387,6 +387,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
               _PremiumTestButton(
                 icon: Icons.local_fire_department,
                 color: AppColors.danger,
+                alertLabel: 'fire alarm',
                 onTap: () => _triggerAlert(
                   SoundAlert(
                     label: 'Fire Alarm',
@@ -398,6 +399,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
               _PremiumTestButton(
                 icon: Icons.doorbell,
                 color: AppColors.warning,
+                alertLabel: 'door knock',
                 onTap: () => _triggerAlert(
                   SoundAlert(
                     label: 'Door Knock',
@@ -409,6 +411,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
               _PremiumTestButton(
                 icon: Icons.vibration,
                 color: AppColors.info,
+                alertLabel: 'phone vibration',
                 onTap: () => _triggerAlert(
                   SoundAlert(
                     label: 'Phone Vibration',
@@ -495,18 +498,20 @@ class _PremiumTestButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final String alertLabel;
 
   const _PremiumTestButton({
     required this.icon,
     required this.color,
     required this.onTap,
+    required this.alertLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Test alert',
+      label: 'Test $alertLabel alert',
       child: GestureDetector(
         onTap: onTap,
         child: Container(

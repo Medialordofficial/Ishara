@@ -497,23 +497,22 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 ),
               ),
               const SizedBox(width: 16),
-              GestureDetector(
-                onTap: _sendChatMessage,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+              Semantics(
+                button: true,
+                label: 'Send chat message',
+                child: Material(
+                  color: AppColors.primary,
+                  shape: const CircleBorder(),
+                  elevation: 4,
+                  child: InkWell(
+                    onTap: _sendChatMessage,
+                    customBorder: const CircleBorder(),
+                    child: const SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Icon(Icons.send_rounded, color: Colors.white),
+                    ),
                   ),
-                  child: const Icon(Icons.send_rounded, color: Colors.white),
                 ),
               ),
             ],
@@ -544,8 +543,9 @@ class _PremiumEmergencyType extends StatelessWidget {
     return Semantics(
       button: true,
       label: '$label emergency${isSelected ? ", selected" : ""}',
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(40),
         child: Column(
           children: [
             AnimatedContainer(

@@ -265,6 +265,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                 size: 24,
                 color: AppColors.danger,
               ),
+              tooltip: 'Clear chat',
               onPressed: () => setState(() {
                 _messages.clear();
                 _addSystemMessage('Chat cleared.');
@@ -487,47 +488,55 @@ class _ConversationScreenState extends State<ConversationScreen>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _sendTextMessage,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.send_rounded,
-                          color: AppColors.primary,
-                          size: 22,
+                    Semantics(
+                      button: true,
+                      label: 'Send message',
+                      child: GestureDetector(
+                        onTap: _sendTextMessage,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: AppColors.primary,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _toggleMic,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _isListening
-                              ? AppColors.danger
-                              : AppColors.info,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  (_isListening
-                                          ? AppColors.danger
-                                          : AppColors.info)
-                                      .withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          color: Colors.white,
-                          size: 22,
+                    Semantics(
+                      button: true,
+                      label: _isListening ? 'Stop listening' : 'Start listening',
+                      child: GestureDetector(
+                        onTap: _toggleMic,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _isListening
+                                ? AppColors.danger
+                                : AppColors.info,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (_isListening
+                                            ? AppColors.danger
+                                            : AppColors.info)
+                                        .withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _isListening ? Icons.mic : Icons.mic_none,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),
@@ -535,50 +544,54 @@ class _ConversationScreenState extends State<ConversationScreen>
                 ),
                 const SizedBox(height: 12),
                 // Sign interpretation toggle
-                GestureDetector(
-                  onTap: _isInterpreting
-                      ? _stopInterpreting
-                      : _startInterpreting,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: _isInterpreting
-                          ? AppColors.danger
-                          : AppColors.primary,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              (_isInterpreting
-                                      ? AppColors.danger
-                                      : AppColors.primary)
-                                  .withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _isInterpreting ? Icons.stop : Icons.sign_language,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _isInterpreting
-                              ? 'Stop Sign Reading'
-                              : 'Start Sign Reading',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                Semantics(
+                  button: true,
+                  label: _isInterpreting ? 'Stop sign reading' : 'Start sign reading',
+                  child: GestureDetector(
+                    onTap: _isInterpreting
+                        ? _stopInterpreting
+                        : _startInterpreting,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: _isInterpreting
+                            ? AppColors.danger
+                            : AppColors.primary,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                (_isInterpreting
+                                        ? AppColors.danger
+                                        : AppColors.primary)
+                                    .withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _isInterpreting ? Icons.stop : Icons.sign_language,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isInterpreting
+                                ? 'Stop Sign Reading'
+                                : 'Start Sign Reading',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

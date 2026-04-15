@@ -99,17 +99,21 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: AppColors.premiumShadows,
+                  Semantics(
+                    button: true,
+                    label: 'Go back',
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: AppColors.premiumShadows,
+                        ),
+                        child: const Icon(Icons.arrow_back_rounded,
+                            color: AppColors.primary),
                       ),
-                      child: const Icon(Icons.arrow_back_rounded,
-                          color: AppColors.primary),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -235,10 +239,14 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                                 ),
                               ),
                               const Spacer(),
-                              GestureDetector(
-                                onTap: () => _tts.speak(_readResult),
-                                child: const Icon(Icons.volume_up,
-                                    color: AppColors.primary, size: 22),
+                              Semantics(
+                                button: true,
+                                label: 'Read result aloud',
+                                child: GestureDetector(
+                                  onTap: () => _tts.speak(_readResult),
+                                  child: const Icon(Icons.volume_up,
+                                      color: AppColors.primary, size: 22),
+                                ),
                               ),
                             ],
                           ),
@@ -297,44 +305,48 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                   ),
                   const SizedBox(height: 16),
                   // Capture button
-                  GestureDetector(
-                    onTap: _isReading ? null : _captureAndRead,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        color: _isReading
-                            ? AppColors.textSecondary
-                            : AppColors.success,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.success.withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _isReading
-                                ? Icons.hourglass_top
-                                : Icons.camera_alt_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            _isReading ? 'Reading...' : 'Capture & Read',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                  Semantics(
+                    button: true,
+                    label: _isReading ? 'Reading in progress' : 'Capture and read the scene',
+                    child: GestureDetector(
+                      onTap: _isReading ? null : _captureAndRead,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          color: _isReading
+                              ? AppColors.textSecondary
+                              : AppColors.success,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.success.withValues(alpha: 0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isReading
+                                  ? Icons.hourglass_top
+                                  : Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _isReading ? 'Reading...' : 'Capture & Read',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

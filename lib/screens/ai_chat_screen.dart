@@ -218,18 +218,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: AppColors.premiumShadows,
-              ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.primary,
+          Semantics(
+            button: true,
+            label: 'Go back',
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                  boxShadow: AppColors.premiumShadows,
+                ),
+                child: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ),
@@ -269,27 +273,31 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => setState(() {
-              _messages.clear();
-              _chatHistory.clear();
-              _messages.add(
-                _ChatEntry(
-                  text: 'Chat cleared! Ask me anything.',
-                  role: _Role.system,
+          Semantics(
+            button: true,
+            label: 'Clear chat',
+            child: GestureDetector(
+              onTap: () => setState(() {
+                _messages.clear();
+                _chatHistory.clear();
+                _messages.add(
+                  _ChatEntry(
+                    text: 'Chat cleared! Ask me anything.',
+                    role: _Role.system,
+                  ),
+                );
+              }),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                  boxShadow: AppColors.premiumShadows,
                 ),
-              );
-            }),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: AppColors.premiumShadows,
-              ),
-              child: const Icon(
-                Icons.refresh_rounded,
-                color: AppColors.primary,
+                child: const Icon(
+                  Icons.refresh_rounded,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ),
@@ -301,26 +309,30 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Widget _buildMinimizedInput() {
     return Align(
       alignment: Alignment.centerRight,
-      child: GestureDetector(
-        onTap: () => setState(() => _inputMinimized = false),
-        child: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.keyboard_rounded,
-            color: Colors.white,
-            size: 28,
+      child: Semantics(
+        button: true,
+        label: 'Open keyboard input',
+        child: GestureDetector(
+          onTap: () => setState(() => _inputMinimized = false),
+          child: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.keyboard_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
         ),
       ),
@@ -368,17 +380,21 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                 ),
                 const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    _focusNode.unfocus();
-                    setState(() => _inputMinimized = true);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.minimize_rounded,
-                      color: AppColors.textSecondary,
-                      size: 20,
+                Semantics(
+                  button: true,
+                  label: 'Minimize input',
+                  child: GestureDetector(
+                    onTap: () {
+                      _focusNode.unfocus();
+                      setState(() => _inputMinimized = true);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.minimize_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -413,25 +429,29 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () => _sendMessage(_textController.text),
-                  child: Container(
-                    padding: const EdgeInsets.all(13),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 22,
+                Semantics(
+                  button: true,
+                  label: 'Send message',
+                  child: GestureDetector(
+                    onTap: () => _sendMessage(_textController.text),
+                    child: Container(
+                      padding: const EdgeInsets.all(13),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ),

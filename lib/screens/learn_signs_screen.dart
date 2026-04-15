@@ -171,18 +171,22 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: AppColors.premiumShadows,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: AppColors.primary,
+                  Semantics(
+                    button: true,
+                    label: 'Go back',
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: AppColors.premiumShadows,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -232,17 +236,21 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                   final selected = _selectedCategory == cat.name;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() {
-                        _selectedCategory = cat.name;
-                        _currentSignIndex = 0;
-                        _feedback = '';
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
+                    child: Semantics(
+                      button: true,
+                      label: '${cat.name} category',
+                      selected: selected,
+                      child: GestureDetector(
+                        onTap: () => setState(() {
+                          _selectedCategory = cat.name;
+                          _currentSignIndex = 0;
+                          _feedback = '';
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                         decoration: BoxDecoration(
                           color: selected
                               ? AppColors.primary
@@ -261,6 +269,7 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                           ),
                         ),
                       ),
+                    ),
                     ),
                   );
                 },
@@ -531,71 +540,83 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  GestureDetector(
-                    onTap: _prevSign,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        shape: BoxShape.circle,
-                        boxShadow: AppColors.premiumShadows,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: AppColors.primary,
-                        size: 28,
+                  Semantics(
+                    button: true,
+                    label: 'Previous sign',
+                    child: GestureDetector(
+                      onTap: _prevSign,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          shape: BoxShape.circle,
+                          boxShadow: AppColors.premiumShadows,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _isPracticing ? null : _checkSign,
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: _isPracticing
-                            ? AppColors.textSecondary
-                            : AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: _isPracticing
-                          ? const Center(
-                              child: SizedBox(
-                                width: 28,
-                                height: 28,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.verified_rounded,
-                              color: Colors.white,
-                              size: 34,
+                  Semantics(
+                    button: true,
+                    label: _isPracticing ? 'Checking sign' : 'Check my sign',
+                    child: GestureDetector(
+                      onTap: _isPracticing ? null : _checkSign,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: _isPracticing
+                              ? AppColors.textSecondary
+                              : AppColors.primary,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
                             ),
+                          ],
+                        ),
+                        child: _isPracticing
+                            ? const Center(
+                                child: SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.verified_rounded,
+                                color: Colors.white,
+                                size: 34,
+                              ),
+                      ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _nextSign,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        shape: BoxShape.circle,
-                        boxShadow: AppColors.premiumShadows,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: AppColors.primary,
-                        size: 28,
+                  Semantics(
+                    button: true,
+                    label: 'Next sign',
+                    child: GestureDetector(
+                      onTap: _nextSign,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          shape: BoxShape.circle,
+                          boxShadow: AppColors.premiumShadows,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),

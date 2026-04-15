@@ -72,6 +72,8 @@ async def auth_middleware(request: Request, call_next):
     if API_KEY and request.url.path not in EXEMPT_PATHS:
         provided = request.headers.get("x-api-key", "")
         if provided != API_KEY:
+            client_ip = request.client.host if request.client else "unknown"
+            logger.warning("AUTH_FAIL ip=%s path=%s", client_ip, request.url.path)
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid or missing API key"},
@@ -98,16 +100,47 @@ async def rate_limit_middleware(request: Request, call_next):
     _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
 
     if len(_rate_store[client_ip]) >= RATE_LIMIT_MAX:
+        logger.warning("RATE_LIMIT ip=%s path=%s", client_ip, request.url.path)
         return JSONResponse(
             status_code=429,
             content={"detail": "Rate limit exceeded. Try again later."},
         )
 
     _rate_store[client_ip].append(now)
-    return await call_next(request)
+    response = await call_next(request)
+    # Audit log for non-health endpoints
+    if request.url.path not in EXEMPT_PATHS:
+        logger.info(
+            "REQUEST ip=%s method=%s path=%s status=%d",
+            client_ip, request.method, request.url.path, response.status_code,
+        )
+    return response
 
 
 # ─── Helpers ───────────────────────────────────────────────
+
+
+def _sanitize_user_input(text: str) -> str:
+    """Strip common prompt-injection patterns from user text.
+
+    This is a best-effort defence; the primary safeguard is that Gemma 4
+    runs locally so the blast radius is limited to degraded quality.
+    """
+    # Remove attempts to override system prompt
+    import re
+
+    # Strip common injection prefixes
+    patterns = [
+        r"(?i)^(system|assistant|instruction|prompt)\s*:",
+        r"(?i)ignore\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)",
+        r"(?i)you\s+are\s+now\s+(a|an|in)\s+",
+        r"(?i)forget\s+(everything|all|your\s+instructions)",
+    ]
+    sanitized = text
+    for pat in patterns:
+        sanitized = re.sub(pat, "[filtered]", sanitized)
+    return sanitized.strip()
+
 
 async def _chat(prompt: str, image_b64: str | None = None) -> str:
     """Send a prompt (optionally with an image) to Gemma 4 via Ollama."""
@@ -179,9 +212,10 @@ class SoundRequest(BaseModel):
 
 @app.post("/classify-sound")
 async def classify_sound(req: SoundRequest):
+    safe_desc = _sanitize_user_input(req.description)
     prompt = (
         "You are helping a deaf person understand sounds around them. "
-        f"The microphone detected this sound: '{req.description}'. "
+        f"The microphone detected this sound: '{safe_desc}'. "
         "Classify it as one of: doorbell, alarm, car_horn, dog_bark, "
         "baby_cry, siren, speech, appliance, music, knock, other. "
         "Also rate urgency: critical, warning, or info. "
@@ -233,11 +267,13 @@ class ChatRequest(BaseModel):
 async def emergency_chat(req: ChatRequest):
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
+    safe_msg = _sanitize_user_input(req.message)
+    safe_ctx = _sanitize_user_input(req.context)
     prompt = (
         "You are simulating an emergency dispatcher responding to a deaf person's text. "
         "Be calm, clear, and helpful. Use simple language. "
-        f"Context: {req.context}\n"
-        f"Their message: {req.message}\n"
+        f"Context: {safe_ctx}\n"
+        f"Their message: {safe_msg}\n"
         "Your response (keep it short and actionable):"
     )
     result = await _chat(prompt)
@@ -251,11 +287,12 @@ async def read_world(
     question: str = Form(""),
 ):
     b64 = await _read_upload(image)
-    if question.strip():
+    safe_question = _sanitize_user_input(question) if question.strip() else ""
+    if safe_question:
         prompt = (
             "You are helping a deaf person understand their surroundings. "
             "Look at this image and answer their question clearly and simply. "
-            f"Their question: {question}"
+            f"Their question: {safe_question}"
         )
     else:
         prompt = (
@@ -297,10 +334,11 @@ class GeneralChatRequest(BaseModel):
 async def general_chat(req: GeneralChatRequest):
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
+    safe_msg = _sanitize_user_input(req.message)
     context = ""
     if req.history:
         context = "\n".join(
-            f"{h.get('role', 'user')}: {h.get('content', '')}"
+            f"{h.get('role', 'user')}: {_sanitize_user_input(h.get('content', ''))}"
             for h in req.history[-6:]  # Last 6 messages for context
         )
     prompt = (
@@ -310,7 +348,7 @@ async def general_chat(req: GeneralChatRequest):
     )
     if context:
         prompt += f"\nRecent conversation:\n{context}\n"
-    prompt += f"\nUser: {req.message}\nAssistant:"
+    prompt += f"\nUser: {safe_msg}\nAssistant:"
     result = await _chat(prompt)
     return {"reply": result.strip()}
 

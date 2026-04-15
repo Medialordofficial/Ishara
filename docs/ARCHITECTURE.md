@@ -121,23 +121,28 @@ ishara_app/
 │       └── theme.dart             # Light + dark themes
 ├── backend/
 │   ├── server.py                  # FastAPI application
-│   ├── test_server.py             # 18 pytest tests
+│   ├── test_server.py             # 26+ pytest tests
 │   └── README.md                  # Backend documentation
-├── test/                          # 114 Flutter tests
+├── test/                          # 130+ Flutter tests
 │   ├── screens/                   # Widget tests for screens
-│   ├── services/                  # Service unit tests
+│   ├── services/                  # Service unit + HTTP mock tests
 │   ├── models/                    # Model unit tests
 │   ├── data/                      # Dictionary tests
+│   ├── integration/               # Cross-component integration tests
 │   └── utils/                     # Constants + theme tests
 └── docs/
-    └── ARCHITECTURE.md            # This file
+    ├── ARCHITECTURE.md            # This file
+    ├── ACCESSIBILITY.md           # WCAG conformance + a11y design
+    ├── USER_GUIDE.md              # End-user documentation
+    └── AI_METRICS.md              # AI/ML performance metrics
 ```
 
 ## Testing Strategy
 
 - **Unit tests**: Models, services, constants — verify business logic in isolation
 - **Widget tests**: Screen rendering, navigation, user interactions
-- **Backend tests**: HTTP endpoint validation, auth, rate limiting
+- **Integration tests**: Cross-component flows (navigation, theme persistence, API pipelines)
+- **Backend tests**: HTTP endpoint validation, auth, rate limiting, prompt injection sanitization
 - **Mock strategy**: `http.Client` injected into `ApiService` for testable HTTP calls; `SharedPreferences.setMockInitialValues` for storage
 
 ## Security Model
@@ -146,4 +151,6 @@ ishara_app/
 - **Auth**: Optional API key via `ISHARA_API_KEY` environment variable
 - **Rate limiting**: 30 requests/IP/minute (configurable via `ISHARA_RATE_LIMIT`)
 - **Input validation**: Image max 10 MB, text max 2000 chars, emergency type allowlist
+- **Prompt injection defence**: User text sanitized before LLM prompt construction
+- **Audit logging**: Auth failures, rate limit hits, and all API requests logged
 - **No cloud dependencies**: Zero external API calls — fully self-hosted

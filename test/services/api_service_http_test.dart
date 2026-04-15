@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:ishara/services/api_exceptions.dart';
 import 'package:ishara/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,14 +38,14 @@ void main() {
       expect(result['level'], 'critical');
     });
 
-    test('throws on non-200 status', () async {
+    test('throws ApiResponseException on non-200 status', () async {
       api.httpClient = MockClient(
         (_) async => http.Response('Server error', 500),
       );
 
       expect(
         () => api.classifySound('test'),
-        throwsA(isA<Exception>()),
+        throwsA(isA<ApiResponseException>()),
       );
     });
   });
@@ -71,7 +72,7 @@ void main() {
       expect(result['message'], contains('Help'));
     });
 
-    test('throws on server error', () async {
+    test('throws ApiResponseException on server error', () async {
       api.httpClient = MockClient(
         (_) async => http.Response('Bad request', 400),
       );
@@ -82,7 +83,7 @@ void main() {
           longitude: 0,
           emergencyType: 'fire',
         ),
-        throwsA(isA<Exception>()),
+        throwsA(isA<ApiResponseException>()),
       );
     });
   });
@@ -121,12 +122,12 @@ void main() {
       expect(result, 'Noted.');
     });
 
-    test('throws on non-200', () async {
+    test('throws ApiResponseException on non-200', () async {
       api.httpClient = MockClient(
         (_) async => http.Response('Unauthorized', 401),
       );
 
-      expect(() => api.chatLLM('test'), throwsA(isA<Exception>()));
+      expect(() => api.chatLLM('test'), throwsA(isA<ApiResponseException>()));
     });
   });
 
@@ -176,7 +177,7 @@ void main() {
       expect(result, 'hello');
     });
 
-    test('throws on server error', () async {
+    test('throws ApiResponseException on server error', () async {
       api.httpClient = MockClient.streaming((request, _) async {
         return http.StreamedResponse(
           Stream.value(utf8.encode('error')),
@@ -186,7 +187,7 @@ void main() {
 
       expect(
         () => api.interpretSign(Uint8List.fromList([1, 2, 3])),
-        throwsA(isA<Exception>()),
+        throwsA(isA<ApiResponseException>()),
       );
     });
   });
@@ -254,14 +255,14 @@ void main() {
       expect(callCount, 3); // 2 failures + 1 success
     });
 
-    test('throws after max retries exhausted', () async {
+    test('throws RetryExhaustedException after max retries', () async {
       api.httpClient = MockClient((_) async {
         throw http.ClientException('Connection refused');
       });
 
       expect(
         () => api.classifySound('anything'),
-        throwsA(isA<http.ClientException>()),
+        throwsA(isA<RetryExhaustedException>()),
       );
     });
 
@@ -299,7 +300,7 @@ void main() {
       expect(result, 'hello world');
     });
 
-    test('throws on server error', () async {
+    test('throws ApiResponseException on server error', () async {
       api.httpClient = MockClient.streaming((request, _) async {
         return http.StreamedResponse(
           Stream.value(utf8.encode('error')),
@@ -309,8 +310,26 @@ void main() {
 
       expect(
         () => api.speechToText(Uint8List.fromList([0, 1])),
-        throwsA(isA<Exception>()),
+        throwsA(isA<ApiResponseException>()),
       );
+    });
+  });
+
+  group('isOnline tracking', () {
+    test('ping success sets isOnline true', () async {
+      api.httpClient = MockClient(
+        (_) async => http.Response('{"status":"ok"}', 200),
+      );
+      await api.ping();
+      expect(api.isOnline, isTrue);
+    });
+
+    test('ping failure sets isOnline false', () async {
+      api.httpClient = MockClient(
+        (_) => throw http.ClientException('no network'),
+      );
+      await api.ping();
+      expect(api.isOnline, isFalse);
     });
   });
 }

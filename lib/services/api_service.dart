@@ -1,6 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';import 'dart:async';import 'package:http/http.dart' as http;
+import 'dart:developer' as dev;
+import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'api_exceptions.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -12,6 +18,10 @@ class ApiService {
 
   String _baseUrl = 'http://192.168.1.100:8000';
   bool _initialized = false;
+
+  /// Whether the last ping succeeded (used for offline detection).
+  bool _lastPingOk = false;
+  bool get isOnline => _lastPingOk;
 
   /// Injectable HTTP client for testability.
   http.Client _client = http.Client();
@@ -41,19 +51,23 @@ class ApiService {
   /// Retry a function with exponential backoff.
   /// Retries up to [maxRetries] times on transient failures (timeouts, network errors).
   Future<T> _retry<T>(Future<T> Function() fn, {int maxRetries = 2}) async {
+    Object? lastError;
     for (var attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
-      } on TimeoutException {
-        if (attempt == maxRetries) rethrow;
-      } on http.ClientException {
-        if (attempt == maxRetries) rethrow;
+      } on TimeoutException catch (e) {
+        lastError = e;
+        dev.log('Attempt ${attempt + 1} timed out', name: 'ApiService');
+        if (attempt == maxRetries) break;
+      } on http.ClientException catch (e) {
+        lastError = e;
+        dev.log('Attempt ${attempt + 1} network error: $e', name: 'ApiService');
+        if (attempt == maxRetries) break;
       }
       // Exponential backoff: 500ms, 1s
       await Future<void>.delayed(Duration(milliseconds: 500 * (attempt + 1)));
     }
-    // Unreachable, but satisfies the type system
-    throw StateError('Retry exhausted');
+    throw RetryExhaustedException(lastError ?? StateError('Retry exhausted'));
   }
 
   /// Send a camera frame for sign language interpretation
@@ -76,7 +90,7 @@ class ApiService {
         final json = jsonDecode(body);
         return json['sign'] ?? '';
       }
-      throw Exception('Sign interpretation failed: ${response.statusCode}');
+      throw ApiResponseException('Sign interpretation failed', statusCode: response.statusCode);
     });
   }
 
@@ -99,7 +113,7 @@ class ApiService {
       final json = jsonDecode(body);
       return json['text'] ?? '';
     }
-    throw Exception('Speech-to-text failed: ${response.statusCode}');
+    throw ApiResponseException('Speech-to-text failed', statusCode: response.statusCode);
   }
 
   /// Classify a sound description for sound awareness
@@ -118,7 +132,7 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
-      throw Exception('Sound classification failed: ${response.statusCode}');
+      throw ApiResponseException('Sound classification failed', statusCode: response.statusCode);
     });
   }
 
@@ -144,7 +158,7 @@ class ApiService {
       final json = jsonDecode(body);
       return json['description'] ?? '';
     }
-    throw Exception('World reading failed: ${response.statusCode}');
+    throw ApiResponseException('World reading failed', statusCode: response.statusCode);
   }
 
   /// Generate emergency message with location
@@ -170,9 +184,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    throw Exception(
-      'Emergency message generation failed: ${response.statusCode}',
-    );
+    throw ApiResponseException('Emergency message generation failed', statusCode: response.statusCode);
   }
 
   /// Evaluate a sign attempt for the Learn mode
@@ -197,7 +209,7 @@ class ApiService {
       final body = await response.stream.bytesToString();
       return jsonDecode(body);
     }
-    throw Exception('Sign evaluation failed: ${response.statusCode}');
+    throw ApiResponseException('Sign evaluation failed', statusCode: response.statusCode);
   }
 
   /// Health check
@@ -207,8 +219,10 @@ class ApiService {
       final response = await _client
           .get(Uri.parse('$_baseUrl/ping'))
           .timeout(const Duration(seconds: 3));
-      return response.statusCode == 200;
+      _lastPingOk = response.statusCode == 200;
+      return _lastPingOk;
     } catch (_) {
+      _lastPingOk = false;
       return false;
     }
   }
@@ -236,7 +250,7 @@ class ApiService {
         final json = jsonDecode(response.body);
         return json['reply'] ?? json['response'] ?? json['text'] ?? '';
       }
-      throw Exception('LLM chat failed: ${response.statusCode}');
+      throw ApiResponseException('LLM chat failed', statusCode: response.statusCode);
     });
   }
 }

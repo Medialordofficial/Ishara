@@ -141,7 +141,10 @@ void main() {
 
     test('levelProgress for level 2 (100-300 range)', () {
       final p = UserProgress(
-        signsPracticed: 5, currentStreak: 1, totalScore: 200, level: 2,
+        signsPracticed: 5,
+        currentStreak: 1,
+        totalScore: 200,
+        level: 2,
       );
       // (200 - 100) / (300 - 100) = 0.5
       expect(p.levelProgress, 0.5);
@@ -149,7 +152,10 @@ void main() {
 
     test('levelProgress for level 5 (1000-1500 range)', () {
       final p = UserProgress(
-        signsPracticed: 50, currentStreak: 3, totalScore: 1250, level: 5,
+        signsPracticed: 50,
+        currentStreak: 3,
+        totalScore: 1250,
+        level: 5,
       );
       // (1250 - 1000) / (1500 - 1000) = 0.5
       expect(p.levelProgress, 0.5);

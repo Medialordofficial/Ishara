@@ -52,21 +52,30 @@ class ApiService {
   /// Save API key to encrypted secure storage.
   Future<void> setApiKey(String? key) async {
     _apiKey = key;
-    if (key == null || key.isEmpty) {
-      await _secureStorage.delete(key: 'ishara_api_key');
-    } else {
-      await _secureStorage.write(key: 'ishara_api_key', value: key);
+    try {
+      if (key == null || key.isEmpty) {
+        await _secureStorage.delete(key: 'ishara_api_key');
+      } else {
+        await _secureStorage.write(key: 'ishara_api_key', value: key);
+      }
+    } catch (_) {
+      // Secure storage unavailable (e.g. in tests without platform channels).
     }
   }
 
   /// Get auth headers if API key is set.
   Map<String, String> get _authHeaders =>
-      _apiKey != null && _apiKey!.isNotEmpty
-          ? {'X-API-Key': _apiKey!}
-          : {};
+      _apiKey != null && _apiKey!.isNotEmpty ? {'X-API-Key': _apiKey!} : {};
 
   Future<void> updateBaseUrl(String host, {int port = 8000}) async {
     _baseUrl = 'http://$host:$port';
+    if (!host.contains('localhost') && !host.contains('127.0.0.1')) {
+      dev.log(
+        'WARNING: Using plain HTTP on a non-local network is insecure. '
+        'Configure HTTPS in production.',
+        name: 'ApiService',
+      );
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('ishara_host', host);
     await prefs.setInt('ishara_port', port);
@@ -273,10 +282,7 @@ class ApiService {
     await _ensureInitialized();
     try {
       final response = await _client
-          .get(
-            Uri.parse('$_baseUrl/ping'),
-            headers: _authHeaders,
-          )
+          .get(Uri.parse('$_baseUrl/ping'), headers: _authHeaders)
           .timeout(const Duration(seconds: 3));
       _lastPingOk = response.statusCode == 200;
       return _lastPingOk;

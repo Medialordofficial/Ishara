@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/sign_dictionary.dart';
+import '../services/api_service.dart';
 import '../utils/constants.dart';
 import 'ai_chat_screen.dart';
 import 'conversation_screen.dart';
@@ -21,12 +22,25 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final ApiService _api = ApiService();
+  bool _serverOnline = false;
 
   String get _greeting {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good Morning,';
     if (hour < 17) return 'Good Afternoon,';
     return 'Good Evening,';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkServerStatus();
+  }
+
+  Future<void> _checkServerStatus() async {
+    final ok = await _api.ping();
+    if (mounted) setState(() => _serverOnline = ok);
   }
 
   @override
@@ -180,6 +194,47 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 40),
+          // Server connectivity indicator
+          if (!_serverOnline)
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.cloud_off,
+                    color: AppColors.warning,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Server offline — configure in Settings',
+                      style: TextStyle(
+                        color: AppColors.warning,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _checkServerStatus,
+                    child: const Icon(
+                      Icons.refresh,
+                      color: AppColors.warning,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 28,

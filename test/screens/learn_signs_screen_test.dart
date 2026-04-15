@@ -26,7 +26,9 @@ void main() {
       expect(find.bySemanticsLabel('Go back'), findsOneWidget);
     });
 
-    testWidgets('renders category selector with default category', (tester) async {
+    testWidgets('renders category selector with default category', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const LearnSignsScreen()));
       await tester.pump(const Duration(seconds: 1));
 
@@ -41,7 +43,9 @@ void main() {
       expect(find.text('Beginner'), findsOneWidget);
     });
 
-    testWidgets('renders check sign button with semantic label', (tester) async {
+    testWidgets('renders check sign button with semantic label', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const LearnSignsScreen()));
       await tester.pump(const Duration(seconds: 1));
 

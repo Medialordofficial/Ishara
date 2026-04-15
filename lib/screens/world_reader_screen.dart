@@ -27,22 +27,39 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
   }
 
   Future<void> _initCamera() async {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) return;
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No cameras available on this device'),
+            ),
+          );
+        }
+        return;
+      }
 
-    final backCamera = cameras.firstWhere(
-      (c) => c.lensDirection == CameraLensDirection.back,
-      orElse: () => cameras.first,
-    );
+      final backCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
 
-    _cameraController = CameraController(
-      backCamera,
-      ResolutionPreset.high,
-      enableAudio: false,
-    );
+      _cameraController = CameraController(
+        backCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
 
-    await _cameraController!.initialize();
-    if (mounted) setState(() => _isCameraReady = true);
+      await _cameraController!.initialize();
+      if (mounted) setState(() => _isCameraReady = true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Camera error: $e')));
+      }
+    }
   }
 
   Future<void> _captureAndRead() async {

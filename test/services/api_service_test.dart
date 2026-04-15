@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:ishara/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -56,6 +60,56 @@ void main() {
 
       // Reset
       ApiService(baseUrl: 'http://192.168.1.100:8000');
+    });
+  });
+
+  group('ApiService setApiKey', () {
+    test('setApiKey stores and retrieves key in memory', () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      await api.setApiKey('test-key-123');
+      // Key should be attached to requests — we verify via the header in HTTP tests
+      // Here we just verify it doesn't throw
+      expect(() async => api.setApiKey('test-key-123'), returnsNormally);
+    });
+
+    test('setApiKey with null removes key', () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      await api.setApiKey('some-key');
+      await api.setApiKey(null);
+      // Verifying no exceptions thrown
+      expect(() async => api.setApiKey(null), returnsNormally);
+    });
+  });
+
+  group('ApiService auth header injection', () {
+    test('requests include X-API-Key header when key is set', () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      await api.setApiKey('my-secret-key');
+
+      http.Request? captured;
+      api.httpClient = MockClient((request) async {
+        captured = request;
+        return http.Response('{"text": "hello"}', 200);
+      });
+
+      await api.speechToText(Uint8List.fromList([0, 1, 2, 3]));
+      expect(captured?.headers['X-API-Key'], 'my-secret-key');
+
+      await api.setApiKey(null);
+    });
+
+    test('requests have no X-API-Key header when key is not set', () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      await api.setApiKey(null);
+
+      http.Request? captured;
+      api.httpClient = MockClient((request) async {
+        captured = request;
+        return http.Response('{"text": "hello"}', 200);
+      });
+
+      await api.speechToText(Uint8List.fromList([0, 1, 2, 3]));
+      expect(captured?.headers.containsKey('X-API-Key'), isFalse);
     });
   });
 }

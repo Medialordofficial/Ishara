@@ -126,13 +126,15 @@ class PoseDetectionService {
     if (nose != null) {
       if (leftWrist != null) {
         final distToFace = _distance(leftWrist, nose);
-        if (distToFace < PoseThresholds.handFaceDistance)
+        if (distToFace < PoseThresholds.handFaceDistance) {
           score += PoseThresholds.weightNearFace;
+        }
       }
       if (rightWrist != null) {
         final distToFace = _distance(rightWrist, nose);
-        if (distToFace < PoseThresholds.handFaceDistance)
+        if (distToFace < PoseThresholds.handFaceDistance) {
           score += PoseThresholds.weightNearFace;
+        }
       }
     }
 

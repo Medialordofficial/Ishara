@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as dev;
 import 'dart:typed_data';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,11 +24,15 @@ class ApiService {
   bool _lastPingOk = false;
   bool get isOnline => _lastPingOk;
 
+  /// API key stored in encrypted secure storage.
+  String? _apiKey;
+  static const _secureStorage = FlutterSecureStorage();
+
   /// Injectable HTTP client for testability.
   http.Client _client = http.Client();
   set httpClient(http.Client c) => _client = c;
 
-  /// Load saved server URL from SharedPreferences on first use.
+  /// Load saved server URL and API key from storage on first use.
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
     _initialized = true;
@@ -37,7 +42,28 @@ class ApiService {
     if (savedHost != null) {
       _baseUrl = 'http://$savedHost:${savedPort ?? 8000}';
     }
+    try {
+      _apiKey = await _secureStorage.read(key: 'ishara_api_key');
+    } catch (_) {
+      // Secure storage unavailable (e.g. in tests without platform channels).
+    }
   }
+
+  /// Save API key to encrypted secure storage.
+  Future<void> setApiKey(String? key) async {
+    _apiKey = key;
+    if (key == null || key.isEmpty) {
+      await _secureStorage.delete(key: 'ishara_api_key');
+    } else {
+      await _secureStorage.write(key: 'ishara_api_key', value: key);
+    }
+  }
+
+  /// Get auth headers if API key is set.
+  Map<String, String> get _authHeaders =>
+      _apiKey != null && _apiKey!.isNotEmpty
+          ? {'X-API-Key': _apiKey!}
+          : {};
 
   Future<void> updateBaseUrl(String host, {int port = 8000}) async {
     _baseUrl = 'http://$host:$port';
@@ -76,6 +102,7 @@ class ApiService {
     return _retry(() async {
       final uri = Uri.parse('$_baseUrl/interpret-sign');
       final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(_authHeaders)
         ..files.add(
           http.MultipartFile.fromBytes(
             'image',
@@ -104,6 +131,7 @@ class ApiService {
     await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/speech-to-text');
     final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll(_authHeaders)
       ..files.add(
         http.MultipartFile.fromBytes(
           'audio',
@@ -134,7 +162,7 @@ class ApiService {
       final response = await _client
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', ..._authHeaders},
             body: jsonEncode({'description': description}),
           )
           .timeout(const Duration(seconds: 15));
@@ -154,6 +182,7 @@ class ApiService {
     await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/read-world');
     final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll(_authHeaders)
       ..files.add(
         http.MultipartFile.fromBytes(
           'image',
@@ -190,7 +219,7 @@ class ApiService {
     final response = await _client
         .post(
           uri,
-          headers: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'application/json', ..._authHeaders},
           body: jsonEncode({
             'latitude': latitude,
             'longitude': longitude,
@@ -216,6 +245,7 @@ class ApiService {
     await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/evaluate-sign');
     final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll(_authHeaders)
       ..files.add(
         http.MultipartFile.fromBytes(
           'image',
@@ -243,7 +273,10 @@ class ApiService {
     await _ensureInitialized();
     try {
       final response = await _client
-          .get(Uri.parse('$_baseUrl/ping'))
+          .get(
+            Uri.parse('$_baseUrl/ping'),
+            headers: _authHeaders,
+          )
           .timeout(const Duration(seconds: 3));
       _lastPingOk = response.statusCode == 200;
       return _lastPingOk;
@@ -264,7 +297,7 @@ class ApiService {
       final response = await _client
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', ..._authHeaders},
             body: jsonEncode({
               'message': message,
               if (history != null) ...{'history': history},

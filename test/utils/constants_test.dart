@@ -4,7 +4,7 @@ import 'package:ishara/utils/constants.dart';
 void main() {
   group('AppColors', () {
     test('primary is premium blue', () {
-      expect(AppColors.primary.value, 0xFF0A66C2);
+      expect(AppColors.primary.toARGB32(), 0xFF0A66C2);
     });
 
     test('premiumShadows returns two shadows', () {

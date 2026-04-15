@@ -82,6 +82,7 @@ class _ConversationScreenState extends State<ConversationScreen>
     setState(() {
       _messages.add(ChatMessage(text: text, sender: MessageSender.hearing));
     });
+    // ignore: deprecated_member_use
     SemanticsService.announce('Hearing user said: $text', TextDirection.ltr);
     _scrollToBottom();
   }
@@ -209,6 +210,7 @@ class _ConversationScreenState extends State<ConversationScreen>
             ChatMessage(text: interpretation, sender: MessageSender.deaf),
           );
         });
+        // ignore: deprecated_member_use
         SemanticsService.announce(
           'Sign interpreted: $interpretation',
           TextDirection.ltr,

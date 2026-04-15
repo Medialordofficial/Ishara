@@ -1,8 +1,7 @@
-/// Integration tests verifying cross-component flows.
-///
-/// These exercise multi-service pipelines (navigation → screen → service)
-/// without native plugins, using mocked HTTP + SharedPreferences.
-import 'dart:async';
+// Integration tests verifying cross-component flows.
+//
+// These exercise multi-service pipelines (navigation → screen → service)
+// without native plugins, using mocked HTTP + SharedPreferences.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -14,7 +13,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ishara/main.dart';
 import 'package:ishara/screens/home_screen.dart';
 import 'package:ishara/services/api_service.dart';
-import 'package:ishara/services/api_exceptions.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: child);
 

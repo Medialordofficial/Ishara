@@ -158,6 +158,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
     });
 
     // Announce to screen readers via live region
+    // ignore: deprecated_member_use
     SemanticsService.announce(
       '${alert.level.name} alert: ${alert.label}',
       TextDirection.ltr,

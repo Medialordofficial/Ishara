@@ -20,10 +20,46 @@ import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("ISHARA_MODEL", "gemma4")
+
+
+# ─── Response Models ───────────────────────────────────────
+
+class PingResponse(BaseModel):
+    status: str
+    model: str
+
+class HealthResponse(BaseModel):
+    status: str
+    ollama: bool
+    model: str
+
+class SignResponse(BaseModel):
+    sign: str
+
+class SpeechToTextResponse(BaseModel):
+    text: str
+    available: bool
+
+class SoundClassification(BaseModel):
+    sound: str
+    level: str = "info"
+    description: str = ""
+
+class EmergencyMessageResponse(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    reply: str
+
+class WorldReaderResponse(BaseModel):
+    description: str
+
+class EvaluateSignResponse(BaseModel):
+    feedback: str
 
 
 @asynccontextmanager
@@ -157,10 +193,12 @@ async def _chat(prompt: str, image_b64: str | None = None) -> str:
             r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
             r.raise_for_status()
             return r.json().get("response", "")
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?")
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Ollama request timed out")
+    except httpx.ConnectError as exc:
+        raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?") from exc
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail="Ollama request timed out") from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=f"Ollama returned error: {exc.response.status_code}") from exc
 
 
 async def _read_upload(upload: UploadFile) -> str:
@@ -175,13 +213,13 @@ async def _read_upload(upload: UploadFile) -> str:
 
 # ─── Endpoints ─────────────────────────────────────────────
 
-@app.get("/ping")
+@app.get("/ping", response_model=PingResponse)
 async def ping():
-    return {"status": "ok", "model": MODEL}
+    return PingResponse(status="ok", model=MODEL)
 
 
 # 1. Conversation Mode — interpret sign language from camera frame
-@app.post("/interpret-sign")
+@app.post("/interpret-sign", response_model=SignResponse)
 async def interpret_sign(image: UploadFile = File(...)):
     b64 = await _read_upload(image)
     prompt = (
@@ -192,25 +230,28 @@ async def interpret_sign(image: UploadFile = File(...)):
         "Reply with ONLY the translated word or short phrase, nothing else."
     )
     result = await _chat(prompt, b64)
-    return {"sign": result.strip()}
+    return SignResponse(sign=result.strip())
 
 
 # 1b. Conversation Mode — speech-to-text (placeholder; real STT via Whisper later)
 class SpeechRequest(BaseModel):
     audio_b64: str
 
-@app.post("/speech-to-text")
+@app.post("/speech-to-text", response_model=SpeechToTextResponse)
 async def speech_to_text(_req: SpeechRequest):
     # On-device STT via Flutter speech_to_text package is the primary path.
     # This endpoint is reserved for server-side Whisper integration.
-    return {"text": "[Server STT not yet available — use on-device speech_to_text]", "available": False}
+    return SpeechToTextResponse(
+        text="[Server STT not yet available \u2014 use on-device speech_to_text]",
+        available=False,
+    )
 
 
 # 2. Sound Awareness — classify an audio description
 class SoundRequest(BaseModel):
     description: str
 
-@app.post("/classify-sound")
+@app.post("/classify-sound", response_model=SoundClassification)
 async def classify_sound(req: SoundRequest):
     safe_desc = _sanitize_user_input(req.description)
     prompt = (
@@ -228,10 +269,14 @@ async def classify_sound(req: SoundRequest):
         end = raw.rfind("}") + 1
         if start >= 0 and end > start:
             data = json.loads(raw[start:end])
-            return data
+            return SoundClassification(
+                sound=data.get("sound", "unknown"),
+                level=data.get("level", "info"),
+                description=data.get("description", ""),
+            )
     except (json.JSONDecodeError, ValueError):
         pass
-    return {"sound": "unknown", "level": "info", "description": raw.strip()}
+    return SoundClassification(sound="unknown", level="info", description=raw.strip())
 
 
 # 3. Emergency SOS — generate emergency message
@@ -240,7 +285,7 @@ class EmergencyRequest(BaseModel):
     latitude: float = 0.0
     longitude: float = 0.0
 
-@app.post("/emergency-message")
+@app.post("/emergency-message", response_model=EmergencyMessageResponse)
 async def emergency_message(req: EmergencyRequest):
     if req.emergency_type.lower() not in ALLOWED_EMERGENCY_TYPES:
         raise HTTPException(
@@ -255,7 +300,7 @@ async def emergency_message(req: EmergencyRequest):
         "and communicates via text. Keep it under 3 sentences."
     )
     result = await _chat(prompt)
-    return {"message": result.strip()}
+    return EmergencyMessageResponse(message=result.strip())
 
 
 # 3b. Emergency — operator chat
@@ -263,7 +308,7 @@ class ChatRequest(BaseModel):
     message: str
     context: str = ""
 
-@app.post("/emergency-chat")
+@app.post("/emergency-chat", response_model=ChatResponse)
 async def emergency_chat(req: ChatRequest):
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
@@ -277,11 +322,11 @@ async def emergency_chat(req: ChatRequest):
         "Your response (keep it short and actionable):"
     )
     result = await _chat(prompt)
-    return {"reply": result.strip()}
+    return ChatResponse(reply=result.strip())
 
 
 # 4. World Reader — read and describe what the camera sees
-@app.post("/read-world")
+@app.post("/read-world", response_model=WorldReaderResponse)
 async def read_world(
     image: UploadFile = File(...),
     question: str = Form(""),
@@ -304,11 +349,11 @@ async def read_world(
             "Keep the description clear and concise."
         )
     result = await _chat(prompt, b64)
-    return {"description": result.strip()}
+    return WorldReaderResponse(description=result.strip())
 
 
 # 5. Learn Signs — evaluate a user's sign attempt
-@app.post("/evaluate-sign")
+@app.post("/evaluate-sign", response_model=EvaluateSignResponse)
 async def evaluate_sign(
     image: UploadFile = File(...),
     target_sign: str = Form(...),
@@ -322,7 +367,7 @@ async def evaluate_sign(
         "Keep feedback to 2-3 sentences."
     )
     result = await _chat(prompt, b64)
-    return {"feedback": result.strip()}
+    return EvaluateSignResponse(feedback=result.strip())
 
 
 # 6. General Chat — LLM conversation for accessibility assistance
@@ -330,7 +375,7 @@ class GeneralChatRequest(BaseModel):
     message: str
     history: list[dict] = []
 
-@app.post("/chat")
+@app.post("/chat", response_model=ChatResponse)
 async def general_chat(req: GeneralChatRequest):
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
@@ -350,10 +395,10 @@ async def general_chat(req: GeneralChatRequest):
         prompt += f"\nRecent conversation:\n{context}\n"
     prompt += f"\nUser: {safe_msg}\nAssistant:"
     result = await _chat(prompt)
-    return {"reply": result.strip()}
+    return ChatResponse(reply=result.strip())
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse)
 async def health():
     """Health check for monitoring and CI."""
     try:
@@ -362,7 +407,7 @@ async def health():
             ollama_ok = r.status_code == 200
     except Exception:
         ollama_ok = False
-    return {"status": "ok", "ollama": ollama_ok, "model": MODEL}
+    return HealthResponse(status="ok", ollama=ollama_ok, model=MODEL)
 
 
 if __name__ == "__main__":

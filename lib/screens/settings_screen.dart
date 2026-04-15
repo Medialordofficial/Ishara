@@ -34,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (savedHost != null) _hostController.text = savedHost;
     if (savedPort != null) _portController.text = savedPort.toString();
     // Apply saved settings to API service
-    _api.updateBaseUrl(
+    await _api.updateBaseUrl(
       _hostController.text.trim(),
       port: int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
     );
@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _connectionStatus = '';
     });
 
-    _api.updateBaseUrl(
+    await _api.updateBaseUrl(
       _hostController.text.trim(),
       port: int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
     );

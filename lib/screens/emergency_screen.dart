@@ -268,28 +268,32 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             SizedBox(
               width: double.infinity,
               height: 64,
-              child: ElevatedButton(
-                onPressed: _selectedType != null && !_isSending
-                    ? _sendEmergency
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.danger,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
+              child: Semantics(
+                button: true,
+                label: 'Send SOS emergency alert',
+                child: ElevatedButton(
+                  onPressed: _selectedType != null && !_isSending
+                      ? _sendEmergency
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.danger,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    elevation: 8,
+                    shadowColor: AppColors.danger.withValues(alpha: 0.4),
                   ),
-                  elevation: 8,
-                  shadowColor: AppColors.danger.withValues(alpha: 0.4),
-                ),
-                child: _isSending
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'SEND SOS',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2,
+                  child: _isSending
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'SEND SOS',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
           ],

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 /// On-device ML service for detecting signing posture using Google ML Kit.
@@ -147,7 +148,7 @@ class PoseDetectionService {
   double _distance(PoseLandmark a, PoseLandmark b) {
     final dx = a.x - b.x;
     final dy = a.y - b.y;
-    return (dx * dx + dy * dy);
+    return sqrt(dx * dx + dy * dy);
   }
 
   List<LandmarkPoint> _extractLandmarks(Pose pose) {

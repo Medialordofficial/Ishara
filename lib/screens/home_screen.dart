@@ -22,6 +22,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -130,9 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Good Morning,',
-                    style: TextStyle(
+                  Text(
+                    _greeting,
+                    style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -458,35 +465,39 @@ class _PremiumCircularButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 90,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: AppColors.premiumShadows,
+    return Semantics(
+      button: true,
+      label: '${entry.title} mode',
+      child: GestureDetector(
+        onTap: onTap,
+        child: SizedBox(
+          width: 90,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  shape: BoxShape.circle,
+                  boxShadow: AppColors.premiumShadows,
+                ),
+                child: Icon(entry.icon, color: AppColors.primary, size: 36),
               ),
-              child: Icon(entry.icon, color: AppColors.primary, size: 36),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              entry.title,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              Text(
+                entry.title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,21 +1,43 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  String _baseUrl;
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService({String? baseUrl}) {
+    if (baseUrl != null) _instance._baseUrl = baseUrl;
+    return _instance;
+  }
+  ApiService._internal();
 
-  ApiService({String? baseUrl})
-    : _baseUrl = baseUrl ?? 'http://192.168.1.100:8000';
+  String _baseUrl = 'http://192.168.1.100:8000';
+  bool _initialized = false;
 
-  void updateBaseUrl(String host, {int port = 8000}) {
+  /// Load saved server URL from SharedPreferences on first use.
+  Future<void> _ensureInitialized() async {
+    if (_initialized) return;
+    _initialized = true;
+    final prefs = await SharedPreferences.getInstance();
+    final savedHost = prefs.getString('ishara_host');
+    final savedPort = prefs.getInt('ishara_port');
+    if (savedHost != null) {
+      _baseUrl = 'http://$savedHost:${savedPort ?? 8000}';
+    }
+  }
+
+  Future<void> updateBaseUrl(String host, {int port = 8000}) async {
     _baseUrl = 'http://$host:$port';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ishara_host', host);
+    await prefs.setInt('ishara_port', port);
   }
 
   String get baseUrl => _baseUrl;
 
   /// Send a camera frame for sign language interpretation
   Future<String> interpretSign(Uint8List imageBytes) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/interpret-sign');
     final request = http.MultipartRequest('POST', uri)
       ..files.add(
@@ -37,6 +59,7 @@ class ApiService {
 
   /// Send audio for speech-to-text
   Future<String> speechToText(Uint8List audioBytes) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/speech-to-text');
     final request = http.MultipartRequest('POST', uri)
       ..files.add(
@@ -58,6 +81,7 @@ class ApiService {
 
   /// Classify a sound description for sound awareness
   Future<Map<String, dynamic>> classifySound(String description) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/classify-sound');
     final response = await http.post(
       uri,
@@ -73,6 +97,7 @@ class ApiService {
 
   /// Send a camera frame for world reading (documents, labels, etc.)
   Future<String> readWorld(Uint8List imageBytes, {String? question}) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/read-world');
     final request = http.MultipartRequest('POST', uri)
       ..files.add(
@@ -101,6 +126,7 @@ class ApiService {
     required double longitude,
     required String emergencyType,
   }) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/emergency-message');
     final response = await http.post(
       uri,
@@ -125,6 +151,7 @@ class ApiService {
     Uint8List imageBytes,
     String targetSign,
   ) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/evaluate-sign');
     final request = http.MultipartRequest('POST', uri)
       ..files.add(
@@ -146,6 +173,7 @@ class ApiService {
 
   /// Health check
   Future<bool> ping() async {
+    await _ensureInitialized();
     try {
       final response = await http
           .get(Uri.parse('$_baseUrl/ping'))
@@ -161,6 +189,7 @@ class ApiService {
     String message, {
     List<Map<String, String>>? history,
   }) async {
+    await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/chat');
     final response = await http
         .post(

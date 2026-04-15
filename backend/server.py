@@ -219,6 +219,31 @@ async def evaluate_sign(
     return {"feedback": result.strip()}
 
 
+# 6. General Chat — LLM conversation for accessibility assistance
+class GeneralChatRequest(BaseModel):
+    message: str
+    history: list[dict] = []
+
+@app.post("/chat")
+async def general_chat(req: GeneralChatRequest):
+    context = ""
+    if req.history:
+        context = "\n".join(
+            f"{h.get('role', 'user')}: {h.get('content', '')}"
+            for h in req.history[-6:]  # Last 6 messages for context
+        )
+    prompt = (
+        "You are Ishara AI, a helpful assistant for deaf and hard-of-hearing people. "
+        "You help with sign language questions, accessibility tips, and general conversation. "
+        "Keep responses clear, concise, and supportive.\n"
+    )
+    if context:
+        prompt += f"\nRecent conversation:\n{context}\n"
+    prompt += f"\nUser: {req.message}\nAssistant:"
+    result = await _chat(prompt)
+    return {"reply": result.strip()}
+
+
 @app.get("/health")
 async def health():
     """Health check for monitoring and CI."""

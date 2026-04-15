@@ -536,7 +536,9 @@ class _PremiumAlertCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final time =
         '${alert.timestamp.hour.toString().padLeft(2, '0')}:${alert.timestamp.minute.toString().padLeft(2, '0')}';
-    return Container(
+    return Semantics(
+      label: '${alert.level.name} alert: ${alert.label}, ${(alert.confidence * 100).toInt()} percent confidence at $time',
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -589,6 +591,7 @@ class _PremiumAlertCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

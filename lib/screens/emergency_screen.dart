@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vibration/vibration.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
@@ -155,6 +156,21 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     _tts.speak(text);
   }
 
+  Future<void> _dialEmergency() async {
+    // Local emergency number — defaults to 911
+    const emergencyNumber = '911';
+    final uri = Uri(scheme: 'tel', path: emergencyNumber);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cannot open phone dialer')),
+        );
+      }
+    }
+  }
+
   void _reset() {
     setState(() {
       _selectedType = null;
@@ -168,6 +184,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   @override
   void dispose() {
     _chatController.dispose();
+    _tts.stop();
     _tts.dispose();
     super.dispose();
   }
@@ -345,6 +362,30 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   ],
                 ),
               ],
+              const SizedBox(height: 20),
+              // Direct emergency dial button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => _dialEmergency(),
+                  icon: const Icon(Icons.phone, size: 20),
+                  label: const Text(
+                    'CALL EMERGENCY SERVICES',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.danger,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

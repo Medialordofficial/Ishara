@@ -6,11 +6,13 @@ FastAPI bridge between the Flutter app and Gemma 4 via Ollama.
 """
 
 import base64
-import io
 import json
+import logging
 import os
-import time
 from contextlib import asynccontextmanager
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ishara")
 
 import httpx
 from fastapi import FastAPI, File, Form, UploadFile
@@ -29,22 +31,25 @@ async def lifespan(app: FastAPI):
             r = await client.get(f"{OLLAMA_URL}/api/tags", timeout=5)
             models = [m["name"] for m in r.json().get("models", [])]
             if any(MODEL in m for m in models):
-                print(f"✅ Ollama connected — {MODEL} ready")
+                logger.info("Ollama connected — %s ready", MODEL)
             else:
-                print(f"⚠️  Ollama connected but {MODEL} not found. Run: ollama pull {MODEL}")
+                logger.warning("Ollama connected but %s not found. Run: ollama pull %s", MODEL, MODEL)
     except Exception:
-        print(f"⚠️  Could not reach Ollama at {OLLAMA_URL}. Start it with: ollama serve")
+        logger.warning("Could not reach Ollama at %s. Start it with: ollama serve", OLLAMA_URL)
     yield
 
 
 app = FastAPI(title="Ishara API", version="1.0.0", lifespan=lifespan)
 
+ALLOWED_ORIGINS = os.getenv("ISHARA_CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 # ─── Helpers ───────────────────────────────────────────────
@@ -66,8 +71,10 @@ async def _chat(prompt: str, image_b64: str | None = None) -> str:
 
 
 async def _read_upload(upload: UploadFile) -> str:
-    """Read an uploaded image and return base64."""
+    """Read an uploaded image and return base64 with size validation."""
     data = await upload.read()
+    if len(data) > MAX_IMAGE_BYTES:
+        raise ValueError(f"Image too large: {len(data)} bytes (max {MAX_IMAGE_BYTES})")
     return base64.b64encode(data).decode("utf-8")
 
 
@@ -98,10 +105,10 @@ class SpeechRequest(BaseModel):
     audio_b64: str
 
 @app.post("/speech-to-text")
-async def speech_to_text(req: SpeechRequest):
-    # For the hackathon demo, Gemma handles text-based fallback.
-    # Full Whisper integration is the production path.
-    return {"text": "[Speech-to-text requires Whisper — coming soon]"}
+async def speech_to_text(_req: SpeechRequest):
+    # On-device STT via Flutter speech_to_text package is the primary path.
+    # This endpoint is reserved for server-side Whisper integration.
+    return {"text": "[Server STT not yet available — use on-device speech_to_text]", "available": False}
 
 
 # 2. Sound Awareness — classify an audio description
@@ -212,7 +219,19 @@ async def evaluate_sign(
     return {"feedback": result.strip()}
 
 
+@app.get("/health")
+async def health():
+    """Health check for monitoring and CI."""
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{OLLAMA_URL}/api/tags", timeout=3)
+            ollama_ok = r.status_code == 200
+    except Exception:
+        ollama_ok = False
+    return {"status": "ok", "ollama": ollama_ok, "model": MODEL}
+
+
 if __name__ == "__main__":
     import uvicorn
-    print("🤟 Starting Ishara backend on port 8000...")
+    logger.info("Starting Ishara backend on port 8000...")
     uvicorn.run(app, host="0.0.0.0", port=8000)

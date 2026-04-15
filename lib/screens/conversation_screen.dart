@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
+import '../services/pose_detection_service.dart';
 import '../services/tts_service.dart';
 import '../utils/constants.dart';
 
@@ -27,6 +28,11 @@ class _ConversationScreenState extends State<ConversationScreen>
   bool _isListening = false;
   Timer? _captureTimer;
   late AnimationController _pulseController;
+
+  // On-device ML pose detection
+  final PoseDetectionService _poseService = PoseDetectionService();
+  String _signingStatus = 'Ready';
+  double _poseConfidence = 0.0;
 
   // Speech-to-text
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -174,6 +180,23 @@ class _ConversationScreenState extends State<ConversationScreen>
 
     try {
       final image = await _cameraController!.takePicture();
+
+      // ━━━ On-device ML: Pose analysis before sending to server ━━━
+      final analysis = await _poseService.analyzeFrame(image.path);
+
+      if (mounted) {
+        setState(() {
+          _signingStatus = analysis.status;
+          _poseConfidence = analysis.confidence;
+        });
+      }
+
+      if (!analysis.isSigning) {
+        // No signing posture — skip expensive server call
+        return;
+      }
+      // ━━━ End on-device ML gate ━━━
+
       final bytes = await image.readAsBytes();
       final interpretation = await _api.interpretSign(bytes);
 
@@ -213,10 +236,12 @@ class _ConversationScreenState extends State<ConversationScreen>
     _captureTimer?.cancel();
     _speech.stop();
     _cameraController?.dispose();
+    _tts.stop();
     _tts.dispose();
     _scrollController.dispose();
     _textController.dispose();
     _pulseController.dispose();
+    _poseService.dispose();
     super.dispose();
   }
 
@@ -309,6 +334,65 @@ class _ConversationScreenState extends State<ConversationScreen>
                                     color: Colors.white,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      // On-device ML status indicator
+                      if (_isInterpreting)
+                        Positioned(
+                          bottom: 12,
+                          left: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _poseConfidence > 0.3
+                                      ? Icons.person
+                                      : Icons.person_outline,
+                                  color: _poseConfidence > 0.3
+                                      ? AppColors.success
+                                      : Colors.white70,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _signingStatus,
+                                    style: TextStyle(
+                                      color: _poseConfidence > 0.3
+                                          ? AppColors.success
+                                          : Colors.white70,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                // Confidence bar
+                                SizedBox(
+                                  width: 50,
+                                  height: 4,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: LinearProgressIndicator(
+                                      value: _poseConfidence,
+                                      backgroundColor:
+                                          Colors.white.withValues(alpha: 0.2),
+                                      color: _poseConfidence > 0.3
+                                          ? AppColors.success
+                                          : Colors.white54,
+                                    ),
                                   ),
                                 ),
                               ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import '../data/sign_dictionary.dart';
 import '../services/api_service.dart';
+import '../services/progress_service.dart';
 import '../utils/constants.dart';
 
 class LearnSignsScreen extends StatefulWidget {
@@ -22,6 +23,15 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
   String _selectedCategory = 'Greetings & Basics';
   late AnimationController _bounceController;
 
+  // Gamification
+  final ProgressService _progressService = ProgressService();
+  UserProgress _progress = UserProgress(
+    signsPracticed: 0,
+    currentStreak: 0,
+    totalScore: 0,
+    level: 1,
+  );
+
   List<SignEntry> get _currentSigns {
     try {
       return SignDictionary.categories
@@ -40,6 +50,12 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
       duration: const Duration(milliseconds: 800),
     );
     _initCamera();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final p = await _progressService.getProgress();
+    if (mounted) setState(() => _progress = p);
   }
 
   Future<void> _initCamera() async {
@@ -78,9 +94,13 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
 
       final result = await _api.evaluateSign(bytes, sign.word);
 
+      // Record practice for gamification
+      final updated = await _progressService.recordPractice(scoreGained: 15);
+
       setState(() {
         _feedback = result['feedback'] ?? 'Great attempt! Keep practicing.';
         _isPracticing = false;
+        _progress = updated;
       });
       _bounceController.forward().then((_) => _bounceController.reverse());
     } catch (e) {
@@ -104,6 +124,29 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
           (_currentSignIndex - 1 + _currentSigns.length) % _currentSigns.length;
       _feedback = '';
     });
+  }
+
+  Widget _buildStatItem(String emoji, String value, String label) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 20)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -225,6 +268,61 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
+                    // Gamification progress header
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withValues(alpha: 0.8),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildStatItem(
+                                  '🔥', '${_progress.currentStreak}', 'Streak'),
+                              _buildStatItem(
+                                  '⭐', 'Lv ${_progress.level}', _progress.levelName),
+                              _buildStatItem(
+                                  '📊', '${_progress.signsPracticed}', 'Practiced'),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: _progress.levelProgress,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white,
+                              minHeight: 6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_progress.totalScore} / ${_progress.nextLevelScore} XP to ${_progress.level < 10 ? "next level" : "max!"}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     // Sign card
                     Container(
                       padding: const EdgeInsets.all(20),

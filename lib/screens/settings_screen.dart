@@ -53,6 +53,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'ishara_port',
       int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
     );
+    final emergencyNum = _emergencyNumberController.text.trim();
+    if (emergencyNum.isNotEmpty) {
+      await _api.setEmergencyNumber(emergencyNum);
+    }
   }
 
   Future<void> _testConnection() async {

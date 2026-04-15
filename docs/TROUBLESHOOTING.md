@@ -180,7 +180,7 @@
 **Solutions:**
 1. Grant location permission to the app.
 2. Ensure `emergency_type` is one of: `medical`, `fire`, `police`, `natural_disaster`, `other`.
-3. The server must be reachable at the time of the emergency — configure offline fallback messages in Settings.
+3. The server must be reachable at the time of the emergency. If the server is unreachable, the app automatically falls back to a pre-composed static emergency message summarising the emergency type and location — no configuration required.
 
 ---
 

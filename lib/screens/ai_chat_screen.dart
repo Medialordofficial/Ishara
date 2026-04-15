@@ -95,8 +95,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
     _scrollToBottom();
 
-    // Send notification so user can read reply even outside the screen
-    _notif.aiReply(response);
+    // Send notification so user can read reply even outside the screen.
+    // Errors are swallowed: notification plugin may be unavailable in tests
+    // or on restricted devices and must not crash the chat.
+    _notif.aiReply(response).catchError((_) {});
   }
 
   String _generateFallbackResponse(String input) {

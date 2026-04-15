@@ -301,14 +301,16 @@ async def ping():
     return PingResponse(status="ok", model=MODEL)
 
 
+SIGN_LANGUAGE_SYSTEM = os.getenv("ISHARA_SIGN_LANGUAGE", "ASL (American Sign Language)")
+
 # 1. Conversation Mode — interpret sign language from camera frame
 @app.post("/interpret-sign", response_model=SignResponse)
 async def interpret_sign(image: UploadFile = File(...)):
     b64 = await _read_upload(image)
     prompt = (
-        "You are an expert sign language interpreter. "
+        f"You are an expert {SIGN_LANGUAGE_SYSTEM} interpreter. "
         "Look at this image of a person making a sign language gesture. "
-        "Identify the sign being made and translate it into English. "
+        f"Identify the sign being made and translate it into English using {SIGN_LANGUAGE_SYSTEM}. "
         "If no clear sign is visible, say 'No sign detected'. "
         "Reply with ONLY a JSON object like: {\"sign\": \"Hello\", \"confidence\": 0.85} "
         "where confidence is your certainty from 0.0 to 1.0."
@@ -395,10 +397,19 @@ async def emergency_message(req: EmergencyRequest):
             status_code=400,
             detail=f"Invalid emergency_type. Allowed: {', '.join(sorted(ALLOWED_EMERGENCY_TYPES))}",
         )
+    if req.latitude != 0.0 or req.longitude != 0.0:
+        location_text = (
+            f"GPS coordinates {req.latitude:.5f}, {req.longitude:.5f} "
+            f"(approx. {abs(req.latitude):.2f}°{'N' if req.latitude >= 0 else 'S'}, "
+            f"{abs(req.longitude):.2f}°{'E' if req.longitude >= 0 else 'W'}). "
+            "Include the GPS coordinates in the message so a responder can map them."
+        )
+    else:
+        location_text = "Location not available."
     prompt = (
         f"Generate a brief, clear emergency message for a {req.emergency_type} emergency. "
         "The sender is a deaf person who cannot make voice calls. "
-        f"Location coordinates: {req.latitude}, {req.longitude}. "
+        f"{location_text} "
         "Include: type of emergency, request for help, note that the person is deaf "
         "and communicates via text. Keep it under 3 sentences."
     )
@@ -462,8 +473,9 @@ async def evaluate_sign(
     target_sign: str = Form(...),
 ):
     b64 = await _read_upload(image)
+    safe_target = _sanitize_user_input(target_sign)
     prompt = (
-        f"You are a sign language teacher. The student is trying to sign '{target_sign}'. "
+        f"You are a sign language teacher. The student is trying to sign '{safe_target}'. "
         "Look at this image and evaluate their hand position and gesture. "
         "Give brief, encouraging feedback: what they did well and what to adjust. "
         "If you can't clearly see the sign, ask them to try again with better lighting. "

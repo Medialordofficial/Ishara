@@ -12,6 +12,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Streaming chat responses for reduced latency
 - Offline sign dictionary (cached, no server required)
 - RTL language support
+- First-launch onboarding (server IP setup wizard)
+
+---
+
+## [1.7.0] — Fix Cycle 13
+
+### Fixed — AI/ML Quality
+- **Sign language system**: `/interpret-sign` and `/evaluate-sign` prompts now include `SIGN_LANGUAGE_SYSTEM` (configurable via `ISHARA_SIGN_LANGUAGE` env var, defaults to `ASL (American Sign Language)`)
+- **Prompt injection**: `target_sign` in `/evaluate-sign` now sanitized via `_sanitize_user_input()` before injection into LLM prompt
+- **Emergency message coordinates**: Formatted as human-readable directional (`N/S`/`E/W`) instead of raw floats; "Location not available." when both coords are 0.0
+
+### Fixed — Accessibility
+- **`SemanticsService.announce`**: All 3 call sites now use `assertiveness: Assertiveness.assertive` for screen reader priority
+
+### Fixed — Security
+- **Content-Length header**: Backend now validates `Content-Length` header against body size; rejects requests with mismatched headers (413)
+
+### Fixed — Code Quality
+- **Settings `_saveSettings()`**: Now also persists emergency number change (previously only `onChanged` persisted it)
+- **`NotificationService.init()`**: Wrapped in try/catch so plugin unavailability (test env / restricted devices) doesn't crash the app
+- **`NotificationService.show()`**: Wrapped `_plugin.show()` in try/catch for the same reason
+- **AI chat notification**: Changed fire-and-forget `_notif.aiReply(response)` to `.catchError((_) {})` so async errors don't propagate to the widget
+
+### Fixed — Documentation
+- **TROUBLESHOOTING.md**: Removed false instruction "configure offline fallback messages in Settings"; replaced with accurate description of automatic fallback
+- **API_REFERENCE.md**: `context` field in `/emergency-chat` now shows `500 chars` max; `/feedback` endpoint fully documented
+
+### Fixed — Testing
+- **Backend**: 3 new tests (Content-Length rejection, sign language system injection, evaluate-sign sanitization) → 69 total (was 66)
+- **AI Chat screen**: 5 new behavioral tests (send flow, fallback response, empty-send guard, clear chat) → 9 total (was 4)
+- **Emergency screen**: 7 new tests (accessibility semantics, selected state, confirmation dialog) → 16 total (was 9)
+- **Total**: 289 tests (220 Flutter + 69 backend), all passing
+
+### Fixed — UI/Contrast
+- **`textSecondary` color**: `0xFF7B849C` → `0xFF555E75` — meets WCAG AA contrast ratio (≥4.5:1) on background
 
 ---
 

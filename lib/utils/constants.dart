@@ -12,7 +12,7 @@ class AppColors {
   static const Color surfaceLight = Color(0xFFF8FAFF);
   static const Color border = Color(0xFFE5E9F2);
   static const Color textPrimary = Color(0xFF1E2638);
-  static const Color textSecondary = Color(0xFF7B849C);
+  static const Color textSecondary = Color(0xFF555E75); // WCAG AA contrast on background (≥4.5:1)
 
   // Adjusted status colors for a more premium look
   static const Color success = Color(0xFF34A853);

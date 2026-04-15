@@ -170,7 +170,7 @@ Chat with a simulated emergency dispatcher.
 | Field | Type | Required | Max Length |
 |-------|------|----------|-----------|
 | `message` | string | Yes | 2000 chars |
-| `context` | string | No | — |
+| `context` | string | No | 500 chars |
 
 **Response** `200`
 ```json
@@ -245,6 +245,36 @@ General AI assistant conversation.
   "reply": "To sign 'thank you', extend your fingers from your chin outward, like blowing a kiss..."
 }
 ```
+
+---
+
+### POST /feedback
+
+Submit a sign interpretation correction to help improve accuracy.
+
+**Request**: `application/json`
+```json
+{
+  "interpreted_sign": "Hello",
+  "correct_sign": "Thank you",
+  "context": "Optional description of the signing session"
+}
+```
+
+| Field | Type | Required | Max Length |
+|-------|------|----------|-----------|
+| `interpreted_sign` | string | Yes | 200 chars |
+| `correct_sign` | string | Yes | 200 chars |
+| `context` | string | No | 500 chars |
+
+**Response** `200`
+```json
+{
+  "received": true
+}
+```
+
+**Errors**: `401` (invalid API key), `422` (missing required fields), `429` (rate limit)
 
 ---
 

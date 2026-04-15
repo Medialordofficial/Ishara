@@ -88,7 +88,11 @@ class _ConversationScreenState extends State<ConversationScreen>
       _messages.add(ChatMessage(text: text, sender: MessageSender.hearing));
     });
     // ignore: deprecated_member_use
-    SemanticsService.announce('Hearing user said: $text', TextDirection.ltr);
+    SemanticsService.announce(
+      'Hearing user said: $text',
+      TextDirection.ltr,
+      assertiveness: Assertiveness.assertive,
+    );
     _scrollToBottom();
   }
 
@@ -244,6 +248,7 @@ class _ConversationScreenState extends State<ConversationScreen>
         SemanticsService.announce(
           'Sign interpreted: $interpretation',
           TextDirection.ltr,
+          assertiveness: Assertiveness.assertive,
         );
         await _tts.speak(interpretation);
         _scrollToBottom();

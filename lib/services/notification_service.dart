@@ -11,20 +11,25 @@ class NotificationService {
 
   Future<void> init() async {
     if (_initialized) return;
+    try {
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidSettings);
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+      await _plugin.initialize(initSettings);
 
-    await _plugin.initialize(initSettings);
+      // Request notification permission on Android 13+
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
 
-    // Request notification permission on Android 13+
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
-
-    _initialized = true;
+      _initialized = true;
+    } catch (_) {
+      // Notification plugin unavailable (test environment or restricted device).
+      // Mark as initialized to prevent repeated failed attempts.
+      _initialized = true;
+    }
   }
 
   Future<void> show({
@@ -33,6 +38,7 @@ class NotificationService {
     String? channel,
   }) async {
     if (!_initialized) await init();
+    if (!_initialized) return; // init failed silently
 
     final channelId = channel ?? 'ishara_default';
     final channelName = channel ?? 'Ishara';
@@ -48,12 +54,16 @@ class NotificationService {
       ),
     );
 
-    await _plugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      details,
-    );
+    try {
+      await _plugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title,
+        body,
+        details,
+      );
+    } catch (_) {
+      // Plugin may be unavailable — non-critical.
+    }
   }
 
   // Convenience methods

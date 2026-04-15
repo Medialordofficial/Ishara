@@ -162,6 +162,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
     SemanticsService.announce(
       '${alert.level.name} alert: ${alert.label}',
       TextDirection.ltr,
+      assertiveness: Assertiveness.assertive,
     );
 
     NotificationService().soundAlert(alert.label);

@@ -512,3 +512,71 @@ def test_interpret_sign_fallback_on_non_json(monkeypatch):
     data = r.json()
     assert data["sign"] == "Hello"
     assert data["confidence"] == 0.0
+
+
+# ─── _parse_llm_json helper ──────────────────────────────
+
+
+def test_parse_llm_json_plain():
+    """_parse_llm_json parses a bare JSON object."""
+    from server import _parse_llm_json
+    result = _parse_llm_json('{"sign": "Hello", "confidence": 0.9}')
+    assert result["sign"] == "Hello"
+    assert result["confidence"] == 0.9
+
+
+def test_parse_llm_json_with_markdown_fence():
+    """_parse_llm_json strips ```json ... ``` fences."""
+    from server import _parse_llm_json
+    result = _parse_llm_json('```json\n{"sign": "Thank you", "confidence": 0.8}\n```')
+    assert result["sign"] == "Thank you"
+    assert result["confidence"] == 0.8
+
+
+def test_parse_llm_json_with_bare_fence():
+    """_parse_llm_json strips plain ``` ... ``` fences."""
+    from server import _parse_llm_json
+    result = _parse_llm_json('```\n{"sign": "Please"}\n```')
+    assert result["sign"] == "Please"
+
+
+def test_parse_llm_json_empty_on_invalid():
+    """_parse_llm_json returns {} on unparseable output."""
+    from server import _parse_llm_json
+    assert _parse_llm_json("No sign detected, sorry.") == {}
+    assert _parse_llm_json("") == {}
+
+
+def test_interpret_sign_handles_markdown_fence(monkeypatch):
+    """interpret_sign succeeds when Gemma wraps JSON in markdown fences."""
+    import server
+
+    async def mock_chat(prompt, b64=None):
+        return '```json\n{"sign": "Hello", "confidence": 0.75}\n```'
+
+    monkeypatch.setattr(server, "_chat", mock_chat)
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    r = client.post(
+        "/interpret-sign",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["sign"] == "Hello"
+    assert data["confidence"] == 0.75
+
+
+# ─── Content-Size Limit Middleware ──────────────────────
+
+
+def test_oversized_body_rejected():
+    """Requests with Content-Length > MAX_BODY_BYTES are rejected with 413."""
+    import server
+    oversized = server.MAX_BODY_BYTES + 1
+    r = client.post(
+        "/interpret-sign",
+        headers={"Content-Length": str(oversized)},
+        content=b"x",  # actual body is tiny — Content-Length header is what triggers
+    )
+    assert r.status_code == 413

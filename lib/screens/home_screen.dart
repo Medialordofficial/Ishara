@@ -120,16 +120,19 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _NavBarItem(
             icon: Icons.home_rounded,
+            label: 'Home',
             isSelected: _selectedTab == 0,
             onTap: () => setState(() => _selectedTab = 0),
           ),
           _NavBarItem(
             icon: Icons.search_rounded,
+            label: 'Sign Dictionary',
             isSelected: _selectedTab == 1,
             onTap: () => setState(() => _selectedTab = 1),
           ),
           _NavBarItem(
             icon: Icons.settings_rounded,
+            label: 'Settings',
             isSelected: _selectedTab == 2,
             onTap: () => setState(() => _selectedTab = 2),
           ),
@@ -498,11 +501,13 @@ class _ModeEntry {
 
 class _NavBarItem extends StatelessWidget {
   final IconData icon;
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _NavBarItem({
     required this.icon,
+    required this.label,
     required this.isSelected,
     required this.onTap,
   });
@@ -511,25 +516,24 @@ class _NavBarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: icon == Icons.home_rounded
-          ? 'Home tab'
-          : icon == Icons.search_rounded
-          ? 'Search tab'
-          : 'Settings tab',
+      label: '$label tab',
       selected: isSelected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            size: 28,
+      child: Tooltip(
+        message: label,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+              size: 28,
+            ),
           ),
         ),
       ),

@@ -68,9 +68,15 @@ Interpret a sign language gesture from a camera frame.
 **Response** `200`
 ```json
 {
-  "sign": "Hello"
+  "sign": "Hello",
+  "confidence": 0.85
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sign` | string | Interpreted sign text, or `"No sign detected"` |
+| `confidence` | float | Model certainty 0.0–1.0 (0 indicates parsing fallback) |
 
 **Errors**: `400` (unsupported type), `413` (too large), `503` (Ollama offline), `504` (timeout)
 

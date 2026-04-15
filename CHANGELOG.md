@@ -15,7 +15,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.3.0] — 2025 Hackathon Release (Current)
+## [1.4.0] — 2025 Hackathon Release (Latest)
+
+### Added
+- **Feedback loop**: thumbs up/down buttons after each sign interpretation; correction dialog for wrong signs
+- **Confidence scores**: `/interpret-sign` now returns `confidence: float` (0.0–1.0); displayed as coloured badge (green ≥70%, yellow ≥50%, red <50%)
+- `/feedback` POST endpoint logs `(interpreted_sign, correct_sign)` pairs for future fine-tuning
+- `TROUBLESHOOTING.md`: 12 common issues with step-by-step solutions
+- `ContentSizeLimitMiddleware`: rejects oversized request bodies at transport layer before memory allocation
+- `_parse_llm_json()` helper: strips Gemma's markdown code fences before JSON parsing; shared by all LLM endpoints
+- `sendFeedback()` method in Flutter `ApiService`
+- 14 new tests (7 backend + 7 Flutter) → 235 total
+
+### Changed
+- `interpretSign()` now returns `Map<String, dynamic>` with `sign` and `confidence` fields (was `String`)
+- Retry logic (`_retry()`) applied uniformly to all API methods: `readWorld`, `emergencyMessage`, `evaluateSign`, `speechToText`
+- `_sanitize_user_input` removed its `import re` guard (module-level `import re` added)
+- Bottom nav items use explicit `label` parameter instead of icon comparison — cleaner semantics
+
+### Security
+- Request bodies > 10 MB now rejected at middleware before being read into memory
+
+---
+
+## [1.3.0] — 2025 Hackathon Release
 
 ### Added
 - Encrypted API key storage using `flutter_secure_storage`

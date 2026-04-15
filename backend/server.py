@@ -9,6 +9,7 @@ import base64
 import json
 import logging
 import os
+import re
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -20,6 +21,7 @@ import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -97,6 +99,25 @@ RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = int(os.getenv("ISHARA_RATE_LIMIT", "30"))  # requests per window
 API_KEY = os.getenv("ISHARA_API_KEY", "")  # Set to enable auth
 
+# Reject oversized bodies before they are read into memory.
+# MAX_IMAGE_BYTES is the content check; this Starlette layer rejects at
+# the transport level — prevents memory exhaustion from large payloads.
+MAX_BODY_BYTES = MAX_IMAGE_BYTES + 1024  # slight header overhead allowance
+
+
+class _ContentSizeLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_BODY_BYTES:
+            return JSONResponse(
+                {"detail": f"Request body too large (max {MAX_IMAGE_BYTES} bytes)"},
+                status_code=413,
+            )
+        return await call_next(request)
+
+
+app.add_middleware(_ContentSizeLimitMiddleware)
+
 
 # ─── Authentication ────────────────────────────────────────
 
@@ -166,9 +187,6 @@ def _sanitize_user_input(text: str) -> str:
     This is a best-effort defence; the primary safeguard is that Gemma 4
     runs locally so the blast radius is limited to degraded quality.
     """
-    # Remove attempts to override system prompt
-    import re
-
     # Strip common injection prefixes
     patterns = [
         r"(?i)^(system|assistant|instruction|prompt)\s*:",
@@ -180,6 +198,25 @@ def _sanitize_user_input(text: str) -> str:
     for pat in patterns:
         sanitized = re.sub(pat, "[filtered]", sanitized)
     return sanitized.strip()
+
+
+def _parse_llm_json(raw: str) -> dict:
+    """Parse a JSON object from an LLM response, handling markdown code fences.
+
+    Gemma may wrap JSON in ```json ... ``` fencing.  This function strips those
+    fences first, then extracts the first {...} block, returning an empty dict
+    on any parse error.
+    """
+    # Strip optional markdown code fences: ```json ... ``` or ``` ... ```
+    cleaned = re.sub(r"```(?:json)?\s*|\s*```", "", raw).strip()
+    start = cleaned.find("{")
+    end = cleaned.rfind("}") + 1
+    if start < 0 or end <= start:
+        return {}
+    try:
+        return json.loads(cleaned[start:end])
+    except (json.JSONDecodeError, ValueError):
+        return {}
 
 
 async def _chat(prompt: str, image_b64: str | None = None) -> str:
@@ -238,11 +275,8 @@ async def interpret_sign(image: UploadFile = File(...)):
     sign = raw.strip()
     confidence = 0.0
     try:
-        import json as _json
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        if start >= 0 and end > start:
-            parsed = _json.loads(raw[start:end])
+        parsed = _parse_llm_json(raw)
+        if parsed:
             sign = str(parsed.get("sign", raw.strip()))
             confidence = float(parsed.get("confidence", 0.0))
     except (ValueError, KeyError):
@@ -280,19 +314,13 @@ async def classify_sound(req: SoundRequest):
         "Reply in JSON: {\"sound\": \"...\", \"level\": \"...\", \"description\": \"...\"}"
     )
     raw = await _chat(prompt)
-    try:
-        # Try to parse JSON from the response
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        if start >= 0 and end > start:
-            data = json.loads(raw[start:end])
-            return SoundClassification(
-                sound=data.get("sound", "unknown"),
-                level=data.get("level", "info"),
-                description=data.get("description", ""),
-            )
-    except (json.JSONDecodeError, ValueError):
-        pass
+    data = _parse_llm_json(raw)
+    if data:
+        return SoundClassification(
+            sound=data.get("sound", "unknown"),
+            level=data.get("level", "info"),
+            description=data.get("description", ""),
+        )
     return SoundClassification(sound="unknown", level="info", description=raw.strip())
 
 

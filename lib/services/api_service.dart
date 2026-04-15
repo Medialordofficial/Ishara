@@ -220,32 +220,34 @@ class ApiService {
   /// Send a camera frame for world reading (documents, labels, etc.)
   Future<String> readWorld(Uint8List imageBytes, {String? question}) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/read-world');
-    final request = http.MultipartRequest('POST', uri)
-      ..headers.addAll(_authHeaders)
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'image',
-          imageBytes,
-          filename: 'frame.jpg',
-        ),
-      );
-    if (question != null) {
-      request.fields['question'] = question;
-    }
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/read-world');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(_authHeaders)
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            imageBytes,
+            filename: 'frame.jpg',
+          ),
+        );
+      if (question != null) {
+        request.fields['question'] = question;
+      }
 
-    final response = await _client
-        .send(request)
-        .timeout(const Duration(seconds: 30));
-    if (response.statusCode == 200) {
-      final body = await response.stream.bytesToString();
-      final json = jsonDecode(body);
-      return json['description'] ?? '';
-    }
-    throw ApiResponseException(
-      'World reading failed',
-      statusCode: response.statusCode,
-    );
+      final response = await _client
+          .send(request)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final body = await response.stream.bytesToString();
+        final json = jsonDecode(body);
+        return json['description'] ?? '';
+      }
+      throw ApiResponseException(
+        'World reading failed',
+        statusCode: response.statusCode,
+      );
+    });
   }
 
   /// Generate emergency message with location
@@ -255,26 +257,28 @@ class ApiService {
     required String emergencyType,
   }) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/emergency-message');
-    final response = await _client
-        .post(
-          uri,
-          headers: {'Content-Type': 'application/json', ..._authHeaders},
-          body: jsonEncode({
-            'latitude': latitude,
-            'longitude': longitude,
-            'emergency_type': emergencyType,
-          }),
-        )
-        .timeout(const Duration(seconds: 15));
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/emergency-message');
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ..._authHeaders},
+            body: jsonEncode({
+              'latitude': latitude,
+              'longitude': longitude,
+              'emergency_type': emergencyType,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw ApiResponseException(
-      'Emergency message generation failed',
-      statusCode: response.statusCode,
-    );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw ApiResponseException(
+        'Emergency message generation failed',
+        statusCode: response.statusCode,
+      );
+    });
   }
 
   /// Evaluate a sign attempt for the Learn mode
@@ -283,29 +287,31 @@ class ApiService {
     String targetSign,
   ) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/evaluate-sign');
-    final request = http.MultipartRequest('POST', uri)
-      ..headers.addAll(_authHeaders)
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'image',
-          imageBytes,
-          filename: 'frame.jpg',
-        ),
-      )
-      ..fields['target_sign'] = targetSign;
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/evaluate-sign');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(_authHeaders)
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            imageBytes,
+            filename: 'frame.jpg',
+          ),
+        )
+        ..fields['target_sign'] = targetSign;
 
-    final response = await _client
-        .send(request)
-        .timeout(const Duration(seconds: 30));
-    if (response.statusCode == 200) {
-      final body = await response.stream.bytesToString();
-      return jsonDecode(body);
-    }
-    throw ApiResponseException(
-      'Sign evaluation failed',
-      statusCode: response.statusCode,
-    );
+      final response = await _client
+          .send(request)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final body = await response.stream.bytesToString();
+        return jsonDecode(body);
+      }
+      throw ApiResponseException(
+        'Sign evaluation failed',
+        statusCode: response.statusCode,
+      );
+    });
   }
 
   /// Health check

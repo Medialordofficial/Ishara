@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:http/http.dart' as http;
+import 'dart:typed_data';import 'dart:async';import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
@@ -39,26 +38,46 @@ class ApiService {
 
   String get baseUrl => _baseUrl;
 
+  /// Retry a function with exponential backoff.
+  /// Retries up to [maxRetries] times on transient failures (timeouts, network errors).
+  Future<T> _retry<T>(Future<T> Function() fn, {int maxRetries = 2}) async {
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } on TimeoutException {
+        if (attempt == maxRetries) rethrow;
+      } on http.ClientException {
+        if (attempt == maxRetries) rethrow;
+      }
+      // Exponential backoff: 500ms, 1s
+      await Future<void>.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+    }
+    // Unreachable, but satisfies the type system
+    throw StateError('Retry exhausted');
+  }
+
   /// Send a camera frame for sign language interpretation
   Future<String> interpretSign(Uint8List imageBytes) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/interpret-sign');
-    final request = http.MultipartRequest('POST', uri)
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'image',
-          imageBytes,
-          filename: 'frame.jpg',
-        ),
-      );
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/interpret-sign');
+      final request = http.MultipartRequest('POST', uri)
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            imageBytes,
+            filename: 'frame.jpg',
+          ),
+        );
 
-    final response = await _client.send(request).timeout(const Duration(seconds: 30));
-    if (response.statusCode == 200) {
-      final body = await response.stream.bytesToString();
-      final json = jsonDecode(body);
-      return json['sign'] ?? '';
-    }
-    throw Exception('Sign interpretation failed: ${response.statusCode}');
+      final response = await _client.send(request).timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final body = await response.stream.bytesToString();
+        final json = jsonDecode(body);
+        return json['sign'] ?? '';
+      }
+      throw Exception('Sign interpretation failed: ${response.statusCode}');
+    });
   }
 
   /// Send audio for speech-to-text
@@ -86,19 +105,21 @@ class ApiService {
   /// Classify a sound description for sound awareness
   Future<Map<String, dynamic>> classifySound(String description) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/classify-sound');
-    final response = await _client
-        .post(
-          uri,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'description': description}),
-        )
-        .timeout(const Duration(seconds: 15));
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/classify-sound');
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'description': description}),
+          )
+          .timeout(const Duration(seconds: 15));
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('Sound classification failed: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Sound classification failed: ${response.statusCode}');
+    });
   }
 
   /// Send a camera frame for world reading (documents, labels, etc.)
@@ -198,22 +219,24 @@ class ApiService {
     List<Map<String, String>>? history,
   }) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/chat');
-    final response = await _client
-        .post(
-          uri,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'message': message,
-            if (history != null) ...{'history': history},
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/chat');
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'message': message,
+              if (history != null) ...{'history': history},
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      return json['reply'] ?? json['response'] ?? json['text'] ?? '';
-    }
-    throw Exception('LLM chat failed: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['reply'] ?? json['response'] ?? json['text'] ?? '';
+      }
+      throw Exception('LLM chat failed: ${response.statusCode}');
+    });
   }
 }

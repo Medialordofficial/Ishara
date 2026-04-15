@@ -230,4 +230,87 @@ void main() {
       expect(result['feedback'], 'Good form!');
     });
   });
+
+  group('retry logic', () {
+    test('retries on timeout and eventually succeeds', () async {
+      var callCount = 0;
+      api.httpClient = MockClient((request) async {
+        callCount++;
+        if (callCount < 3) {
+          throw http.ClientException('Connection refused');
+        }
+        return http.Response(
+          jsonEncode({
+            'sound': 'speech',
+            'level': 'normal',
+            'description': 'Talking',
+          }),
+          200,
+        );
+      });
+
+      final result = await api.classifySound('talking');
+      expect(result['sound'], 'speech');
+      expect(callCount, 3); // 2 failures + 1 success
+    });
+
+    test('throws after max retries exhausted', () async {
+      api.httpClient = MockClient((_) async {
+        throw http.ClientException('Connection refused');
+      });
+
+      expect(
+        () => api.classifySound('anything'),
+        throwsA(isA<http.ClientException>()),
+      );
+    });
+
+    test('chatLLM retries on transient failure', () async {
+      var callCount = 0;
+      api.httpClient = MockClient((request) async {
+        callCount++;
+        if (callCount == 1) {
+          throw http.ClientException('Network error');
+        }
+        return http.Response(
+          jsonEncode({'reply': 'Retried successfully'}),
+          200,
+        );
+      });
+
+      final result = await api.chatLLM('test');
+      expect(result, 'Retried successfully');
+      expect(callCount, 2);
+    });
+  });
+
+  group('speechToText', () {
+    test('sends audio multipart and returns text', () async {
+      api.httpClient = MockClient.streaming((request, _) async {
+        expect(request.url.path, '/speech-to-text');
+        expect(request.method, 'POST');
+        return http.StreamedResponse(
+          Stream.value(utf8.encode(jsonEncode({'text': 'hello world'}))),
+          200,
+        );
+      });
+
+      final result = await api.speechToText(Uint8List.fromList([0, 1, 2]));
+      expect(result, 'hello world');
+    });
+
+    test('throws on server error', () async {
+      api.httpClient = MockClient.streaming((request, _) async {
+        return http.StreamedResponse(
+          Stream.value(utf8.encode('error')),
+          503,
+        );
+      });
+
+      expect(
+        () => api.speechToText(Uint8List.fromList([0, 1])),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
 }

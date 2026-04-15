@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
@@ -20,11 +21,17 @@ class _ConversationScreenState extends State<ConversationScreen>
   final TtsService _tts = TtsService();
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController();
   bool _isInterpreting = false;
   bool _isCameraReady = false;
   bool _isListening = false;
   Timer? _captureTimer;
   late AnimationController _pulseController;
+
+  // Speech-to-text
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  String _currentWords = '';
 
   @override
   void initState() {
@@ -34,9 +41,88 @@ class _ConversationScreenState extends State<ConversationScreen>
       duration: const Duration(milliseconds: 1200),
     );
     _initCamera();
+    _initSpeech();
     _addSystemMessage(
-      'Point the camera at the signer, then tap to begin.',
+      'Point the camera at the signer, then tap to begin. The hearing person can use the mic or type below.',
     );
+  }
+
+  Future<void> _initSpeech() async {
+    _speechAvailable = await _speech.initialize(
+      onError: (error) {
+        if (mounted) {
+          setState(() => _isListening = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Speech error: ${error.errorMsg}')),
+          );
+        }
+      },
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted && _isListening) {
+            setState(() => _isListening = false);
+            if (_currentWords.isNotEmpty) {
+              _addHearingMessage(_currentWords);
+              _currentWords = '';
+            }
+          }
+        }
+      },
+    );
+  }
+
+  void _addHearingMessage(String text) {
+    setState(() {
+      _messages.add(ChatMessage(text: text, sender: MessageSender.hearing));
+    });
+    _scrollToBottom();
+  }
+
+  void _toggleMic() async {
+    if (!_speechAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech recognition not available on this device')),
+        );
+      }
+      return;
+    }
+
+    if (_isListening) {
+      _speech.stop();
+      setState(() => _isListening = false);
+      if (_currentWords.isNotEmpty) {
+        _addHearingMessage(_currentWords);
+        _currentWords = '';
+      }
+    } else {
+      setState(() {
+        _isListening = true;
+        _currentWords = '';
+      });
+      _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _currentWords = result.recognizedWords;
+          });
+          if (result.finalResult && _currentWords.isNotEmpty) {
+            _addHearingMessage(_currentWords);
+            _currentWords = '';
+            setState(() => _isListening = false);
+          }
+        },
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+        localeId: 'en_US',
+      );
+    }
+  }
+
+  void _sendTextMessage() {
+    final text = _textController.text.trim();
+    if (text.isEmpty) return;
+    _textController.clear();
+    _addHearingMessage(text);
   }
 
   Future<void> _initCamera() async {
@@ -99,7 +185,13 @@ class _ConversationScreenState extends State<ConversationScreen>
         await _tts.speak(interpretation);
         _scrollToBottom();
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Interpretation error: $e')),
+        );
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -117,9 +209,11 @@ class _ConversationScreenState extends State<ConversationScreen>
   @override
   void dispose() {
     _captureTimer?.cancel();
+    _speech.stop();
     _cameraController?.dispose();
     _tts.dispose();
     _scrollController.dispose();
+    _textController.dispose();
     _pulseController.dispose();
     super.dispose();
   }
@@ -139,7 +233,11 @@ class _ConversationScreenState extends State<ConversationScreen>
         actions: [
           if (_messages.length > 1)
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 24, color: AppColors.danger),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 24,
+                color: AppColors.danger,
+              ),
               onPressed: () => setState(() {
                 _messages.clear();
                 _addSystemMessage('Chat cleared.');
@@ -163,8 +261,11 @@ class _ConversationScreenState extends State<ConversationScreen>
                     borderRadius: BorderRadius.circular(40),
                     boxShadow: AppColors.premiumShadows,
                     border: Border.all(
-                        color: _isInterpreting ? AppColors.primary : Colors.transparent,
-                        width: 4 * _pulseController.value),
+                      color: _isInterpreting
+                          ? AppColors.primary
+                          : Colors.transparent,
+                      width: 4 * _pulseController.value,
+                    ),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
@@ -174,14 +275,19 @@ class _ConversationScreenState extends State<ConversationScreen>
                         CameraPreview(_cameraController!)
                       else
                         const Center(
-                          child: CircularProgressIndicator(color: AppColors.primary),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
                         ),
                       if (_isInterpreting)
                         Positioned(
                           top: 16,
                           right: 16,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.danger,
                               borderRadius: BorderRadius.circular(20),
@@ -189,14 +295,19 @@ class _ConversationScreenState extends State<ConversationScreen>
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.circle, color: Colors.white, size: 10),
+                                Icon(
+                                  Icons.circle,
+                                  color: Colors.white,
+                                  size: 10,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'LIVE',
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold),
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -215,7 +326,9 @@ class _ConversationScreenState extends State<ConversationScreen>
               margin: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(40),
+                ),
                 boxShadow: AppColors.premiumShadows,
               ),
               child: ListView.builder(
@@ -232,46 +345,127 @@ class _ConversationScreenState extends State<ConversationScreen>
           // Floating Bottom Controls
           Container(
             color: AppColors.surface,
-            padding: const EdgeInsets.fromLTRB(32, 16, 32, 40),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 36),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _PremiumFloatingAction(
-                  icon: _isListening ? Icons.mic : Icons.mic_off,
-                  label: 'Mic',
-                  color: AppColors.info,
-                  isActive: _isListening,
-                  onTap: () => setState(() => _isListening = !_isListening),
+                // Live speech preview
+                if (_isListening && _currentWords.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      _currentWords,
+                      style: const TextStyle(
+                        color: AppColors.info,
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                // Text input + mic + send
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: AppColors.premiumShadows,
+                        ),
+                        child: TextField(
+                          controller: _textController,
+                          decoration: const InputDecoration(
+                            hintText: 'Hearing person types here...',
+                            hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _sendTextMessage(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _sendTextMessage,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.send_rounded, color: AppColors.primary, size: 22),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _toggleMic,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _isListening ? AppColors.danger : AppColors.info,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (_isListening ? AppColors.danger : AppColors.info).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                // Sign interpretation toggle
                 GestureDetector(
                   onTap: _isInterpreting ? _stopInterpreting : _startInterpreting,
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
                       color: _isInterpreting ? AppColors.danger : AppColors.primary,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
                           color: (_isInterpreting ? AppColors.danger : AppColors.primary).withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        )
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
                       ],
                     ),
-                    child: Icon(
-                      _isInterpreting ? Icons.stop : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 40,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isInterpreting ? Icons.stop : Icons.sign_language,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isInterpreting ? 'Stop Sign Reading' : 'Start Sign Reading',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                _PremiumFloatingAction(
-                  icon: Icons.volume_up,
-                  label: 'Audio',
-                  color: AppColors.primary,
-                  isActive: true,
-                  onTap: () {},
                 ),
               ],
             ),
@@ -326,10 +520,11 @@ class _PremiumChatBubble extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: (isDeaf ? AppColors.primary : AppColors.secondary).withValues(alpha: 0.15),
+              color: (isDeaf ? AppColors.primary : AppColors.secondary)
+                  .withValues(alpha: 0.15),
               blurRadius: 10,
               offset: const Offset(0, 5),
-            )
+            ),
           ],
         ),
         child: Text(
@@ -345,47 +540,3 @@ class _PremiumChatBubble extends StatelessWidget {
   }
 }
 
-class _PremiumFloatingAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _PremiumFloatingAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isActive ? color.withValues(alpha: 0.1) : AppColors.surface,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: isActive ? color : AppColors.textSecondary, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? color : AppColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          )
-        ],
-      ),
-    );
-  }
-}

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:vibration/vibration.dart';
 import '../services/api_service.dart';
 import '../services/tts_service.dart';
 import '../utils/constants.dart';
@@ -18,6 +20,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   bool _isSending = false;
   bool _emergencySent = false;
   String _generatedMessage = '';
+  String _locationInfo = '';
   final TextEditingController _chatController = TextEditingController();
   final List<String> _chatMessages = [];
 
@@ -42,16 +45,80 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     },
   ];
 
+  Future<Position?> _getLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enable location services')),
+        );
+      }
+      return null;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
+        }
+        return null;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Location permission permanently denied. Enable in Settings.',
+            ),
+          ),
+        );
+      }
+      return null;
+    }
+
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
+  }
+
   Future<void> _sendEmergency() async {
     if (_selectedType == null) return;
 
     setState(() => _isSending = true);
     HapticFeedback.heavyImpact();
 
+    // Vibrate for emergency feedback
+    final hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator == true) {
+      Vibration.vibrate(pattern: [0, 300, 200, 300, 200, 300]);
+    }
+
+    // Get real GPS location
+    double lat = 0.0;
+    double lng = 0.0;
+    try {
+      final position = await _getLocation();
+      if (position != null) {
+        lat = position.latitude;
+        lng = position.longitude;
+        _locationInfo =
+            'Location: ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+      } else {
+        _locationInfo = 'Location unavailable';
+      }
+    } catch (e) {
+      _locationInfo = 'Location unavailable';
+    }
+
     try {
       final result = await _api.emergencyMessage(
-        latitude: 0.0,
-        longitude: 0.0,
+        latitude: lat,
+        longitude: lng,
         emergencyType: _selectedType!,
       );
 
@@ -68,7 +135,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         _isSending = false;
         _emergencySent = true;
         _generatedMessage =
-            'This is an emergency call from a deaf person. Please send $_selectedType assistance immediately.';
+            'EMERGENCY: Deaf person needs $_selectedType assistance immediately. $_locationInfo';
       });
       await _tts.speak(_generatedMessage);
     }
@@ -140,7 +207,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 shape: BoxShape.circle,
                 boxShadow: AppColors.premiumShadows,
               ),
-              child: const Icon(Icons.sos_rounded, size: 80, color: AppColors.danger),
+              child: const Icon(
+                Icons.sos_rounded,
+                size: 80,
+                color: AppColors.danger,
+              ),
             ),
             const SizedBox(height: 40),
             const Text(
@@ -179,10 +250,14 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               width: double.infinity,
               height: 64,
               child: ElevatedButton(
-                onPressed: _selectedType != null && !_isSending ? _sendEmergency : null,
+                onPressed: _selectedType != null && !_isSending
+                    ? _sendEmergency
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.danger,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32),
+                  ),
                   elevation: 8,
                   shadowColor: AppColors.danger.withValues(alpha: 0.4),
                 ),
@@ -197,7 +272,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                         ),
                       ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -215,11 +290,18 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(32),
             boxShadow: AppColors.premiumShadows,
-            border: Border.all(color: AppColors.danger.withValues(alpha: 0.3), width: 2),
+            border: Border.all(
+              color: AppColors.danger.withValues(alpha: 0.3),
+              width: 2,
+            ),
           ),
           child: Column(
             children: [
-              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 48),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.success,
+                size: 48,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'SOS Sent Successfully',
@@ -239,6 +321,28 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   height: 1.5,
                 ),
               ),
+              if (_locationInfo.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: AppColors.primary,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _locationInfo,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -286,7 +390,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                       alignment: Alignment.centerRight,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: const BorderRadius.only(
@@ -300,7 +407,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                               color: AppColors.primary.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
-                            )
+                            ),
                           ],
                         ),
                         child: Text(
@@ -356,12 +463,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                         color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
-                      )
+                      ),
                     ],
                   ),
                   child: const Icon(Icons.send_rounded, color: Colors.white),
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -400,7 +507,9 @@ class _PremiumEmergencyType extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: AppColors.premiumShadows,
               border: Border.all(
-                color: isSelected ? Colors.transparent : color.withValues(alpha: 0.2),
+                color: isSelected
+                    ? Colors.transparent
+                    : color.withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
@@ -414,11 +523,13 @@ class _PremiumEmergencyType extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
               fontSize: 14,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             ),
-          )
+          ),
         ],
       ),
     );

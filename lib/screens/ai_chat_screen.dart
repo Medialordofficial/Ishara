@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/sign_dictionary.dart';
+import '../services/api_service.dart';
 import '../utils/constants.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -14,6 +15,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatEntry> _messages = [];
+  final ApiService _api = ApiService();
+  final List<Map<String, String>> _chatHistory = [];
 
   @override
   void initState() {
@@ -34,7 +37,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     super.dispose();
   }
 
-  void _sendMessage(String text) {
+  void _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
     final input = text.trim();
     _textController.clear();
@@ -42,44 +45,49 @@ class _AiChatScreenState extends State<AiChatScreen> {
     setState(() {
       _messages.add(_ChatEntry(text: input, role: _Role.user));
     });
+    _chatHistory.add({'role': 'user', 'content': input});
     _scrollToBottom();
 
-    // Simulate LLM thinking
+    // Show thinking indicator
     setState(() {
       _messages.add(_ChatEntry(text: '', role: _Role.thinking));
     });
     _scrollToBottom();
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
+    String response;
+    try {
+      // Try real LLM backend first
+      response = await _api.chatLLM(input, history: _chatHistory);
+      if (response.isEmpty) throw Exception('Empty response');
+    } catch (_) {
+      // Fallback to local keyword response
+      response = _generateFallbackResponse(input);
+    }
 
-      // Generate a response with sign translation
-      final response = _generateResponse(input);
-      final signTranslation = SignDictionary.translateSentence(
-        '$input $response',
-      );
+    _chatHistory.add({'role': 'assistant', 'content': response});
 
-      setState(() {
-        // Remove thinking indicator
-        _messages.removeWhere((m) => m.role == _Role.thinking);
-        // Add text response
-        _messages.add(_ChatEntry(text: response, role: _Role.assistant));
-        // Add animated sign translation
-        if (signTranslation.isNotEmpty) {
-          _messages.add(
-            _ChatEntry(
-              text: '',
-              role: _Role.signAnimation,
-              signs: signTranslation,
-            ),
-          );
-        }
-      });
-      _scrollToBottom();
+    final signTranslation = SignDictionary.translateSentence(
+      '$input $response',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _messages.removeWhere((m) => m.role == _Role.thinking);
+      _messages.add(_ChatEntry(text: response, role: _Role.assistant));
+      if (signTranslation.isNotEmpty) {
+        _messages.add(
+          _ChatEntry(
+            text: '',
+            role: _Role.signAnimation,
+            signs: signTranslation,
+          ),
+        );
+      }
     });
+    _scrollToBottom();
   }
 
-  String _generateResponse(String input) {
+  String _generateFallbackResponse(String input) {
     final lower = input.toLowerCase();
     if (lower.contains('hello') || lower.contains('hi')) {
       return 'Hello! How can I help you today? I\'m here to assist with anything you need.';

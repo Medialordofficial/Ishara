@@ -40,6 +40,9 @@ dependencies:
   vibration: ^2.0.1
   google_fonts: ^6.2.1
   shimmer: ^3.0.0
+  shared_preferences: ^2.3.5
+  speech_to_text: ^7.0.0
+  noise_meter: ^5.0.2
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:noise_meter/noise_meter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/sound_alert.dart';
+import '../services/api_service.dart';
 import '../utils/constants.dart';
 
 class SoundAwarenessScreen extends StatefulWidget {
@@ -18,6 +21,17 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
   Color _flashColor = Colors.transparent;
   late AnimationController _pulseController;
 
+  final NoiseMeter _noiseMeter = NoiseMeter();
+  StreamSubscription<NoiseReading>? _noiseSubscription;
+  final ApiService _api = ApiService();
+
+  double _currentDecibel = 0.0;
+  double _peakDecibel = 0.0;
+
+  static const double _warningThreshold = 75.0;
+  static const double _criticalThreshold = 90.0;
+  DateTime? _lastAlertTime;
+
   @override
   void initState() {
     super.initState();
@@ -27,22 +41,117 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
     );
   }
 
-  void _toggleListening() {
-    setState(() {
-      _isListening = !_isListening;
-    });
-
+  Future<void> _toggleListening() async {
     if (_isListening) {
-      _pulseController.repeat(reverse: false);
+      _stopListening();
     } else {
-      _pulseController.stop();
-      _pulseController.reset();
+      await _startListening();
+    }
+  }
+
+  Future<void> _startListening() async {
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Microphone permission is required for sound awareness',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isListening = true);
+    _pulseController.repeat(reverse: false);
+
+    _noiseSubscription = _noiseMeter.noise.listen(
+      (NoiseReading reading) {
+        if (!mounted) return;
+        setState(() {
+          _currentDecibel = reading.meanDecibel.clamp(0.0, 130.0);
+          if (_currentDecibel > _peakDecibel) _peakDecibel = _currentDecibel;
+        });
+        _evaluateNoise(reading);
+      },
+      onError: (Object error) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Mic error: $error')));
+          _stopListening();
+        }
+      },
+    );
+  }
+
+  void _stopListening() {
+    _noiseSubscription?.cancel();
+    _noiseSubscription = null;
+    _pulseController.stop();
+    _pulseController.reset();
+    setState(() {
+      _isListening = false;
+      _currentDecibel = 0;
+    });
+  }
+
+  void _evaluateNoise(NoiseReading reading) {
+    final now = DateTime.now();
+    if (_lastAlertTime != null && now.difference(_lastAlertTime!).inSeconds < 3) {
+      return;
+    }
+
+    final db = reading.maxDecibel.clamp(0.0, 130.0);
+
+    if (db >= _criticalThreshold) {
+      _lastAlertTime = now;
+      _triggerAlert(
+        SoundAlert(
+          label: 'Loud Sound Detected (${db.toInt()} dB)',
+          confidence: (db / 130).clamp(0.0, 1.0),
+          level: AlertLevel.critical,
+        ),
+      );
+      _classifyViaBackend(db);
+    } else if (db >= _warningThreshold) {
+      _lastAlertTime = now;
+      _triggerAlert(
+        SoundAlert(
+          label: 'Elevated Sound (${db.toInt()} dB)',
+          confidence: (db / 130).clamp(0.0, 1.0),
+          level: AlertLevel.warning,
+        ),
+      );
+    }
+  }
+
+  Future<void> _classifyViaBackend(double db) async {
+    try {
+      final result = await _api.classifySound(
+        'loud sound at ${db.toInt()} decibels',
+      );
+      final label = result['label'] ?? result['sound'] ?? '';
+      if (label.isNotEmpty && mounted) {
+        _triggerAlert(
+          SoundAlert(
+            label: label,
+            confidence: (result['confidence'] as num?)?.toDouble() ?? 0.85,
+            level: AlertLevel.critical,
+          ),
+        );
+      }
+    } catch (_) {
+      // Backend unavailable — local alert already triggered
     }
   }
 
   void _triggerAlert(SoundAlert alert) {
     setState(() {
       _alerts.insert(0, alert);
+      if (_alerts.length > 50) _alerts.removeLast();
     });
 
     switch (alert.level) {
@@ -70,6 +179,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
 
   @override
   void dispose() {
+    _noiseSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -96,7 +206,11 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildPremiumListeningToggle(),
-              const SizedBox(height: 50),
+              if (_isListening) ...[
+                const SizedBox(height: 30),
+                _buildDecibelMeter(),
+              ],
+              const SizedBox(height: 40),
               _buildAlertTests(),
               const SizedBox(height: 40),
               _buildRecentAlerts(),
@@ -107,15 +221,81 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
     );
   }
 
+  Widget _buildDecibelMeter() {
+    Color levelColor = AppColors.success;
+    String levelLabel = 'Quiet';
+    if (_currentDecibel >= _criticalThreshold) {
+      levelColor = AppColors.danger;
+      levelLabel = 'LOUD';
+    } else if (_currentDecibel >= _warningThreshold) {
+      levelColor = AppColors.warning;
+      levelLabel = 'Moderate';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: AppColors.premiumShadows,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                levelLabel,
+                style: TextStyle(
+                  color: levelColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                'Peak: ${_peakDecibel.toInt()} dB',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: (_currentDecibel / 130).clamp(0.0, 1.0),
+              minHeight: 12,
+              backgroundColor: AppColors.secondary,
+              valueColor: AlwaysStoppedAnimation<Color>(levelColor),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${_currentDecibel.toInt()} dB',
+            style: TextStyle(
+              color: levelColor,
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPremiumListeningToggle() {
     return GestureDetector(
       onTap: _toggleListening,
       child: AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {
-          final scale = _isListening ? 1.0 + (_pulseController.value * 0.15) : 1.0;
+          final scale = _isListening
+              ? 1.0 + (_pulseController.value * 0.15)
+              : 1.0;
           final opacity = _isListening ? 1.0 - _pulseController.value : 0.0;
-          
+
           return Stack(
             alignment: Alignment.center,
             children: [
@@ -136,7 +316,9 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
                   shape: BoxShape.circle,
                   boxShadow: AppColors.premiumShadows,
                   border: Border.all(
-                    color: _isListening ? AppColors.primary : Colors.transparent,
+                    color: _isListening
+                        ? AppColors.primary
+                        : Colors.transparent,
                     width: 2,
                   ),
                 ),
@@ -146,13 +328,17 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
                     Icon(
                       _isListening ? Icons.hearing : Icons.hearing_disabled,
                       size: 64,
-                      color: _isListening ? AppColors.primary : AppColors.textSecondary,
+                      color: _isListening
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       _isListening ? 'Listening...' : 'Tap to Listen',
                       style: TextStyle(
-                        color: _isListening ? AppColors.primary : AppColors.textSecondary,
+                        color: _isListening
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -194,21 +380,33 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
                 icon: Icons.local_fire_department,
                 color: AppColors.danger,
                 onTap: () => _triggerAlert(
-                  SoundAlert(label: 'Fire Alarm', confidence: 0.98, level: AlertLevel.critical),
+                  SoundAlert(
+                    label: 'Fire Alarm',
+                    confidence: 0.98,
+                    level: AlertLevel.critical,
+                  ),
                 ),
               ),
               _PremiumTestButton(
                 icon: Icons.doorbell,
                 color: AppColors.warning,
                 onTap: () => _triggerAlert(
-                  SoundAlert(label: 'Door Knock', confidence: 0.84, level: AlertLevel.warning),
+                  SoundAlert(
+                    label: 'Door Knock',
+                    confidence: 0.84,
+                    level: AlertLevel.warning,
+                  ),
                 ),
               ),
               _PremiumTestButton(
                 icon: Icons.vibration,
                 color: AppColors.info,
                 onTap: () => _triggerAlert(
-                  SoundAlert(label: 'Phone Vibration', confidence: 0.73, level: AlertLevel.info),
+                  SoundAlert(
+                    label: 'Phone Vibration',
+                    confidence: 0.73,
+                    level: AlertLevel.info,
+                  ),
                 ),
               ),
             ],
@@ -222,13 +420,32 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Recent Activity',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Recent Activity',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (_alerts.isNotEmpty)
+              GestureDetector(
+                onTap: () => setState(() {
+                  _alerts.clear();
+                  _peakDecibel = 0;
+                }),
+                child: const Text(
+                  'Clear',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         if (_alerts.isEmpty)
@@ -271,7 +488,11 @@ class _PremiumTestButton extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _PremiumTestButton({required this.icon, required this.color, required this.onTap});
+  const _PremiumTestButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -298,15 +519,19 @@ class _PremiumAlertCard extends StatelessWidget {
 
   Color get _color {
     switch (alert.level) {
-      case AlertLevel.critical: return AppColors.danger;
-      case AlertLevel.warning: return AppColors.warning;
-      case AlertLevel.info: return AppColors.info;
+      case AlertLevel.critical:
+        return AppColors.danger;
+      case AlertLevel.warning:
+        return AppColors.warning;
+      case AlertLevel.info:
+        return AppColors.info;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final time = '${alert.timestamp.hour.toString().padLeft(2,'0')}:${alert.timestamp.minute.toString().padLeft(2,'0')}';
+    final time =
+        '${alert.timestamp.hour.toString().padLeft(2, '0')}:${alert.timestamp.minute.toString().padLeft(2, '0')}';
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),

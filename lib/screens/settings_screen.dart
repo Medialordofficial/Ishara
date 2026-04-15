@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 
@@ -20,6 +21,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _connectionStatus = '';
   bool _isTesting = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedSettings();
+  }
+
+  Future<void> _loadSavedSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedHost = prefs.getString('ishara_host');
+    final savedPort = prefs.getInt('ishara_port');
+    if (savedHost != null) _hostController.text = savedHost;
+    if (savedPort != null) _portController.text = savedPort.toString();
+    // Apply saved settings to API service
+    _api.updateBaseUrl(
+      _hostController.text.trim(),
+      port: int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
+    );
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ishara_host', _hostController.text.trim());
+    await prefs.setInt(
+      'ishara_port',
+      int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
+    );
+  }
+
   Future<void> _testConnection() async {
     setState(() {
       _isTesting = true;
@@ -30,6 +59,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _hostController.text.trim(),
       port: int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
     );
+
+    // Save settings
+    await _saveSettings();
 
     try {
       final ok = await _api.ping();

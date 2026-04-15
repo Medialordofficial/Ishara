@@ -155,4 +155,28 @@ class ApiService {
       return false;
     }
   }
+
+  /// Chat with LLM (Gemma 4 via Ollama backend)
+  Future<String> chatLLM(
+    String message, {
+    List<Map<String, String>>? history,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/chat');
+    final response = await http
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'message': message,
+            if (history != null) ...{'history': history},
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return json['reply'] ?? json['response'] ?? json['text'] ?? '';
+    }
+    throw Exception('LLM chat failed: ${response.statusCode}');
+  }
 }

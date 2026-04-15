@@ -16,7 +16,44 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.7.0] — Fix Cycle 13
+## [1.8.0] — 2026-04-15 — Fix Cycle 14
+
+### Fixed — AI/ML Quality
+- **`/chat` history threading**: `general_chat` now passes conversation history as a structured `messages[]` array to Ollama's `/api/chat` — eliminating the `User:/Assistant:` prefix hack that defeated role isolation. System prompt, sanitized history, and current message are each their own role-separated entries.
+- **Emergency message template fallback**: `/emergency-message` now validates LLM output. If the model returns garbage (<20 chars, no emergency keywords), a safe hardcoded template with emergency type + location is returned instead.
+- **Few-shot examples in interpret-sign prompt**: Added two annotated examples to `/interpret-sign` prompt to guide JSON format compliance and improve confidence calibration.
+
+### Fixed — Accessibility
+- **`warning` color**: `0xFFFBBC05` (yellow, ~1:1 on white — WCAG FAIL) → `0xFFB45309` (amber-700, ~4.9:1 on white — WCAG AA pass). Affects Fire emergency type badge and all `warning` severity indicators.
+- **`FocusTraversalOrder` on emergency type grid**: Emergency type buttons wrapped in `FocusTraversalGroup` + `FocusTraversalOrder(NumericFocusOrder)` for predictable keyboard/switch navigation (Medical=0, Police=1, Fire=2, Disaster=3, Other=4).
+- **Chat bubble role semantics**: User bubbles wrapped in `Semantics(label: 'You: ...')` and assistant bubbles in `Semantics(label: 'Ishara: ...')` so TalkBack announces speaker context.
+
+### Fixed — Security
+- **HTTP insecure warning banner**: Settings screen shows a persistent amber warning banner whenever the configured server URL uses plain HTTP on a non-local hostname. `ApiService.isInsecureHttp` getter drives the conditional.
+- **Chunked-encoding body size bypass**: `_ContentSizeLimitMiddleware` now also streams the request body via `request.stream()` and aborts at `MAX_BODY_BYTES` — prevents bypass via chunked-transfer encoding that omits `Content-Length` headers.
+
+### Fixed — Code Quality
+- **Notification ID collision**: `NotificationService` now uses a monotonic `_nextId++` counter instead of `DateTime.now().millisecondsSinceEpoch ~/ 1000` — prevents same-second notifications from replacing each other on Android.
+- **`_chatHistory` bounded**: AI chat history capped at 20 entries (10 turns) in `_sendMessage` — prevents unbounded memory growth in long sessions.
+
+### Fixed — Documentation
+- **CHANGELOG v1.7.0 missing date**: Added `2026-04-15` to `[1.7.0]` entry.
+- **Environment variables table**: README now has a complete table of all 6 env vars (`OLLAMA_URL`, `ISHARA_MODEL`, `ISHARA_SIGN_LANGUAGE`, `ISHARA_API_KEY`, `ISHARA_RATE_LIMIT`, `ISHARA_CORS_ORIGINS`) with defaults, descriptions, and examples.
+- **Interactive API docs callout**: README now mentions `http://localhost:8000/docs` (Swagger UI).
+
+### Fixed — Testing
+- **4 new backend tests**:
+  - `test_chat_history_passed_as_structured_messages` — verifies structured messages[] kwarg is forwarded (history threading)
+  - `test_emergency_message_template_fallback_on_garbage` — verifies safe fallback when LLM returns garbage
+  - `test_emergency_message_valid_output_passes_through` — verifies clean output is not replaced
+  - `test_interpret_sign_prompt_includes_few_shot_examples` — verifies examples appear in prompt
+- **Updated all 8 existing mock `_chat` function signatures** in test_server.py to accept `messages=None` keyword arg after `_chat` API update
+- **Total: 293 tests (220 Flutter + 73 backend), all passing**
+
+---
+
+## [1.7.0] — 2026-04-15 — Fix Cycle 13
+
 
 ### Fixed — AI/ML Quality
 - **Sign language system**: `/interpret-sign` and `/evaluate-sign` prompts now include `SIGN_LANGUAGE_SYSTEM` (configurable via `ISHARA_SIGN_LANGUAGE` env var, defaults to `ASL (American Sign Language)`)

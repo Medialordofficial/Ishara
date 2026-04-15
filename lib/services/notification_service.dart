@@ -8,6 +8,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  // Monotonic counter for notification IDs — avoids second-resolution collisions
+  // when multiple notifications arrive within the same second.
+  static int _nextId = 0;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -56,7 +59,7 @@ class NotificationService {
 
     try {
       await _plugin.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        _nextId++,
         title,
         body,
         details,

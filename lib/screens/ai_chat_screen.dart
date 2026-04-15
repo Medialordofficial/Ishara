@@ -75,6 +75,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
     _chatHistory.add({'role': 'assistant', 'content': response});
 
+    // Cap history at 20 entries (10 turns) to prevent unbounded memory growth.
+    // The backend only uses the last 6 entries for context anyway.
+    if (_chatHistory.length > 20) {
+      _chatHistory.removeRange(0, _chatHistory.length - 20);
+    }
+
     final signTranslation = SignDictionary.translateSentence(
       '$input $response',
     );
@@ -490,7 +496,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
           ),
         );
       case _Role.user:
-        return Align(
+        return Semantics(
+          label: 'You: ${msg.text}',
+          child: Align(
           alignment: Alignment.centerRight,
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 6),
@@ -523,9 +531,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
           ),
+          ),
         );
       case _Role.assistant:
-        return Align(
+        return Semantics(
+          label: 'Ishara: ${msg.text}',
+          child: Align(
           alignment: Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
@@ -587,6 +598,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ),
               ],
             ),
+          ),
           ),
         );
       case _Role.thinking:

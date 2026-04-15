@@ -222,6 +222,19 @@ python server.py
 # Server starts at http://localhost:8000
 ```
 
+> **Interactive API docs** — once the server is running, open [http://localhost:8000/docs](http://localhost:8000/docs) for the full Swagger UI.
+
+### Environment Variables
+
+| Variable | Default | Description | Example |
+|---|---|---|---|
+| `OLLAMA_URL` | `http://localhost:11434` | URL of the Ollama instance | `http://192.168.1.50:11434` |
+| `ISHARA_MODEL` | `gemma4` | Ollama model name to use | `gemma3:4b` |
+| `ISHARA_SIGN_LANGUAGE` | `ASL (American Sign Language)` | Sign language system for LLM prompts | `BSL (British Sign Language)` |
+| `ISHARA_API_KEY` | _(empty — auth disabled)_ | Shared secret for API key auth | `my-secure-key-here` |
+| `ISHARA_RATE_LIMIT` | `30` | Max requests per IP per 60 seconds | `60` |
+| `ISHARA_CORS_ORIGINS` | `http://localhost:8080,http://localhost:3000` | Comma-separated CORS allowed origins | `https://myapp.example.com` |
+
 ### 4. Run the Flutter app
 
 ```bash
@@ -268,7 +281,7 @@ ishara_app/
 ├── backend/
 │   ├── server.py                    # FastAPI + Gemma 4 bridge
 │   └── requirements.txt            # Python dependencies
-├── test/                            # Unit tests (289 tests)
+├── test/                            # Unit tests (293 tests)
 │   ├── models/
 │   ├── data/
 │   └── services/
@@ -323,7 +336,7 @@ _70 million people. Five modes. One phone._
 - [x] Learn Signs: Gamification (streaks, XP, 10-level system)
 - [x] Movable AI chat input across all screens
 - [x] Settings with server config persistence
-- [x] Comprehensive test suite (289 tests — 220 Flutter + 69 backend)
+- [x] Comprehensive test suite (293 tests — 220 Flutter + 73 backend)
 - [x] CI/CD pipeline
 - [ ] Full on-device Gemma inference via LiteRT/MediaPipe
 - [ ] Real-time gesture classification model (custom trained)

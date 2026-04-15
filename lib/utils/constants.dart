@@ -16,7 +16,7 @@ class AppColors {
 
   // Adjusted status colors for a more premium look
   static const Color success = Color(0xFF34A853);
-  static const Color warning = Color(0xFFFBBC05);
+  static const Color warning = Color(0xFFB45309); // Amber-700: WCAG AA (≥4.5:1) on white/background
   static const Color danger = Color(0xFFEA4335);
   static const Color info = Color(0xFF4285F4);
 

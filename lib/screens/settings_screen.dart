@@ -73,6 +73,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Save settings
     await _saveSettings();
 
+    // Refresh state to show/hide insecure HTTP warning after host change.
+    setState(() {});
+
     try {
       final ok = await _api.ping();
       setState(() {
@@ -184,6 +187,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
+
+        // Insecure HTTP warning — shown when using plain HTTP on a non-local host
+        if (_api.isInsecureHttp) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.warning, width: 1),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Insecure HTTP: Your data (signs, location, messages) is sent unencrypted. '
+                    'Use HTTPS in production or connect via localhost.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
 
         // Test button
         SizedBox(

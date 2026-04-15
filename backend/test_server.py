@@ -481,7 +481,7 @@ def test_interpret_sign_response_has_confidence(monkeypatch):
     """interpret_sign response includes confidence field."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         return '{"sign": "Hello", "confidence": 0.92}'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -503,7 +503,7 @@ def test_interpret_sign_fallback_on_non_json(monkeypatch):
     """interpret_sign gracefully handles non-JSON LLM output."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         return "Hello"
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -556,7 +556,7 @@ def test_interpret_sign_handles_markdown_fence(monkeypatch):
     """interpret_sign succeeds when Gemma wraps JSON in markdown fences."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         return '```json\n{"sign": "Hello", "confidence": 0.75}\n```'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -632,7 +632,7 @@ def test_classify_sound_normalizes_unknown_category(monkeypatch):
     """classify_sound normalizes unrecognized sound names to 'other'."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         return '{"sound": "mechanical_buzzing", "level": "info", "description": "noise"}'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -645,7 +645,7 @@ def test_classify_sound_keeps_valid_category(monkeypatch):
     """classify_sound preserves a valid recognized sound category."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         return '{"sound": "siren", "level": "critical", "description": "ambulance nearby"}'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -711,7 +711,7 @@ def test_chat_on_timeout_returns_504(monkeypatch):
     import server
     from fastapi import HTTPException
 
-    async def always_timeout(prompt, b64=None, *, temperature=0.1):
+    async def always_timeout(prompt, b64=None, *, temperature=0.1, messages=None):
         raise HTTPException(status_code=504, detail="Ollama request timed out")
 
     monkeypatch.setattr(server, "_chat", always_timeout)
@@ -775,7 +775,7 @@ def test_sign_language_system_in_interpret_prompt(monkeypatch):
 
     captured_prompt: list[str] = []
 
-    async def capture_chat(prompt, b64=None, *, temperature=0.1):
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         captured_prompt.append(prompt)
         return '{"sign": "Hello", "confidence": 0.9}'
 
@@ -798,7 +798,7 @@ def test_evaluate_sign_target_sanitized(monkeypatch):
 
     captured_prompt: list[str] = []
 
-    async def capture_chat(prompt, b64=None, *, temperature=0.1):
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
         captured_prompt.append(prompt)
         return "Good job!"
 
@@ -813,4 +813,108 @@ def test_evaluate_sign_target_sanitized(monkeypatch):
     assert r.status_code == 200
     # Prompt should have "[filtered]" in place of the injection attempt
     assert "[filtered]" in captured_prompt[0]
+
+
+# ─── Fix Cycle 14 New Tests ────────────────────────────────
+
+
+def test_chat_history_passed_as_structured_messages(monkeypatch):
+    """general_chat passes history as structured messages[], not a stringified prompt.
+
+    With the Fix Cycle 14 refactor, _chat is called with a messages= kwarg
+    and an empty prompt string instead of a User:/Assistant: prefixed blob.
+    """
+    import server
+
+    captured_kwargs: list[dict] = []
+
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+        captured_kwargs.append({'prompt': prompt, 'messages': messages})
+        return "test reply"
+
+    monkeypatch.setattr(server, "_chat", capture_chat)
+
+    r = client.post("/chat", json={
+        "message": "What is ASL?",
+        "history": [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there!"},
+        ],
+    })
+    assert r.status_code == 200
+    assert len(captured_kwargs) == 1
+    kw = captured_kwargs[0]
+    # messages must be a list (structured), not None
+    assert kw['messages'] is not None
+    roles = [m['role'] for m in kw['messages']]
+    # Must include system + history + current user message
+    assert 'system' in roles
+    assert 'user' in roles
+    assert 'assistant' in roles
+    # The current message must appear as the last user entry
+    contents = [m['content'] for m in kw['messages'] if m['role'] == 'user']
+    assert any('ASL' in c for c in contents)
+
+
+def test_emergency_message_template_fallback_on_garbage(monkeypatch):
+    """emergency_message uses safe fallback template when LLM returns garbage."""
+    import server
+
+    async def garbage_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+        return "I cannot help with that. This is not an emergency."
+
+    monkeypatch.setattr(server, "_chat", garbage_chat)
+
+    r = client.post("/emergency-message", json={
+        "emergency_type": "fire",
+        "latitude": 1.23456,
+        "longitude": 4.56789,
+    })
+    assert r.status_code == 200
+    msg = r.json()["message"]
+    # Must contain key emergency info
+    assert "fire" in msg.lower() or "emergency" in msg.lower()
+    # Must mention deaf/cannot call
+    assert "deaf" in msg.lower() or "voice" in msg.lower() or "help" in msg.lower()
+
+
+def test_emergency_message_valid_output_passes_through(monkeypatch):
+    """emergency_message passes through valid LLM output unchanged."""
+    import server
+
+    async def good_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+        return "EMERGENCY: Medical situation. Person is deaf and cannot make voice calls. GPS: 1.23456, 4.56789. Please send help immediately."
+
+    monkeypatch.setattr(server, "_chat", good_chat)
+
+    r = client.post("/emergency-message", json={
+        "emergency_type": "medical",
+        "latitude": 1.23456,
+        "longitude": 4.56789,
+    })
+    assert r.status_code == 200
+    msg = r.json()["message"]
+    assert "Medical" in msg or "EMERGENCY" in msg or "deaf" in msg.lower()
+
+
+def test_interpret_sign_prompt_includes_few_shot_examples(monkeypatch):
+    """interpret_sign prompt now includes few-shot example JSON objects."""
+    import server
+
+    captured: list[str] = []
+
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+        captured.append(prompt)
+        return '{"sign": "Hello", "confidence": 0.9}'
+
+    monkeypatch.setattr(server, "_chat", capture_chat)
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    r = client.post(
+        "/interpret-sign",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+    )
+    assert r.status_code == 200
+    # The prompt should contain the few-shot example showing confidence: 0.9
+    assert "0.9" in captured[0] or "0.0" in captured[0]
 

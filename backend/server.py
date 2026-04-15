@@ -116,6 +116,21 @@ class _ContentSizeLimitMiddleware(BaseHTTPMiddleware):
                 {"detail": f"Request body too large (max {MAX_IMAGE_BYTES} bytes)"},
                 status_code=413,
             )
+        # Guard against chunked-encoding bypass: stream the body and abort if
+        # it grows past the limit before Content-Length was checked.
+        body_chunks: list[bytes] = []
+        total = 0
+        async for chunk in request.stream():
+            total += len(chunk)
+            if total > MAX_BODY_BYTES:
+                return JSONResponse(
+                    {"detail": f"Request body too large (max {MAX_IMAGE_BYTES} bytes)"},
+                    status_code=413,
+                )
+            body_chunks.append(chunk)
+        # Re-inject consumed body so downstream handlers can read it.
+        body_bytes = b"".join(body_chunks)
+        request._body = body_bytes  # type: ignore[attr-defined]
         return await call_next(request)
 
 
@@ -227,11 +242,14 @@ async def _chat(
     image_b64: str | None = None,
     *,
     temperature: float = 0.1,
+    messages: list[dict] | None = None,
 ) -> str:
     """Send a prompt (optionally with an image) to Gemma 4 via Ollama.
 
     Uses /api/chat for proper role separation when available (text-only),
     and /api/generate for multimodal (image) requests.
+    If `messages` is provided, they are passed directly as the conversation
+    history array — enabling proper multi-turn role threading.
     Temperature defaults to 0.1 for deterministic safety-critical outputs.
     Retries once on timeout before raising HTTP 504.
     """
@@ -253,21 +271,24 @@ async def _chat(
                     return r.json().get("response", "")
                 else:
                     # Text-only path — /api/chat enforces role separation
+                    # Use caller-supplied messages array when provided (multi-turn chat),
+                    # otherwise wrap the single prompt in a minimal system+user pair.
+                    chat_messages = messages if messages is not None else [
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are Ishara AI, a helpful assistant for deaf and "
+                                "hard-of-hearing people. Follow instructions carefully "
+                                "and reply in the exact format requested."
+                            ),
+                        },
+                        {"role": "user", "content": prompt},
+                    ]
                     payload = {
                         "model": MODEL,
                         "stream": False,
                         "options": {"temperature": temperature},
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": (
-                                    "You are Ishara AI, a helpful assistant for deaf and "
-                                    "hard-of-hearing people. Follow instructions carefully "
-                                    "and reply in the exact format requested."
-                                ),
-                            },
-                            {"role": "user", "content": prompt},
-                        ],
+                        "messages": chat_messages,
                     }
                     r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
                     r.raise_for_status()
@@ -312,8 +333,10 @@ async def interpret_sign(image: UploadFile = File(...)):
         "Look at this image of a person making a sign language gesture. "
         f"Identify the sign being made and translate it into English using {SIGN_LANGUAGE_SYSTEM}. "
         "If no clear sign is visible, say 'No sign detected'. "
-        "Reply with ONLY a JSON object like: {\"sign\": \"Hello\", \"confidence\": 0.85} "
-        "where confidence is your certainty from 0.0 to 1.0."
+        "Reply with ONLY a JSON object. Examples:\n"
+        "{\"sign\": \"Hello\", \"confidence\": 0.9}  — clear greeting gesture detected\n"
+        "{\"sign\": \"No sign detected\", \"confidence\": 0.0}  — empty or unclear frame\n"
+        "Your reply (JSON only, no extra text):"
     )
     raw = await _chat(prompt, b64)
     sign = raw.strip()
@@ -414,7 +437,26 @@ async def emergency_message(req: EmergencyRequest):
         "and communicates via text. Keep it under 3 sentences."
     )
     result = await _chat(prompt)
-    return EmergencyMessageResponse(message=result.strip())
+    message = result.strip()
+    # Validate output: must be non-empty and not a refusal/error.
+    # If the model returns garbage, use a safe hardcoded template.
+    safe_keywords = ["emergency", "deaf", "help", "assistance",
+                     "medical", "police", "fire", "disaster"]
+    is_valid = (
+        message
+        and len(message) >= 20
+        and any(kw in message.lower() for kw in safe_keywords)
+    )
+    if not is_valid:
+        lat_str = f"{abs(req.latitude):.5f}°{'N' if req.latitude >= 0 else 'S'}" if (req.latitude != 0.0 or req.longitude != 0.0) else ""
+        lon_str = f"{abs(req.longitude):.5f}°{'E' if req.longitude >= 0 else 'W'}" if (req.latitude != 0.0 or req.longitude != 0.0) else ""
+        location_fallback = f" GPS: {lat_str}, {lon_str}." if lat_str else " Location not available."
+        message = (
+            f"EMERGENCY: {req.emergency_type.replace('_', ' ').title()} situation. "
+            f"The sender is deaf and cannot make voice calls.{location_fallback} "
+            "Please send help immediately."
+        )
+    return EmergencyMessageResponse(message=message)
 
 
 # 3b. Emergency — operator chat
@@ -502,21 +544,25 @@ async def general_chat(req: GeneralChatRequest):
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
     safe_msg = _sanitize_user_input(req.message)
-    context = ""
-    if req.history:
-        context = "\n".join(
-            f"{h.role}: {_sanitize_user_input(h.content)}"
-            for h in req.history[-6:]  # Last 6 messages for context
-        )
-    prompt = (
-        "You are Ishara AI, a helpful assistant for deaf and hard-of-hearing people. "
-        "You help with sign language questions, accessibility tips, and general conversation. "
-        "Keep responses clear, concise, and supportive.\n"
-    )
-    if context:
-        prompt += f"\nRecent conversation:\n{context}\n"
-    prompt += f"\nUser: {safe_msg}\nAssistant:"
-    result = await _chat(prompt, temperature=0.7)
+    # Build structured messages array for proper multi-turn role threading.
+    # History is passed directly as role-separated messages so Ollama sees
+    # the full conversation context without User:/Assistant: prefix hacks.
+    messages: list[dict] = [
+        {
+            "role": "system",
+            "content": (
+                "You are Ishara AI, a helpful assistant for deaf and hard-of-hearing people. "
+                "You help with sign language questions, accessibility tips, and general conversation. "
+                "Keep responses clear, concise, and supportive."
+            ),
+        }
+    ]
+    # Append last 6 history entries (3 turns) for context — sanitize each.
+    for h in req.history[-6:]:
+        messages.append({"role": h.role, "content": _sanitize_user_input(h.content)})
+    # Append the current user message.
+    messages.append({"role": "user", "content": safe_msg})
+    result = await _chat("", temperature=0.7, messages=messages)
     return ChatResponse(reply=result.strip())
 
 

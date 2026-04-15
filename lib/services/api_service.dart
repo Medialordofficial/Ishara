@@ -87,6 +87,14 @@ class ApiService {
 
   String get baseUrl => _baseUrl;
 
+  /// Returns true when the configured URL uses plain HTTP on a non-local host.
+  /// Used to show a security warning banner in the settings screen.
+  bool get isInsecureHttp {
+    if (_baseUrl.startsWith('https://')) return false;
+    final host = Uri.tryParse(_baseUrl)?.host ?? '';
+    return !host.contains('localhost') && !host.contains('127.0.0.1');
+  }
+
   /// Regional emergency number (user-configurable, defaults to 112 international standard).
   String get emergencyNumber {
     // Read synchronously from SharedPreferences cache — set during _ensureInitialized.

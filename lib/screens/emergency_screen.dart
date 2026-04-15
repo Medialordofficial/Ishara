@@ -284,23 +284,31 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 40),
-            Wrap(
-              alignment: WrapAlignment.spaceEvenly,
-              spacing: 16,
-              runSpacing: 16,
-              children: _emergencyTypes.map((type) {
-                final isSelected = _selectedType == type['type'];
-                return _PremiumEmergencyType(
-                  label: type['label'] as String,
-                  icon: type['icon'] as IconData,
-                  color: type['color'] as Color,
-                  isSelected: isSelected,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _selectedType = type['type'] as String);
-                  },
-                );
-              }).toList(),
+            FocusTraversalGroup(
+              policy: OrderedTraversalPolicy(),
+              child: Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 16,
+                runSpacing: 16,
+                children: _emergencyTypes.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final type = entry.value;
+                  final isSelected = _selectedType == type['type'];
+                  return FocusTraversalOrder(
+                    order: NumericFocusOrder(idx.toDouble()),
+                    child: _PremiumEmergencyType(
+                      label: type['label'] as String,
+                      icon: type['icon'] as IconData,
+                      color: type['color'] as Color,
+                      isSelected: isSelected,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _selectedType = type['type'] as String);
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
             const SizedBox(height: 60),
             SizedBox(

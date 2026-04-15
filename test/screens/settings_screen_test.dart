@@ -45,6 +45,14 @@ void main() {
       await tester.pumpWidget(_wrap(const SettingsScreen()));
       await tester.pumpAndSettle();
 
+      // Scroll down to reveal Appearance section (now after Emergency Services section)
+      await tester.scrollUntilVisible(
+        find.text('Appearance'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('Appearance'), findsOneWidget);
       expect(find.text('System Default'), findsOneWidget);
       expect(find.text('Light'), findsOneWidget);
@@ -87,11 +95,27 @@ void main() {
 
       expect(themeNotifier.value, ThemeMode.system);
 
+      // Scroll to reveal Appearance section (now after Emergency Services section)
+      await tester.scrollUntilVisible(
+        find.text('Dark'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
       // Tap "Dark" radio option
       await tester.tap(find.text('Dark'));
       await tester.pumpAndSettle();
 
       expect(themeNotifier.value, ThemeMode.dark);
+
+      // Scroll to ensure "Light" is visible before tapping
+      await tester.scrollUntilVisible(
+        find.text('Light'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
 
       // Tap "Light" radio option
       await tester.tap(find.text('Light'));

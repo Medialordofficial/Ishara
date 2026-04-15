@@ -15,7 +15,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.4.0] — 2025 Hackathon Release (Latest)
+## [1.5.0] — 2025 Hackathon Release (Latest)
+
+### Fixed — Critical
+- **Emergency type bug**: `ambulance` changed to `medical` to match API allowlist; was causing 400 errors on every Medical SOS
+- **Hardcoded `911`**: Emergency dial number now user-configurable (default 112 international); set in Settings → Emergency Services
+
+### Added
+- **Emergency types expanded**: Added `natural_disaster` and `other` options (all 5 API types now exposed in UI)
+- **Settings: Emergency Number field**: Users can configure their regional emergency number
+- **AI/ML: `/api/chat` endpoint**: Migrated text-only LLM calls from `/api/generate` to Ollama's `/api/chat` for proper system/user role separation
+- **Temperature control**: `temperature=0.1` for safety-critical endpoints (sign inference, emergency), `temperature=0.7` for free chat
+- **Sound normalization**: `classify_sound` now validates returned category against the 11-item allowlist; unknown values fallback to "other"
+- **Coordinate validation**: `emergency_message` rejects lat/lon out of WGS-84 range (±90 / ±180)
+- **Timing-safe auth**: `hmac.compare_digest()` replaces `!=` in API key comparison
+- **HistoryMessage model**: `/chat` history now uses `Literal["user", "assistant"]` role type — rejects `system`, `instruction`, etc.
+- **Concurrent capture guard**: `_isCapturing` flag prevents overlapping camera captures in ConversationScreen
+- **Confidence threshold**: Signs with <50% confidence no longer announce/speak (reduces noise)
+- **Signing confidence Semantics**: `LinearProgressIndicator` now has `Semantics(label: 'Signing confidence', value: '…%')` for screen readers
+- **Home screen refresh button Semantics**: Offline banner's refresh icon wrapped in `Semantics(button: true, label: 'Retry server connection')`
+- **9 new backend tests** → 61 total: role allowlist, coord validation, timing-safe auth, sound normalization (4 tests), chat role acceptance
+- **API timeout**: Reduced Ollama timeout from 300s to 30s
+
+### Changed
+- `README.md`: Test count updated to 250 (189 Flutter + 61 backend)
+- `TROUBLESHOOTING.md`: Auth failure HTTP code corrected from 403 → 401; emergency types updated to include `natural_disaster`, `other`
+
+### Total Tests: 189 Flutter + 61 backend = **250 tests, 0 failures**
+
+---
+
+## [1.4.0] — 2025 Hackathon Release
 
 ### Added
 - **Feedback loop**: thumbs up/down buttons after each sign interpretation; correction dialog for wrong signs

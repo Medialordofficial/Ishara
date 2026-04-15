@@ -27,6 +27,7 @@ class _ConversationScreenState extends State<ConversationScreen>
   bool _isInterpreting = false;
   bool _isCameraReady = false;
   bool _isListening = false;
+  bool _isCapturing = false; // guard against concurrent capture calls
   Timer? _captureTimer;
   late AnimationController _pulseController;
 
@@ -201,7 +202,9 @@ class _ConversationScreenState extends State<ConversationScreen>
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return;
     }
-
+    // Guard against overlapping calls — skip if a capture is already in flight
+    if (_isCapturing) return;
+    _isCapturing = true;
     try {
       final image = await _cameraController!.takePicture();
 
@@ -226,8 +229,10 @@ class _ConversationScreenState extends State<ConversationScreen>
       final interpretation = (result['sign'] as String?) ?? '';
       final confidence = (result['confidence'] as double?) ?? 0.0;
 
+      // Only announce and speak results above the confidence threshold
       if (interpretation.isNotEmpty &&
-          interpretation.toLowerCase() != 'no sign detected') {
+          interpretation.toLowerCase() != 'no sign detected' &&
+          confidence >= 0.5) {
         setState(() {
           _lastSign = interpretation;
           _lastConfidence = confidence;
@@ -249,6 +254,8 @@ class _ConversationScreenState extends State<ConversationScreen>
           context,
         ).showSnackBar(SnackBar(content: Text('Interpretation error: $e')));
       }
+    } finally {
+      _isCapturing = false;
     }
   }
 
@@ -468,16 +475,20 @@ class _ConversationScreenState extends State<ConversationScreen>
                                 SizedBox(
                                   width: 50,
                                   height: 4,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(2),
-                                    child: LinearProgressIndicator(
-                                      value: _poseConfidence,
-                                      backgroundColor: Colors.white.withValues(
-                                        alpha: 0.2,
+                                  child: Semantics(
+                                    label: 'Signing confidence',
+                                    value: '${(_poseConfidence * 100).round()}%',
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(2),
+                                      child: LinearProgressIndicator(
+                                        value: _poseConfidence,
+                                        backgroundColor: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        color: _poseConfidence > 0.3
+                                            ? AppColors.success
+                                            : Colors.white54,
                                       ),
-                                      color: _poseConfidence > 0.3
-                                          ? AppColors.success
-                                          : Colors.white54,
                                     ),
                                   ),
                                 ),

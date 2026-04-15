@@ -227,12 +227,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _checkServerStatus,
-                    child: const Icon(
-                      Icons.refresh,
-                      color: AppColors.warning,
-                      size: 20,
+                  Semantics(
+                    button: true,
+                    label: 'Retry server connection',
+                    child: GestureDetector(
+                      onTap: _checkServerStatus,
+                      child: const Icon(
+                        Icons.refresh,
+                        color: AppColors.warning,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],

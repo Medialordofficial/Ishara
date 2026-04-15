@@ -18,6 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _portController = TextEditingController(
     text: ApiConfig.defaultPort.toString(),
   );
+  final _emergencyNumberController = TextEditingController(text: '112');
   final ApiService _api = ApiService();
   String _connectionStatus = '';
   bool _isTesting = false;
@@ -34,6 +35,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final savedPort = prefs.getInt('ishara_port');
     if (savedHost != null) _hostController.text = savedHost;
     if (savedPort != null) _portController.text = savedPort.toString();
+    final savedEmergency = prefs.getString('ishara_emergency_number');
+    if (savedEmergency != null && savedEmergency.isNotEmpty) {
+      _emergencyNumberController.text = savedEmergency;
+    }
     // Apply saved settings to API service
     await _api.updateBaseUrl(
       _hostController.text.trim(),
@@ -84,6 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _hostController.dispose();
     _portController.dispose();
+    _emergencyNumberController.dispose();
     super.dispose();
   }
 
@@ -215,6 +221,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             textAlign: TextAlign.center,
           ),
         ],
+
+        const SizedBox(height: 32),
+        const Divider(color: AppColors.surfaceLight),
+        const SizedBox(height: 16),
+
+        // Emergency Number
+        Text(
+          'Emergency Services',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Emergency number to dial when sending SOS. Default: 112 (international). Use 911 (USA), 999 (UK), etc.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _emergencyNumberController,
+          decoration: InputDecoration(
+            labelText: 'Emergency Number',
+            hintText: '112',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: AppColors.surface,
+          ),
+          keyboardType: TextInputType.phone,
+          onChanged: (val) async {
+            final trimmed = val.trim();
+            if (trimmed.isNotEmpty) {
+              await _api.setEmergencyNumber(trimmed);
+            }
+          },
+        ),
 
         const SizedBox(height: 32),
         const Divider(color: AppColors.surfaceLight),

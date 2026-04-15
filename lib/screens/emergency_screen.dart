@@ -28,7 +28,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
 
   final List<Map<String, dynamic>> _emergencyTypes = [
     {
-      'type': 'ambulance',
+      'type': 'medical',
       'icon': Icons.local_hospital,
       'label': 'Medical',
       'color': AppColors.danger,
@@ -44,6 +44,18 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       'icon': Icons.local_fire_department,
       'label': 'Fire',
       'color': AppColors.warning,
+    },
+    {
+      'type': 'natural_disaster',
+      'icon': Icons.storm,
+      'label': 'Disaster',
+      'color': AppColors.textSecondary,
+    },
+    {
+      'type': 'other',
+      'icon': Icons.warning_rounded,
+      'label': 'Other',
+      'color': AppColors.textPrimary,
     },
   ];
 
@@ -180,8 +192,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   }
 
   Future<void> _dialEmergency() async {
-    // Local emergency number — defaults to 911
-    const emergencyNumber = '911';
+    // Use the emergency number from ApiService settings (user-configurable)
+    // Default: 112 (international standard, works in most countries)
+    final emergencyNumber = ApiService().emergencyNumber;
     final uri = Uri(scheme: 'tel', path: emergencyNumber);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -271,8 +284,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceEvenly,
+              spacing: 16,
+              runSpacing: 16,
               children: _emergencyTypes.map((type) {
                 final isSelected = _selectedType == type['type'];
                 return _PremiumEmergencyType(

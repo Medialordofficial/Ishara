@@ -42,6 +42,10 @@ class ApiService {
     if (savedHost != null) {
       _baseUrl = 'http://$savedHost:${savedPort ?? 8000}';
     }
+    final savedEmergency = prefs.getString('ishara_emergency_number');
+    if (savedEmergency != null && savedEmergency.isNotEmpty) {
+      _emergencyNumber = savedEmergency;
+    }
     try {
       _apiKey = await _secureStorage.read(key: 'ishara_api_key');
     } catch (_) {
@@ -82,6 +86,19 @@ class ApiService {
   }
 
   String get baseUrl => _baseUrl;
+
+  /// Regional emergency number (user-configurable, defaults to 112 international standard).
+  String get emergencyNumber {
+    // Read synchronously from SharedPreferences cache — set during _ensureInitialized.
+    return _emergencyNumber;
+  }
+  String _emergencyNumber = '112';
+
+  Future<void> setEmergencyNumber(String number) async {
+    _emergencyNumber = number;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ishara_emergency_number', number);
+  }
 
   /// Retry a function with exponential backoff.
   /// Retries up to [maxRetries] times on transient failures (timeouts, network errors).

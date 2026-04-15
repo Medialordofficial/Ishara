@@ -6,13 +6,16 @@ FastAPI bridge between the Flutter app and Gemma 4 via Ollama.
 """
 
 import base64
+import hmac
 import json
 import logging
+import math
 import os
 import re
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from typing import Literal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ishara")
@@ -129,7 +132,7 @@ async def auth_middleware(request: Request, call_next):
     """Validate API key when ISHARA_API_KEY is set."""
     if API_KEY and request.url.path not in EXEMPT_PATHS:
         provided = request.headers.get("x-api-key", "")
-        if provided != API_KEY:
+        if not hmac.compare_digest(provided.encode(), API_KEY.encode()):
             client_ip = request.client.host if request.client else "unknown"
             logger.warning("AUTH_FAIL ip=%s path=%s", client_ip, request.url.path)
             return JSONResponse(
@@ -219,21 +222,53 @@ def _parse_llm_json(raw: str) -> dict:
         return {}
 
 
-async def _chat(prompt: str, image_b64: str | None = None) -> str:
-    """Send a prompt (optionally with an image) to Gemma 4 via Ollama."""
-    payload: dict = {
-        "model": MODEL,
-        "prompt": prompt,
-        "stream": False,
-    }
-    if image_b64:
-        payload["images"] = [image_b64]
+async def _chat(
+    prompt: str,
+    image_b64: str | None = None,
+    *,
+    temperature: float = 0.1,
+) -> str:
+    """Send a prompt (optionally with an image) to Gemma 4 via Ollama.
 
+    Uses /api/chat for proper role separation when available (text-only),
+    and /api/generate for multimodal (image) requests.
+    Temperature defaults to 0.1 for deterministic safety-critical outputs.
+    """
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=10)) as client:
-            r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
-            r.raise_for_status()
-            return r.json().get("response", "")
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
+            if image_b64:
+                # Multimodal path — /api/generate (only endpoint that accepts images)
+                payload: dict = {
+                    "model": MODEL,
+                    "prompt": prompt,
+                    "stream": False,
+                    "images": [image_b64],
+                    "options": {"temperature": temperature},
+                }
+                r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
+                r.raise_for_status()
+                return r.json().get("response", "")
+            else:
+                # Text-only path — /api/chat enforces role separation
+                payload = {
+                    "model": MODEL,
+                    "stream": False,
+                    "options": {"temperature": temperature},
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are Ishara AI, a helpful assistant for deaf and "
+                                "hard-of-hearing people. Follow instructions carefully "
+                                "and reply in the exact format requested."
+                            ),
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                }
+                r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
+                r.raise_for_status()
+                return r.json().get("message", {}).get("content", "")
     except httpx.ConnectError as exc:
         raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?") from exc
     except httpx.TimeoutException as exc:
@@ -302,6 +337,11 @@ async def speech_to_text(_req: SpeechRequest):
 class SoundRequest(BaseModel):
     description: str
 
+_SOUND_CATEGORIES = {
+    "doorbell", "alarm", "car_horn", "dog_bark",
+    "baby_cry", "siren", "speech", "appliance", "music", "knock", "other",
+}
+
 @app.post("/classify-sound", response_model=SoundClassification)
 async def classify_sound(req: SoundRequest):
     safe_desc = _sanitize_user_input(req.description)
@@ -316,12 +356,15 @@ async def classify_sound(req: SoundRequest):
     raw = await _chat(prompt)
     data = _parse_llm_json(raw)
     if data:
+        raw_sound = str(data.get("sound", "")).strip().lower()
+        # Normalise against the known category list; fallback to 'other'
+        sound = raw_sound if raw_sound in _SOUND_CATEGORIES else "other"
         return SoundClassification(
-            sound=data.get("sound", "unknown"),
+            sound=sound,
             level=data.get("level", "info"),
             description=data.get("description", ""),
         )
-    return SoundClassification(sound="unknown", level="info", description=raw.strip())
+    return SoundClassification(sound="other", level="info", description=raw.strip())
 
 
 # 3. Emergency SOS — generate emergency message
@@ -330,8 +373,16 @@ class EmergencyRequest(BaseModel):
     latitude: float = 0.0
     longitude: float = 0.0
 
+    @staticmethod
+    def _valid_coord(v: float) -> bool:
+        return math.isfinite(v)
+
 @app.post("/emergency-message", response_model=EmergencyMessageResponse)
 async def emergency_message(req: EmergencyRequest):
+    if not (EmergencyRequest._valid_coord(req.latitude) and EmergencyRequest._valid_coord(req.longitude)):
+        raise HTTPException(status_code=400, detail="Invalid latitude or longitude")
+    if not (-90 <= req.latitude <= 90 and -180 <= req.longitude <= 180):
+        raise HTTPException(status_code=400, detail="Coordinates out of range")
     if req.emergency_type.lower() not in ALLOWED_EMERGENCY_TYPES:
         raise HTTPException(
             status_code=400,
@@ -416,9 +467,16 @@ async def evaluate_sign(
 
 
 # 6. General Chat — LLM conversation for accessibility assistance
+
+
+class HistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class GeneralChatRequest(BaseModel):
     message: str
-    history: list[dict] = []
+    history: list[HistoryMessage] = []
 
 @app.post("/chat", response_model=ChatResponse)
 async def general_chat(req: GeneralChatRequest):
@@ -428,7 +486,7 @@ async def general_chat(req: GeneralChatRequest):
     context = ""
     if req.history:
         context = "\n".join(
-            f"{h.get('role', 'user')}: {_sanitize_user_input(h.get('content', ''))}"
+            f"{h.role}: {_sanitize_user_input(h.content)}"
             for h in req.history[-6:]  # Last 6 messages for context
         )
     prompt = (
@@ -439,7 +497,7 @@ async def general_chat(req: GeneralChatRequest):
     if context:
         prompt += f"\nRecent conversation:\n{context}\n"
     prompt += f"\nUser: {safe_msg}\nAssistant:"
-    result = await _chat(prompt)
+    result = await _chat(prompt, temperature=0.7)
     return ChatResponse(reply=result.strip())
 
 

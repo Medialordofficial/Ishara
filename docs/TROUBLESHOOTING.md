@@ -93,7 +93,7 @@
 
 ## API Key Authentication Failures
 
-**Symptoms:** 403 "Missing or invalid API key" errors.
+**Symptoms:** 401 "Missing or invalid API key" errors.
 
 **Solutions:**
 1. Ensure the app has the API key configured: go to **Settings → API Key**.
@@ -179,7 +179,7 @@
 
 **Solutions:**
 1. Grant location permission to the app.
-2. Ensure `emergency_type` is one of: `medical`, `fire`, `police`, `accident`.
+2. Ensure `emergency_type` is one of: `medical`, `fire`, `police`, `natural_disaster`, `other`.
 3. The server must be reachable at the time of the emergency — configure offline fallback messages in Settings.
 
 ---

@@ -15,8 +15,9 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
     try {
-      const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
       const initSettings = InitializationSettings(android: androidSettings);
 
       await _plugin.initialize(initSettings);
@@ -24,7 +25,8 @@ class NotificationService {
       // Request notification permission on Android 13+
       await _plugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
 
       _initialized = true;
@@ -58,12 +60,7 @@ class NotificationService {
     );
 
     try {
-      await _plugin.show(
-        _nextId++,
-        title,
-        body,
-        details,
-      );
+      await _plugin.show(_nextId++, title, body, details);
     } catch (_) {
       // Plugin may be unavailable — non-critical.
     }
@@ -71,20 +68,17 @@ class NotificationService {
 
   // Convenience methods
   Future<void> aiReply(String reply) => show(
-        title: '🤖 Ishara AI',
-        body: reply.length > 200 ? '${reply.substring(0, 200)}...' : reply,
-        channel: 'ishara_ai',
-      );
+    title: '🤖 Ishara AI',
+    body: reply.length > 200 ? '${reply.substring(0, 200)}...' : reply,
+    channel: 'ishara_ai',
+  );
 
-  Future<void> soundAlert(String label) => show(
-        title: '🔊 Sound Detected',
-        body: label,
-        channel: 'ishara_sound',
-      );
+  Future<void> soundAlert(String label) =>
+      show(title: '🔊 Sound Detected', body: label, channel: 'ishara_sound');
 
   Future<void> emergencyConfirm(String message) => show(
-        title: '🚨 Emergency SOS Sent',
-        body: message,
-        channel: 'ishara_emergency',
-      );
+    title: '🚨 Emergency SOS Sent',
+    body: message,
+    channel: 'ishara_emergency',
+  );
 }

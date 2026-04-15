@@ -307,8 +307,9 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
       label: _isListening
           ? 'Stop listening for sounds'
           : 'Start listening for sounds',
-      child: GestureDetector(
+      child: InkWell(
         onTap: _toggleListening,
+        borderRadius: BorderRadius.circular(90),
         child: AnimatedBuilder(
           animation: _pulseController,
           builder: (context, child) {
@@ -460,11 +461,12 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
               Semantics(
                 button: true,
                 label: 'Clear all alerts',
-                child: GestureDetector(
+                child: InkWell(
                   onTap: () => setState(() {
                     _alerts.clear();
                     _peakDecibel = 0;
                   }),
+                  borderRadius: BorderRadius.circular(8),
                   child: const Text(
                     'Clear',
                     style: TextStyle(
@@ -530,8 +532,9 @@ class _PremiumTestButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Test $alertLabel alert',
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(50),
         child: Container(
           width: 64,
           height: 64,

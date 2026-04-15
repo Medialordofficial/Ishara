@@ -127,7 +127,9 @@ void main() {
       themeNotifier.value = ThemeMode.system;
     });
 
-    testWidgets('shows Emergency Services section after scrolling', (tester) async {
+    testWidgets('shows Emergency Services section after scrolling', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const SettingsScreen()));
       await tester.pumpAndSettle();
 
@@ -141,7 +143,9 @@ void main() {
       expect(find.text('Emergency Services'), findsOneWidget);
     });
 
-    testWidgets('Emergency Number field renders with default value 112', (tester) async {
+    testWidgets('Emergency Number field renders with default value 112', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const SettingsScreen()));
       await tester.pumpAndSettle();
 
@@ -161,7 +165,9 @@ void main() {
       expect(emergencyField, isNotEmpty);
     });
 
-    testWidgets('Emergency Number section has descriptive help text', (tester) async {
+    testWidgets('Emergency Number section has descriptive help text', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const SettingsScreen()));
       await tester.pumpAndSettle();
 
@@ -172,13 +178,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('112 (international)'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('112 (international)'), findsOneWidget);
     });
 
-    testWidgets('Emergency Number loads from SharedPreferences', (tester) async {
+    testWidgets('Emergency Number loads from SharedPreferences', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({
         'ishara_emergency_number': '999',
       });

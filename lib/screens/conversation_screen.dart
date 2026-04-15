@@ -455,10 +455,13 @@ class _ConversationScreenState extends State<ConversationScreen>
                             child: Row(
                               children: [
                                 Icon(
-                                  _poseConfidence > PoseThresholds.signingConfidence
+                                  _poseConfidence >
+                                          PoseThresholds.signingConfidence
                                       ? Icons.person
                                       : Icons.person_outline,
-                                  color: _poseConfidence > PoseThresholds.signingConfidence
+                                  color:
+                                      _poseConfidence >
+                                          PoseThresholds.signingConfidence
                                       ? AppColors.success
                                       : Colors.white70,
                                   size: 16,
@@ -468,7 +471,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                                   child: Text(
                                     _signingStatus,
                                     style: TextStyle(
-                                      color: _poseConfidence > PoseThresholds.signingConfidence
+                                      color:
+                                          _poseConfidence >
+                                              PoseThresholds.signingConfidence
                                           ? AppColors.success
                                           : Colors.white70,
                                       fontSize: 11,
@@ -482,15 +487,17 @@ class _ConversationScreenState extends State<ConversationScreen>
                                   height: 4,
                                   child: Semantics(
                                     label: 'Signing confidence',
-                                    value: '${(_poseConfidence * 100).round()}%',
+                                    value:
+                                        '${(_poseConfidence * 100).round()}%',
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(2),
                                       child: LinearProgressIndicator(
                                         value: _poseConfidence,
-                                        backgroundColor: Colors.white.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        color: _poseConfidence > PoseThresholds.signingConfidence
+                                        backgroundColor: Colors.white
+                                            .withValues(alpha: 0.2),
+                                        color:
+                                            _poseConfidence >
+                                                PoseThresholds.signingConfidence
                                             ? AppColors.success
                                             : Colors.white54,
                                       ),
@@ -600,9 +607,10 @@ class _ConversationScreenState extends State<ConversationScreen>
                                     size: 12,
                                     color: _lastConfidence >= 0.7
                                         ? AppColors.success
-                                        : _lastConfidence >= PoseThresholds.interpretConfidence
-                                            ? AppColors.warning
-                                            : AppColors.danger,
+                                        : _lastConfidence >=
+                                              PoseThresholds.interpretConfidence
+                                        ? AppColors.warning
+                                        : AppColors.danger,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -612,9 +620,11 @@ class _ConversationScreenState extends State<ConversationScreen>
                                       fontWeight: FontWeight.w600,
                                       color: _lastConfidence >= 0.7
                                           ? AppColors.success
-                                          : _lastConfidence >= PoseThresholds.interpretConfidence
-                                              ? AppColors.warning
-                                              : AppColors.danger,
+                                          : _lastConfidence >=
+                                                PoseThresholds
+                                                    .interpretConfidence
+                                          ? AppColors.warning
+                                          : AppColors.danger,
                                     ),
                                   ),
                                 ],

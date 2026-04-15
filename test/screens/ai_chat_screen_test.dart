@@ -30,10 +30,7 @@ void main() {
       await tester.pumpWidget(_wrap(const AiChatScreen()));
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('Ask me anything'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Ask me anything'), findsOneWidget);
     });
 
     testWidgets('has a text input field', (tester) async {
@@ -79,8 +76,9 @@ void main() {
       expect(find.text('hello'), findsOneWidget);
     });
 
-    testWidgets('server offline shows honest fallback response',
-        (tester) async {
+    testWidgets('server offline shows honest fallback response', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const AiChatScreen()));
       await tester.pumpAndSettle();
 

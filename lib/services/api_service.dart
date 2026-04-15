@@ -67,6 +67,16 @@ class ApiService {
     }
   }
 
+  /// Load API key from encrypted secure storage.
+  /// Returns null if no key is stored or secure storage is unavailable.
+  Future<String?> loadApiKey() async {
+    try {
+      return await _secureStorage.read(key: 'ishara_api_key');
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Get auth headers if API key is set.
   Map<String, String> get _authHeaders =>
       _apiKey != null && _apiKey!.isNotEmpty ? {'X-API-Key': _apiKey!} : {};
@@ -100,6 +110,7 @@ class ApiService {
     // Read synchronously from SharedPreferences cache — set during _ensureInitialized.
     return _emergencyNumber;
   }
+
   String _emergencyNumber = '112';
 
   Future<void> setEmergencyNumber(String number) async {
@@ -379,6 +390,39 @@ class ApiService {
       }
       throw ApiResponseException(
         'LLM chat failed',
+        statusCode: response.statusCode,
+      );
+    });
+  }
+
+  /// Emergency operator chat — sends a message to the /emergency-chat endpoint
+  /// with optional history for multi-turn threading.
+  Future<String> emergencyChat(
+    String message, {
+    String context = '',
+    List<Map<String, String>>? history,
+  }) async {
+    await _ensureInitialized();
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/emergency-chat');
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json', ..._authHeaders},
+            body: jsonEncode({
+              'message': message,
+              'context': context,
+              if (history != null) ...{'history': history},
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['reply'] as String? ?? '';
+      }
+      throw ApiResponseException(
+        'Emergency chat failed',
         statusCode: response.statusCode,
       );
     });

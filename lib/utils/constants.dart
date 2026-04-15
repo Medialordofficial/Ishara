@@ -12,13 +12,23 @@ class AppColors {
   static const Color surfaceLight = Color(0xFFF8FAFF);
   static const Color border = Color(0xFFE5E9F2);
   static const Color textPrimary = Color(0xFF1E2638);
-  static const Color textSecondary = Color(0xFF555E75); // WCAG AA contrast on background (≥4.5:1)
+  static const Color textSecondary = Color(
+    0xFF555E75,
+  ); // WCAG AA contrast on background (≥4.5:1)
 
   // Adjusted status colors for a more premium look
-  static const Color success = Color(0xFF34A853);
-  static const Color warning = Color(0xFFB45309); // Amber-700: WCAG AA (≥4.5:1) on white/background
-  static const Color danger = Color(0xFFB91C1C); // Red-700: WCAG AA (≥5.9:1) on white/background
-  static const Color info = Color(0xFF1D4ED8); // Blue-700: WCAG AA (≥5.9:1) on white/background
+  static const Color success = Color(
+    0xFF15803D,
+  ); // Green-700: WCAG AA (≥4.55:1) on white/background
+  static const Color warning = Color(
+    0xFFB45309,
+  ); // Amber-700: WCAG AA (≥4.5:1) on white/background
+  static const Color danger = Color(
+    0xFFB91C1C,
+  ); // Red-700: WCAG AA (≥5.9:1) on white/background
+  static const Color info = Color(
+    0xFF1D4ED8,
+  ); // Blue-700: WCAG AA (≥5.9:1) on white/background
 
   // Soft Shadows for Neumorphic/Premium Feel
   static List<BoxShadow> get premiumShadows => [

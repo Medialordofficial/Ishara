@@ -43,10 +43,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (savedEmergency != null && savedEmergency.isNotEmpty) {
       _emergencyNumberController.text = savedEmergency;
     }
-    final savedApiKey = prefs.getString('ishara_api_key');
-    if (savedApiKey != null && savedApiKey.isNotEmpty) {
-      _apiKeyController.text = savedApiKey;
-      await _api.setApiKey(savedApiKey);
+    // Load API key from secure storage via ApiService (it handles secure reads internally).
+    // Do NOT read from SharedPreferences — that would expose the key in unencrypted storage.
+    final secureApiKey = await _api.loadApiKey();
+    if (secureApiKey != null && secureApiKey.isNotEmpty) {
+      _apiKeyController.text = secureApiKey;
     }
     // Apply saved settings to API service
     await _api.updateBaseUrl(
@@ -66,9 +67,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (emergencyNum.isNotEmpty) {
       await _api.setEmergencyNumber(emergencyNum);
     }
+    // Save API key to secure storage only (never plaintext SharedPreferences).
     final apiKey = _apiKeyController.text.trim();
-    await prefs.setString('ishara_api_key', apiKey);
-    _api.setApiKey(apiKey);
+    await _api.setApiKey(apiKey);
   }
 
   Future<void> _testConnection() async {
@@ -235,7 +236,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
@@ -335,10 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.only(top: 4, left: 12),
                 child: Text(
                   'Enter a valid number (digits only, optional leading +, max 15 digits)',
-                  style: TextStyle(
-                    color: AppColors.danger,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.danger, fontSize: 12),
                 ),
               );
             }

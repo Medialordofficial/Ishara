@@ -174,8 +174,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                   Semantics(
                     button: true,
                     label: 'Go back',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(50),
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -240,12 +241,13 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                       button: true,
                       label: '${cat.name} category',
                       selected: selected,
-                      child: GestureDetector(
+                      child: InkWell(
                         onTap: () => setState(() {
                           _selectedCategory = cat.name;
                           _currentSignIndex = 0;
                           _feedback = '';
                         }),
+                        borderRadius: BorderRadius.circular(22),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -549,8 +551,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                   Semantics(
                     button: true,
                     label: 'Previous sign',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: _prevSign,
+                      borderRadius: BorderRadius.circular(50),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -569,8 +572,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                   Semantics(
                     button: true,
                     label: _isPracticing ? 'Checking sign' : 'Check my sign',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: _isPracticing ? null : _checkSign,
+                      borderRadius: BorderRadius.circular(50),
                       child: Container(
                         width: 72,
                         height: 72,
@@ -609,8 +613,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                   Semantics(
                     button: true,
                     label: 'Next sign',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: _nextSign,
+                      borderRadius: BorderRadius.circular(50),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(

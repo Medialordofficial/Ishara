@@ -422,6 +422,30 @@ def test_rate_limit_enforced(monkeypatch):
     server._rate_store.clear()
 
 
+def test_rate_store_empty_keys_pruned(monkeypatch):
+    """Empty IP keys are removed from _rate_store after the window expires."""
+    import time
+    import server
+    # Directly inject a fake stale entry for a fake IP.
+    server._rate_store["10.0.0.1"] = [time.monotonic() - 120]  # 2-min-old entry
+    server._rate_store["10.0.0.2"] = [time.monotonic()]  # fresh entry
+
+    # Trigger middleware by making a request on a non-exempt path so the
+    # pruning logic runs (exempt paths like /health bypass the middleware).
+    monkeypatch.setattr(server, "RATE_LIMIT_MAX", 30)
+    client.post("/chat", json={"message": "ping"})
+
+    # The stale IP key should have been pruned (its only entry is expired).
+    # The fresh IP key should remain.
+    assert "10.0.0.1" not in server._rate_store, (
+        "Stale IP key should be pruned from _rate_store after window expires"
+    )
+    assert "10.0.0.2" in server._rate_store, (
+        "Fresh IP key should remain in _rate_store"
+    )
+    server._rate_store.clear()
+
+
 # ─── Request Audit Logging ─────────────────────────────────
 
 
@@ -952,5 +976,6 @@ def test_interpret_sign_prompt_includes_few_shot_examples(monkeypatch):
     assert 'Hello' in captured[0], "Expected 'Hello' example sign in prompt"
     assert 'Thank you' in captured[0], "Expected 'Thank you' example sign in prompt"
     assert 'Water' in captured[0], "Expected 'Water' example sign in prompt"
+    assert 'More' in captured[0], "Expected 'More' example sign in prompt"
     assert 'No sign detected' in captured[0], "Expected 'No sign detected' in prompt"
 

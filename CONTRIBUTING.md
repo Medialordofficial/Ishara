@@ -156,7 +156,7 @@ The default setup runs entirely on your local network:
 | `ISHARA_MODEL` | `gemma4` | Ollama model name |
 | `ISHARA_API_KEY` | (empty) | Set to require API key auth |
 | `ISHARA_RATE_LIMIT` | `30` | Max requests per IP per minute |
-| `ISHARA_CORS_ORIGINS` | `*` | Comma-separated allowed origins |
+| `ISHARA_CORS_ORIGINS` | `http://localhost:8080,http://localhost:3000` | Comma-separated allowed origins |
 
 ## License
 

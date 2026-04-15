@@ -162,8 +162,9 @@ void main() {
         );
       });
 
-      final result =
-          await api.interpretSign(Uint8List.fromList([0xFF, 0xD8, 0xFF]));
+      final result = await api.interpretSign(
+        Uint8List.fromList([0xFF, 0xD8, 0xFF]),
+      );
       expect(result['sign'], 'Hello');
       expect((result['confidence'] as double), closeTo(0.91, 0.001));
     });

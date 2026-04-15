@@ -16,6 +16,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0] — 2026-04-15 — Fix Cycle 16
+
+### Accessibility
+- Replaced all `GestureDetector` interactive widgets in `HomeScreen` with `InkWell` (retry button, nav bar items, premium button, category list)
+- Replaced all `GestureDetector` interactive widgets in `LearnSignsScreen` with `InkWell` (back button, category chips, prev/check/next buttons)
+- Replaced all `GestureDetector` interactive widgets in `SoundAwarenessScreen` with `InkWell` (listening toggle, clear-alerts button, test-alert buttons)
+
+### Security
+- API key removed from `SharedPreferences` plaintext storage; now exclusively stored in `FlutterSecureStorage` — eliminates dual-storage plaintext leak
+- Added `ApiService.loadApiKey()` to read API key solely from secure storage
+
+### Code Quality
+- Fixed `AppColors.success` color: `0xFF34A853` → `0xFF15803D` (Green-700, ~4.55:1 WCAG AA on white)
+- Improved `_rate_store` pruning: now scans all IPs and removes any entries fully outside the rate-limit window (not just the requesting IP)
+
+### Product / UX
+- `EmergencyScreen` now tracks structured chat history (`_chatHistory`) and sends it to the backend on each message, enabling coherent multi-turn conversations
+- `_sendChatMessage` in emergency screen wires to `ApiService.emergencyChat()` with proper context and history parameters
+- `_reset()` in emergency screen clears `_chatHistory` alongside display messages
+
+### AI / ML Quality
+- `/emergency-chat` now explicitly uses `temperature=0.7` (was implicitly defaulting to 0.1 — too deterministic for empathetic conversation)
+
+### Testing
+- Added `More` to few-shot assertion in `test_interpret_sign_prompt_includes_few_shot_examples` — verifies all 5 example signs (Hello, Thank you, Water, More, No sign detected)
+- Added `test_rate_store_empty_keys_pruned` — verifies stale IP keys are evicted after the window expires while fresh keys remain
+- Backend tests: 75 total (up from 74), all passing
+- Flutter tests: 220 total, all passing
+
+### Documentation
+- `CONTRIBUTING.md`: corrected `ISHARA_CORS_ORIGINS` default from `*` to the actual default (`http://localhost:8080,http://localhost:3000`)
+
+---
+
 ## [1.9.0] — 2026-04-15 — Fix Cycle 15
 
 ### Accessibility

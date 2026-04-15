@@ -71,7 +71,9 @@ void main() {
       expect(find.byIcon(Icons.sign_language), findsOneWidget);
     });
 
-    testWidgets('typing in text field and submitting adds hearing message', (tester) async {
+    testWidgets('typing in text field and submitting adds hearing message', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const ConversationScreen()));
       await tester.pump();
 
@@ -101,7 +103,9 @@ void main() {
       expect(find.bySemanticsLabel('Send message'), findsOneWidget);
     });
 
-    testWidgets('empty text field does not add a message on send', (tester) async {
+    testWidgets('empty text field does not add a message on send', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const ConversationScreen()));
       await tester.pump();
 
@@ -115,7 +119,9 @@ void main() {
       expect(tester.widgetList(find.byType(Text)).length, initialCount);
     });
 
-    testWidgets('clear button appears after two or more messages', (tester) async {
+    testWidgets('clear button appears after two or more messages', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const ConversationScreen()));
       await tester.pump();
 
@@ -130,7 +136,9 @@ void main() {
       expect(find.byIcon(Icons.delete_outline), findsOneWidget);
     });
 
-    testWidgets('confidence bar Semantics is in widget tree when interpreting', (tester) async {
+    testWidgets('confidence bar Semantics is in widget tree when interpreting', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const ConversationScreen()));
       await tester.pump();
 
@@ -139,13 +147,12 @@ void main() {
       await tester.pump();
 
       // The Semantics node for the confidence bar should now exist
-      expect(
-        find.bySemanticsLabel('Signing confidence'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('Signing confidence'), findsOneWidget);
     });
 
-    testWidgets('PoseThresholds.interpretConfidence equals 0.5', (tester) async {
+    testWidgets('PoseThresholds.interpretConfidence equals 0.5', (
+      tester,
+    ) async {
       expect(PoseThresholds.interpretConfidence, 0.5);
     });
 

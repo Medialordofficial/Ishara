@@ -230,8 +230,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Semantics(
                     button: true,
                     label: 'Retry server connection',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: _checkServerStatus,
+                      borderRadius: BorderRadius.circular(8),
                       child: const Icon(
                         Icons.refresh,
                         color: AppColors.warning,
@@ -336,12 +337,13 @@ class _HomeScreenState extends State<HomeScreen> {
         return Semantics(
           button: true,
           label: '${cat.name} category, ${cat.signs.length} signs',
-          child: GestureDetector(
+          child: InkWell(
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SignDictionaryScreen()),
               );
             },
+            borderRadius: BorderRadius.circular(20),
             child: Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(18),
@@ -524,8 +526,9 @@ class _NavBarItem extends StatelessWidget {
       selected: isSelected,
       child: Tooltip(
         message: label,
-        child: GestureDetector(
+        child: InkWell(
           onTap: onTap,
+          borderRadius: BorderRadius.circular(50),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(16),
@@ -556,8 +559,9 @@ class _PremiumCircularButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: '${entry.title} mode',
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(50),
         child: SizedBox(
           width: 90,
           child: Column(

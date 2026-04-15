@@ -483,106 +483,106 @@ class _AiChatScreenState extends State<AiChatScreen> {
         return Semantics(
           label: 'You: ${msg.text}',
           child: Align(
-          alignment: Alignment.centerRight,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(8),
+            alignment: Alignment.centerRight,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(8),
                 ),
-              ],
-            ),
-            child: Text(
-              msg.text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Text(
+                msg.text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
           ),
         );
       case _Role.assistant:
         return Semantics(
           label: 'Ishara: ${msg.text}',
           child: Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.all(18),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.85,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-                bottomLeft: Radius.circular(8),
-                bottomRight: Radius.circular(24),
+            alignment: Alignment.centerLeft,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.all(18),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.85,
               ),
-              boxShadow: AppColors.premiumShadows,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.smart_toy_rounded,
-                        color: AppColors.primary,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Ishara AI',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(24),
                 ),
-                const SizedBox(height: 10),
-                SelectableText(
-                  msg.text,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                    height: 1.5,
+                boxShadow: AppColors.premiumShadows,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.smart_toy_rounded,
+                          color: AppColors.primary,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Ishara AI',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  SelectableText(
+                    msg.text,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
           ),
         );
       case _Role.thinking:

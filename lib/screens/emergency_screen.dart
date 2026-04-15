@@ -24,7 +24,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   String _generatedMessage = '';
   String _locationInfo = '';
   final TextEditingController _chatController = TextEditingController();
+  // _chatMessages stores display strings for UI; _chatHistory tracks role-based
+  // entries for /emergency-chat multi-turn threading.
   final List<String> _chatMessages = [];
+  final List<Map<String, String>> _chatHistory = [];
 
   final List<Map<String, dynamic>> _emergencyTypes = [
     {
@@ -187,8 +190,28 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       _chatMessages.add(text);
       _chatController.clear();
     });
+    _chatHistory.add({'role': 'user', 'content': text});
 
+    // Speak the user's message via TTS for the dispatcher to hear.
     _tts.speak(text);
+
+    // Attempt operator reply via backend (async; failures are swallowed so
+    // the emergency flow is never blocked by a backend error).
+    _api
+        .emergencyChat(
+          text,
+          context: _selectedType ?? '',
+          history: List.from(_chatHistory),
+        )
+        .then((reply) {
+          if (!mounted || reply.isEmpty) return;
+          setState(() {
+            _chatMessages.add('Operator: $reply');
+          });
+          _chatHistory.add({'role': 'assistant', 'content': reply});
+          _tts.speak(reply);
+        })
+        .catchError((_) {/* server offline — TTS-only fallback is fine */});
   }
 
   Future<void> _dialEmergency() async {
@@ -214,6 +237,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       _emergencySent = false;
       _generatedMessage = '';
       _chatMessages.clear();
+      _chatHistory.clear();
     });
   }
 

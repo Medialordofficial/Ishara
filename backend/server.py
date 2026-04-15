@@ -175,13 +175,16 @@ async def rate_limit_middleware(request: Request, call_next):
     now = time.monotonic()
     window_start = now - RATE_LIMIT_WINDOW
 
-    # Prune old entries
-    _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
-
-    # Prune empty keys to prevent unbounded memory growth under IP rotation.
-    empty_keys = [k for k, v in _rate_store.items() if not v]
-    for k in empty_keys:
+    # Prune old entries for ALL IPs to prevent unbounded memory growth under IP rotation.
+    stale_keys = [
+        k for k, v in _rate_store.items()
+        if not [t for t in v if t > window_start]
+    ]
+    for k in stale_keys:
         del _rate_store[k]
+
+    # Prune old entries for current IP
+    _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
     if len(_rate_store[client_ip]) >= RATE_LIMIT_MAX:
         logger.warning("RATE_LIMIT ip=%s path=%s", client_ip, request.url.path)
         return JSONResponse(
@@ -499,7 +502,7 @@ async def emergency_chat(req: ChatRequest):
     for h in req.history[-6:]:
         messages.append({"role": h.role, "content": _sanitize_user_input(h.content)})
     messages.append({"role": "user", "content": safe_msg})
-    result = await _chat("", messages=messages)
+    result = await _chat("", temperature=0.7, messages=messages)
     return ChatResponse(reply=result.strip())
 
 

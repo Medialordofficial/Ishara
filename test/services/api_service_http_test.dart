@@ -350,9 +350,7 @@ void main() {
     });
 
     test('returns false on server error', () async {
-      api.httpClient = MockClient(
-        (_) async => http.Response('error', 500),
-      );
+      api.httpClient = MockClient((_) async => http.Response('error', 500));
 
       final ok = await api.sendFeedback(
         interpretedSign: 'Hello',
@@ -362,9 +360,7 @@ void main() {
     });
 
     test('returns false on network exception', () async {
-      api.httpClient = MockClient(
-        (_) => throw http.ClientException('timeout'),
-      );
+      api.httpClient = MockClient((_) => throw http.ClientException('timeout'));
 
       final ok = await api.sendFeedback(
         interpretedSign: 'Hello',

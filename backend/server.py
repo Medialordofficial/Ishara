@@ -49,7 +49,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -58,6 +58,25 @@ ALLOWED_EMERGENCY_TYPES = {"medical", "police", "fire", "natural_disaster", "oth
 MAX_TEXT_LENGTH = 2000
 RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = int(os.getenv("ISHARA_RATE_LIMIT", "30"))  # requests per window
+API_KEY = os.getenv("ISHARA_API_KEY", "")  # Set to enable auth
+
+
+# ─── Authentication ────────────────────────────────────────
+
+EXEMPT_PATHS = {"/ping", "/health", "/docs", "/openapi.json", "/redoc"}
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Validate API key when ISHARA_API_KEY is set."""
+    if API_KEY and request.url.path not in EXEMPT_PATHS:
+        provided = request.headers.get("x-api-key", "")
+        if provided != API_KEY:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or missing API key"},
+            )
+    return await call_next(request)
 
 
 # ─── Rate Limiting ─────────────────────────────────────────
@@ -68,7 +87,7 @@ _rate_store: dict[str, list[float]] = defaultdict(list)
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     """Simple in-memory per-IP rate limiter."""
-    if request.url.path in ("/ping", "/health", "/docs", "/openapi.json"):
+    if request.url.path in EXEMPT_PATHS:
         return await call_next(request)
 
     client_ip = request.client.host if request.client else "unknown"
@@ -100,10 +119,15 @@ async def _chat(prompt: str, image_b64: str | None = None) -> str:
     if image_b64:
         payload["images"] = [image_b64]
 
-    async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=10)) as client:
-        r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
-        r.raise_for_status()
-        return r.json().get("response", "")
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(300, connect=10)) as client:
+            r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
+            r.raise_for_status()
+            return r.json().get("response", "")
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Ollama request timed out")
 
 
 async def _read_upload(upload: UploadFile) -> str:

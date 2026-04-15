@@ -50,6 +50,51 @@ void main() {
     });
   });
 
+  group('PoseThresholds', () {
+    test('signingConfidence is between 0 and 1', () {
+      expect(PoseThresholds.signingConfidence, greaterThan(0));
+      expect(PoseThresholds.signingConfidence, lessThanOrEqualTo(1));
+    });
+
+    test('handFrameMin is less than handFrameMax', () {
+      expect(PoseThresholds.handFrameMin, lessThan(PoseThresholds.handFrameMax));
+    });
+
+    test('score weights sum to a meaningful total', () {
+      // With all checks triggered twice (left+right), max possible ≈ 2*(0.3+0.1+0.1+0.15) = 1.3
+      final maxScore = 2 * (PoseThresholds.weightHandRaised +
+          PoseThresholds.weightHandVisible +
+          PoseThresholds.weightElbowBent +
+          PoseThresholds.weightNearFace);
+      expect(maxScore, greaterThan(PoseThresholds.signingConfidence));
+    });
+
+    test('all values are positive', () {
+      expect(PoseThresholds.handRaiseTolerance, greaterThan(0));
+      expect(PoseThresholds.handFaceDistance, greaterThan(0));
+      expect(PoseThresholds.weightHandRaised, greaterThan(0));
+      expect(PoseThresholds.weightHandVisible, greaterThan(0));
+      expect(PoseThresholds.weightElbowBent, greaterThan(0));
+      expect(PoseThresholds.weightNearFace, greaterThan(0));
+    });
+  });
+
+  group('SoundThresholds', () {
+    test('warning is less than critical', () {
+      expect(SoundThresholds.warning, lessThan(SoundThresholds.critical));
+    });
+
+    test('critical is less than maxDecibel', () {
+      expect(SoundThresholds.critical, lessThan(SoundThresholds.maxDecibel));
+    });
+
+    test('all values are positive', () {
+      expect(SoundThresholds.warning, greaterThan(0));
+      expect(SoundThresholds.critical, greaterThan(0));
+      expect(SoundThresholds.maxDecibel, greaterThan(0));
+    });
+  });
+
   group('AppConstants dictionary', () {
     test('has at least 10 entries', () {
       expect(AppConstants.dictionary.length, greaterThanOrEqualTo(10));

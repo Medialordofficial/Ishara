@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:camera/camera.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/chat_message.dart';
@@ -81,6 +82,7 @@ class _ConversationScreenState extends State<ConversationScreen>
     setState(() {
       _messages.add(ChatMessage(text: text, sender: MessageSender.hearing));
     });
+    SemanticsService.announce('Hearing user said: $text', TextDirection.ltr);
     _scrollToBottom();
   }
 
@@ -207,6 +209,7 @@ class _ConversationScreenState extends State<ConversationScreen>
             ChatMessage(text: interpretation, sender: MessageSender.deaf),
           );
         });
+        SemanticsService.announce('Sign interpreted: $interpretation', TextDirection.ltr);
         await _tts.speak(interpretation);
         _scrollToBottom();
       }

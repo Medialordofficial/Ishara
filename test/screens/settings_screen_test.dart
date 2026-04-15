@@ -1,0 +1,104 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:ishara/screens/settings_screen.dart';
+import 'package:ishara/main.dart';
+
+Widget _wrap(Widget child) {
+  return MaterialApp(home: Scaffold(body: child));
+}
+
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    themeNotifier.value = ThemeMode.system;
+  });
+
+  group('SettingsScreen', () {
+    testWidgets('renders with appBar when showAppBar=true', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen(showAppBar: true)));
+      await tester.pumpAndSettle();
+
+      // AppBar title
+      expect(find.text('Settings'), findsOneWidget);
+    });
+
+    testWidgets('renders inline when showAppBar=false', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen(showAppBar: false)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('Server Connection'), findsOneWidget);
+    });
+
+    testWidgets('shows server connection fields', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Server Host / IP'), findsOneWidget);
+      expect(find.text('Port'), findsOneWidget);
+      expect(find.text('Test Connection'), findsOneWidget);
+    });
+
+    testWidgets('shows appearance section with theme options', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Appearance'), findsOneWidget);
+      expect(find.text('System Default'), findsOneWidget);
+      expect(find.text('Light'), findsOneWidget);
+      expect(find.text('Dark'), findsOneWidget);
+    });
+
+    testWidgets('shows quick start guide steps after scrolling', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      // Scroll down to reveal Quick Start section
+      await tester.scrollUntilVisible(
+        find.text('Quick Start'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Quick Start'), findsOneWidget);
+    });
+
+    testWidgets('shows About section after scrolling', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      // Scroll down to reveal About section
+      await tester.scrollUntilVisible(
+        find.text('About Ishara'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('About Ishara'), findsOneWidget);
+    });
+
+    testWidgets('theme toggle changes themeNotifier value', (tester) async {
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      expect(themeNotifier.value, ThemeMode.system);
+
+      // Tap "Dark" radio option
+      await tester.tap(find.text('Dark'));
+      await tester.pumpAndSettle();
+
+      expect(themeNotifier.value, ThemeMode.dark);
+
+      // Tap "Light" radio option
+      await tester.tap(find.text('Light'));
+      await tester.pumpAndSettle();
+
+      expect(themeNotifier.value, ThemeMode.light);
+
+      // Reset
+      themeNotifier.value = ThemeMode.system;
+    });
+  });
+}

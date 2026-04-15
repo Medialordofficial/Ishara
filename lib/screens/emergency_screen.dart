@@ -91,6 +91,29 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   Future<void> _sendEmergency() async {
     if (_selectedType == null) return;
 
+    // Confirm before sending — prevents accidental taps.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Emergency'),
+        content: Text(
+          'Send a $_selectedType SOS alert with your current location?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Send SOS'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     setState(() => _isSending = true);
     HapticFeedback.heavyImpact();
 

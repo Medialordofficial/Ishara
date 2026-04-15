@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import '../utils/constants.dart';
 
 /// On-device ML service for detecting signing posture using Google ML Kit.
 /// Runs entirely on the phone — no backend needed.
@@ -79,59 +80,58 @@ class PoseDetectionService {
     // Empirically tuned — adjust weights based on accuracy testing.
     double score = 0.0;
 
-    // Check 1 (0.3 each): Hand raised above shoulder level.
-    // +80px tolerance accounts for camera angle and natural arm bend.
+    // Check 1: Hand raised above shoulder level.
+    // Tolerance accounts for camera angle and natural arm bend.
     bool leftHandUp = false;
     bool rightHandUp = false;
     if (leftWrist != null) {
-      leftHandUp = leftWrist.y <= leftShoulder.y + 80;
-      if (leftHandUp) score += 0.3;
+      leftHandUp = leftWrist.y <= leftShoulder.y + PoseThresholds.handRaiseTolerance;
+      if (leftHandUp) score += PoseThresholds.weightHandRaised;
     }
     if (rightWrist != null) {
-      rightHandUp = rightWrist.y <= rightShoulder.y + 80;
-      if (rightHandUp) score += 0.3;
+      rightHandUp = rightWrist.y <= rightShoulder.y + PoseThresholds.handRaiseTolerance;
+      if (rightHandUp) score += PoseThresholds.weightHandRaised;
     }
 
-    // Check 2 (0.1 each): Hands within visible frame (50–600px x-range).
+    // Check 2: Hands within visible frame.
     // Prevents scoring when hands are clipped at frame edges.
-    if (leftWrist != null && leftWrist.x > 50 && leftWrist.x < 600) {
-      score += 0.1;
+    if (leftWrist != null && leftWrist.x > PoseThresholds.handFrameMin && leftWrist.x < PoseThresholds.handFrameMax) {
+      score += PoseThresholds.weightHandVisible;
     }
-    if (rightWrist != null && rightWrist.x > 50 && rightWrist.x < 600) {
-      score += 0.1;
+    if (rightWrist != null && rightWrist.x > PoseThresholds.handFrameMin && rightWrist.x < PoseThresholds.handFrameMax) {
+      score += PoseThresholds.weightHandVisible;
     }
 
-    // Check 3 (0.1 each): Arms are bent (natural signing posture).
+    // Check 3: Arms are bent (natural signing posture).
     // Elbow should be between shoulder and wrist vertically.
     if (leftElbow != null && leftWrist != null) {
       final elbowBent =
           leftElbow.y < leftShoulder.y && leftElbow.y > leftWrist.y - 100;
-      if (elbowBent) score += 0.1;
+      if (elbowBent) score += PoseThresholds.weightElbowBent;
     }
     if (rightElbow != null && rightWrist != null) {
       final elbowBent =
           rightElbow.y < rightShoulder.y && rightElbow.y > rightWrist.y - 100;
-      if (elbowBent) score += 0.1;
+      if (elbowBent) score += PoseThresholds.weightElbowBent;
     }
 
-    // Check 4 (0.15 each): Hands near face — many ASL signs involve
+    // Check 4: Hands near face — many ASL signs involve
     // hand-to-face contact (e.g., "eat", "drink", "think").
-    // 200px threshold from nose landmark.
     if (nose != null) {
       if (leftWrist != null) {
         final distToFace = _distance(leftWrist, nose);
-        if (distToFace < 200) score += 0.15;
+        if (distToFace < PoseThresholds.handFaceDistance) score += PoseThresholds.weightNearFace;
       }
       if (rightWrist != null) {
         final distToFace = _distance(rightWrist, nose);
-        if (distToFace < 200) score += 0.15;
+        if (distToFace < PoseThresholds.handFaceDistance) score += PoseThresholds.weightNearFace;
       }
     }
 
     final confidence = score.clamp(0.0, 1.0);
-    // Require at least one hand up AND confidence > 0.3 to classify as signing.
-    // This prevents false positives from resting or gesturing casually.
-    final isSigning = (leftHandUp || rightHandUp) && confidence > 0.3;
+    // Require at least one hand up AND confidence above threshold.
+    // Prevents false positives from resting or gesturing casually.
+    final isSigning = (leftHandUp || rightHandUp) && confidence > PoseThresholds.signingConfidence;
 
     String status;
     if (isSigning && confidence > 0.6) {

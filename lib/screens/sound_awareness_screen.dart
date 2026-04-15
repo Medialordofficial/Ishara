@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -29,8 +30,8 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
   double _currentDecibel = 0.0;
   double _peakDecibel = 0.0;
 
-  static const double _warningThreshold = 75.0;
-  static const double _criticalThreshold = 90.0;
+  static const double _warningThreshold = SoundThresholds.warning;
+  static const double _criticalThreshold = SoundThresholds.critical;
   DateTime? _lastAlertTime;
 
   @override
@@ -155,6 +156,12 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
       _alerts.insert(0, alert);
       if (_alerts.length > 50) _alerts.removeLast();
     });
+
+    // Announce to screen readers via live region
+    SemanticsService.announce(
+      '${alert.level.name} alert: ${alert.label}',
+      TextDirection.ltr,
+    );
 
     NotificationService().soundAlert(alert.label);
 

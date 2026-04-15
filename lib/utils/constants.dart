@@ -57,6 +57,35 @@ class ApiConfig {
   static String get baseUrl => 'http://$defaultHost:$defaultPort';
 }
 
+/// Thresholds for on-device pose detection scoring.
+class PoseThresholds {
+  /// Min confidence to consider person is signing (0.0–1.0).
+  static const double signingConfidence = 0.3;
+
+  /// Tolerance (px) added to shoulder-y when checking if hand is raised.
+  static const double handRaiseTolerance = 80.0;
+
+  /// X-axis range (px) for hand visibility check.
+  static const double handFrameMin = 50.0;
+  static const double handFrameMax = 600.0;
+
+  /// Max distance (px) from nose for hand-near-face check.
+  static const double handFaceDistance = 200.0;
+
+  /// Score weights for each check.
+  static const double weightHandRaised = 0.3;
+  static const double weightHandVisible = 0.1;
+  static const double weightElbowBent = 0.1;
+  static const double weightNearFace = 0.15;
+}
+
+/// Sound awareness decibel thresholds.
+class SoundThresholds {
+  static const double warning = 75.0;
+  static const double critical = 90.0;
+  static const double maxDecibel = 130.0;
+}
+
 class AppConstants {
   static const List<Map<String, String>> dictionary = [
     {'name': 'Hello', 'description': 'Wave your open hand side to side', 'emoji': '👋'},

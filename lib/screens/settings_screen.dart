@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 
@@ -84,6 +85,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hostController.dispose();
     _portController.dispose();
     super.dispose();
+  }
+
+  Widget _buildThemeSelector() {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, mode, _) {
+        return RadioGroup<ThemeMode>(
+          groupValue: mode,
+          onChanged: (ThemeMode? value) async {
+            if (value == null) return;
+            themeNotifier.value = value;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('ishara_theme', value.name);
+          },
+          child: Column(
+            children: [
+              for (final entry in [
+                (ThemeMode.system, 'System Default', Icons.brightness_auto),
+                (ThemeMode.light, 'Light', Icons.light_mode),
+                (ThemeMode.dark, 'Dark', Icons.dark_mode),
+              ])
+                RadioListTile<ThemeMode>(
+                  value: entry.$1,
+                  title: Text(entry.$2),
+                  secondary: Icon(entry.$3, color: AppColors.primary),
+                  activeColor: AppColors.primary,
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -182,6 +215,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             textAlign: TextAlign.center,
           ),
         ],
+
+        const SizedBox(height: 32),
+        const Divider(color: AppColors.surfaceLight),
+        const SizedBox(height: 16),
+
+        // Appearance
+        Text(
+          'Appearance',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+        ),
+        const SizedBox(height: 12),
+        _buildThemeSelector(),
 
         const SizedBox(height: 32),
         const Divider(color: AppColors.surfaceLight),

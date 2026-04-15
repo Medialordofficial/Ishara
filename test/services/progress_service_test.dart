@@ -83,35 +83,59 @@ void main() {
 
     test('nextLevelScore returns correct thresholds', () {
       final p1 = UserProgress(
-          signsPracticed: 0, currentStreak: 0, totalScore: 0, level: 1);
+        signsPracticed: 0,
+        currentStreak: 0,
+        totalScore: 0,
+        level: 1,
+      );
       expect(p1.nextLevelScore, 100);
 
       final p5 = UserProgress(
-          signsPracticed: 0, currentStreak: 0, totalScore: 0, level: 5);
+        signsPracticed: 0,
+        currentStreak: 0,
+        totalScore: 0,
+        level: 5,
+      );
       expect(p5.nextLevelScore, 1500);
     });
 
     test('levelProgress is 0 at start of level', () {
       final p = UserProgress(
-          signsPracticed: 0, currentStreak: 0, totalScore: 0, level: 1);
+        signsPracticed: 0,
+        currentStreak: 0,
+        totalScore: 0,
+        level: 1,
+      );
       expect(p.levelProgress, 0.0);
     });
 
     test('levelProgress is 0.5 at midpoint', () {
       final p = UserProgress(
-          signsPracticed: 0, currentStreak: 0, totalScore: 50, level: 1);
+        signsPracticed: 0,
+        currentStreak: 0,
+        totalScore: 50,
+        level: 1,
+      );
       expect(p.levelProgress, 0.5);
     });
 
     test('levelProgress clamps to 1.0', () {
       final p = UserProgress(
-          signsPracticed: 0, currentStreak: 0, totalScore: 999, level: 1);
+        signsPracticed: 0,
+        currentStreak: 0,
+        totalScore: 999,
+        level: 1,
+      );
       expect(p.levelProgress, 1.0);
     });
 
     test('bestStreak defaults to 0', () {
       final p = UserProgress(
-          signsPracticed: 0, currentStreak: 0, totalScore: 0, level: 1);
+        signsPracticed: 0,
+        currentStreak: 0,
+        totalScore: 0,
+        level: 1,
+      );
       expect(p.bestStreak, 0);
     });
   });

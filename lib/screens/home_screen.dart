@@ -239,8 +239,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.search, color: AppColors.primary),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear,
-                            color: AppColors.textSecondary),
+                        icon: const Icon(
+                          Icons.clear,
+                          color: AppColors.textSecondary,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
@@ -269,9 +271,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final cat = SignDictionary.categories[index];
         return GestureDetector(
           onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const SignDictionaryScreen(),
-            ));
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SignDictionaryScreen()),
+            );
           },
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -313,8 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right,
-                    color: AppColors.textSecondary),
+                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
               ],
             ),
           ),
@@ -329,12 +330,18 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
+            const Icon(
+              Icons.search_off,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(height: 12),
             Text(
               'No signs found for "$_searchQuery"',
               style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 16),
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
             ),
           ],
         ),

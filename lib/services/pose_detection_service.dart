@@ -99,13 +99,13 @@ class PoseDetectionService {
 
     // Check 3: Arms are bent (elbows between shoulders and wrists)
     if (leftElbow != null && leftWrist != null) {
-      final elbowBent = leftElbow.y < leftShoulder.y &&
-          leftElbow.y > leftWrist.y - 100;
+      final elbowBent =
+          leftElbow.y < leftShoulder.y && leftElbow.y > leftWrist.y - 100;
       if (elbowBent) score += 0.1;
     }
     if (rightElbow != null && rightWrist != null) {
-      final elbowBent = rightElbow.y < rightShoulder.y &&
-          rightElbow.y > rightWrist.y - 100;
+      final elbowBent =
+          rightElbow.y < rightShoulder.y && rightElbow.y > rightWrist.y - 100;
       if (elbowBent) score += 0.1;
     }
 

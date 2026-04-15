@@ -180,8 +180,10 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                         shape: BoxShape.circle,
                         boxShadow: AppColors.premiumShadows,
                       ),
-                      child: const Icon(Icons.arrow_back_rounded,
-                          color: AppColors.primary),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -197,7 +199,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -236,7 +240,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                       }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: selected
                               ? AppColors.primary
@@ -293,11 +299,20 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               _buildStatItem(
-                                  '🔥', '${_progress.currentStreak}', 'Streak'),
+                                '🔥',
+                                '${_progress.currentStreak}',
+                                'Streak',
+                              ),
                               _buildStatItem(
-                                  '⭐', 'Lv ${_progress.level}', _progress.levelName),
+                                '⭐',
+                                'Lv ${_progress.level}',
+                                _progress.levelName,
+                              ),
                               _buildStatItem(
-                                  '📊', '${_progress.signsPracticed}', 'Practiced'),
+                                '📊',
+                                '${_progress.signsPracticed}',
+                                'Practiced',
+                              ),
                             ],
                           ),
                           const SizedBox(height: 10),
@@ -305,7 +320,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                             borderRadius: BorderRadius.circular(6),
                             child: LinearProgressIndicator(
                               value: _progress.levelProgress,
-                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.2,
+                              ),
                               color: Colors.white,
                               minHeight: 6,
                             ),
@@ -333,8 +350,10 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                       ),
                       child: Column(
                         children: [
-                          Text(sign.emoji,
-                              style: const TextStyle(fontSize: 48)),
+                          Text(
+                            sign.emoji,
+                            style: const TextStyle(fontSize: 48),
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             sign.word,
@@ -427,8 +446,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                                     height: 160,
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.6),
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.6,
+                                        ),
                                         width: 2,
                                       ),
                                       borderRadius: BorderRadius.circular(20),
@@ -439,7 +459,8 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                             )
                           : const Center(
                               child: CircularProgressIndicator(
-                                  color: AppColors.primary),
+                                color: AppColors.primary,
+                              ),
                             ),
                     ),
                     const SizedBox(height: 16),
@@ -459,8 +480,11 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                           children: [
                             const Row(
                               children: [
-                                Icon(Icons.smart_toy,
-                                    color: AppColors.primary, size: 20),
+                                Icon(
+                                  Icons.smart_toy,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   'AI Coach',
@@ -493,8 +517,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -515,8 +540,11 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                         shape: BoxShape.circle,
                         boxShadow: AppColors.premiumShadows,
                       ),
-                      child: const Icon(Icons.arrow_back_rounded,
-                          color: AppColors.primary, size: 28),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: AppColors.primary,
+                        size: 28,
+                      ),
                     ),
                   ),
                   GestureDetector(
@@ -548,8 +576,11 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                                 ),
                               ),
                             )
-                          : const Icon(Icons.verified_rounded,
-                              color: Colors.white, size: 34),
+                          : const Icon(
+                              Icons.verified_rounded,
+                              color: Colors.white,
+                              size: 34,
+                            ),
                     ),
                   ),
                   GestureDetector(
@@ -561,8 +592,11 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                         shape: BoxShape.circle,
                         boxShadow: AppColors.premiumShadows,
                       ),
-                      child: const Icon(Icons.arrow_forward_rounded,
-                          color: AppColors.primary, size: 28),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: AppColors.primary,
+                        size: 28,
+                      ),
                     ),
                   ),
                 ],

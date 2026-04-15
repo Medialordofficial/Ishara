@@ -541,43 +541,47 @@ class _PremiumEmergencyType extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: isSelected ? color : AppColors.surface,
-              shape: BoxShape.circle,
-              boxShadow: AppColors.premiumShadows,
-              border: Border.all(
-                color: isSelected
-                    ? Colors.transparent
-                    : color.withValues(alpha: 0.2),
-                width: 2,
+    return Semantics(
+      button: true,
+      label: '$label emergency${isSelected ? ", selected" : ""}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: isSelected ? color : AppColors.surface,
+                shape: BoxShape.circle,
+                boxShadow: AppColors.premiumShadows,
+                border: Border.all(
+                  color: isSelected
+                      ? Colors.transparent
+                      : color.withValues(alpha: 0.2),
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.white : color,
+                size: 32,
               ),
             ),
-            child: Icon(
-              icon,
-              color: isSelected ? Colors.white : color,
-              size: 32,
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

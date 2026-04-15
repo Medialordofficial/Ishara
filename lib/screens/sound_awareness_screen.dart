@@ -290,9 +290,12 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
   }
 
   Widget _buildPremiumListeningToggle() {
-    return GestureDetector(
-      onTap: _toggleListening,
-      child: AnimatedBuilder(
+    return Semantics(
+      button: true,
+      label: _isListening ? 'Stop listening for sounds' : 'Start listening for sounds',
+      child: GestureDetector(
+        onTap: _toggleListening,
+        child: AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {
           final scale = _isListening
@@ -354,6 +357,7 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
           );
         },
       ),
+    ),
     );
   }
 
@@ -500,17 +504,21 @@ class _PremiumTestButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+    return Semantics(
+      button: true,
+      label: 'Test alert',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+          ),
+          child: Icon(icon, color: color, size: 28),
         ),
-        child: Icon(icon, color: color, size: 28),
       ),
     );
   }
@@ -537,61 +545,62 @@ class _PremiumAlertCard extends StatelessWidget {
     final time =
         '${alert.timestamp.hour.toString().padLeft(2, '0')}:${alert.timestamp.minute.toString().padLeft(2, '0')}';
     return Semantics(
-      label: '${alert.level.name} alert: ${alert.label}, ${(alert.confidence * 100).toInt()} percent confidence at $time',
+      label:
+          '${alert.level.name} alert: ${alert.label}, ${(alert.confidence * 100).toInt()} percent confidence at $time',
       child: Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppColors.premiumShadows,
-        border: Border.all(color: _color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: AppColors.premiumShadows,
+          border: Border.all(color: _color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.notifications_active, color: _color),
             ),
-            child: Icon(Icons.notifications_active, color: _color),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  alert.label,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    alert.label,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${(alert.confidence * 100).toInt()}% Confidence',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
+                  const SizedBox(height: 4),
+                  Text(
+                    '${(alert.confidence * 100).toInt()}% Confidence',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Text(
-            time,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            Text(
+              time,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 }

@@ -387,8 +387,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                                     borderRadius: BorderRadius.circular(2),
                                     child: LinearProgressIndicator(
                                       value: _poseConfidence,
-                                      backgroundColor:
-                                          Colors.white.withValues(alpha: 0.2),
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       color: _poseConfidence > 0.3
                                           ? AppColors.success
                                           : Colors.white54,

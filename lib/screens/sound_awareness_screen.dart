@@ -5,6 +5,7 @@ import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/sound_alert.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../utils/constants.dart';
 
 class SoundAwarenessScreen extends StatefulWidget {
@@ -100,7 +101,8 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
 
   void _evaluateNoise(NoiseReading reading) {
     final now = DateTime.now();
-    if (_lastAlertTime != null && now.difference(_lastAlertTime!).inSeconds < 3) {
+    if (_lastAlertTime != null &&
+        now.difference(_lastAlertTime!).inSeconds < 3) {
       return;
     }
 
@@ -153,6 +155,8 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
       _alerts.insert(0, alert);
       if (_alerts.length > 50) _alerts.removeLast();
     });
+
+    NotificationService().soundAlert(alert.label);
 
     switch (alert.level) {
       case AlertLevel.critical:

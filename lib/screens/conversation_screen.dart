@@ -82,7 +82,9 @@ class _ConversationScreenState extends State<ConversationScreen>
     if (!_speechAvailable) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speech recognition not available on this device')),
+          const SnackBar(
+            content: Text('Speech recognition not available on this device'),
+          ),
         );
       }
       return;
@@ -187,9 +189,9 @@ class _ConversationScreenState extends State<ConversationScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Interpretation error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Interpretation error: $e')));
       }
     }
   }
@@ -354,11 +356,16 @@ class _ConversationScreenState extends State<ConversationScreen>
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.info.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppColors.info.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Text(
                       _currentWords,
@@ -384,7 +391,10 @@ class _ConversationScreenState extends State<ConversationScreen>
                           controller: _textController,
                           decoration: const InputDecoration(
                             hintText: 'Hearing person types here...',
-                            hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                            hintStyle: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
                             border: InputBorder.none,
                           ),
                           onSubmitted: (_) => _sendTextMessage(),
@@ -400,7 +410,11 @@ class _ConversationScreenState extends State<ConversationScreen>
                           color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.send_rounded, color: AppColors.primary, size: 22),
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -409,11 +423,17 @@ class _ConversationScreenState extends State<ConversationScreen>
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: _isListening ? AppColors.danger : AppColors.info,
+                          color: _isListening
+                              ? AppColors.danger
+                              : AppColors.info,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: (_isListening ? AppColors.danger : AppColors.info).withValues(alpha: 0.3),
+                              color:
+                                  (_isListening
+                                          ? AppColors.danger
+                                          : AppColors.info)
+                                      .withValues(alpha: 0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -431,16 +451,24 @@ class _ConversationScreenState extends State<ConversationScreen>
                 const SizedBox(height: 12),
                 // Sign interpretation toggle
                 GestureDetector(
-                  onTap: _isInterpreting ? _stopInterpreting : _startInterpreting,
+                  onTap: _isInterpreting
+                      ? _stopInterpreting
+                      : _startInterpreting,
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: _isInterpreting ? AppColors.danger : AppColors.primary,
+                      color: _isInterpreting
+                          ? AppColors.danger
+                          : AppColors.primary,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: (_isInterpreting ? AppColors.danger : AppColors.primary).withValues(alpha: 0.3),
+                          color:
+                              (_isInterpreting
+                                      ? AppColors.danger
+                                      : AppColors.primary)
+                                  .withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
@@ -456,7 +484,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _isInterpreting ? 'Stop Sign Reading' : 'Start Sign Reading',
+                          _isInterpreting
+                              ? 'Stop Sign Reading'
+                              : 'Start Sign Reading',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -539,4 +569,3 @@ class _PremiumChatBubble extends StatelessWidget {
     );
   }
 }
-

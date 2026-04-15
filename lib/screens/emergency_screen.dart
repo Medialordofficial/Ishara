@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:vibration/vibration.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../services/tts_service.dart';
 import '../utils/constants.dart';
 
@@ -129,6 +130,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         _isSending = false;
       });
 
+      NotificationService().emergencyConfirm(_generatedMessage);
       await _tts.speak(_generatedMessage);
     } catch (e) {
       setState(() {

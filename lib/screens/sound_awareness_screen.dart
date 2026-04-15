@@ -268,11 +268,14 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: (_currentDecibel / 130).clamp(0.0, 1.0),
-              minHeight: 12,
-              backgroundColor: AppColors.secondary,
-              valueColor: AlwaysStoppedAnimation<Color>(levelColor),
+            child: Semantics(
+              label: 'Sound level: ${_currentDecibel.toInt()} decibels',
+              child: LinearProgressIndicator(
+                value: (_currentDecibel / 130).clamp(0.0, 1.0),
+                minHeight: 12,
+                backgroundColor: AppColors.secondary,
+                valueColor: AlwaysStoppedAnimation<Color>(levelColor),
+              ),
             ),
           ),
           const SizedBox(height: 12),

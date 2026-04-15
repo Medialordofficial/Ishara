@@ -299,11 +299,17 @@ class _ConversationScreenState extends State<ConversationScreen>
                     fit: StackFit.expand,
                     children: [
                       if (_isCameraReady)
-                        CameraPreview(_cameraController!)
+                        Semantics(
+                          label: 'Camera preview for sign interpretation',
+                          child: CameraPreview(_cameraController!),
+                        )
                       else
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
+                        Center(
+                          child: Semantics(
+                            label: 'Loading camera',
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       if (_isInterpreting)
@@ -635,7 +641,9 @@ class _PremiumChatBubble extends StatelessWidget {
 
     return Align(
       alignment: isDeaf ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
+      child: Semantics(
+        label: '${isDeaf ? "You said" : "Hearing user said"}: ${message.text}',
+        child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         constraints: BoxConstraints(
@@ -665,6 +673,7 @@ class _PremiumChatBubble extends StatelessWidget {
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
+        ),
         ),
       ),
     );

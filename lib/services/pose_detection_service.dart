@@ -75,9 +75,12 @@ class PoseDetectionService {
     }
 
     // Calculate signing indicators
+    // Scoring: max 1.0, composed of 4 weighted checks.
+    // Empirically tuned — adjust weights based on accuracy testing.
     double score = 0.0;
 
-    // Check 1: At least one hand at or above shoulder level
+    // Check 1 (0.3 each): Hand raised above shoulder level.
+    // +80px tolerance accounts for camera angle and natural arm bend.
     bool leftHandUp = false;
     bool rightHandUp = false;
     if (leftWrist != null) {
@@ -89,7 +92,8 @@ class PoseDetectionService {
       if (rightHandUp) score += 0.3;
     }
 
-    // Check 2: Hands are within frame (not at edges)
+    // Check 2 (0.1 each): Hands within visible frame (50–600px x-range).
+    // Prevents scoring when hands are clipped at frame edges.
     if (leftWrist != null && leftWrist.x > 50 && leftWrist.x < 600) {
       score += 0.1;
     }
@@ -97,7 +101,8 @@ class PoseDetectionService {
       score += 0.1;
     }
 
-    // Check 3: Arms are bent (elbows between shoulders and wrists)
+    // Check 3 (0.1 each): Arms are bent (natural signing posture).
+    // Elbow should be between shoulder and wrist vertically.
     if (leftElbow != null && leftWrist != null) {
       final elbowBent =
           leftElbow.y < leftShoulder.y && leftElbow.y > leftWrist.y - 100;
@@ -109,7 +114,9 @@ class PoseDetectionService {
       if (elbowBent) score += 0.1;
     }
 
-    // Check 4: Hands near face region (many signs are near the face)
+    // Check 4 (0.15 each): Hands near face — many ASL signs involve
+    // hand-to-face contact (e.g., "eat", "drink", "think").
+    // 200px threshold from nose landmark.
     if (nose != null) {
       if (leftWrist != null) {
         final distToFace = _distance(leftWrist, nose);
@@ -122,6 +129,8 @@ class PoseDetectionService {
     }
 
     final confidence = score.clamp(0.0, 1.0);
+    // Require at least one hand up AND confidence > 0.3 to classify as signing.
+    // This prevents false positives from resting or gesturing casually.
     final isSigning = (leftHandUp || rightHandUp) && confidence > 0.3;
 
     String status;

@@ -450,7 +450,10 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                           ? Stack(
                               fit: StackFit.expand,
                               children: [
-                                CameraPreview(_cameraController!),
+                                Semantics(
+                                  label: 'Camera preview for sign practice',
+                                  child: CameraPreview(_cameraController!),
+                                ),
                                 Center(
                                   child: Container(
                                     width: 160,
@@ -471,6 +474,7 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                           : const Center(
                               child: CircularProgressIndicator(
                                 color: AppColors.primary,
+                                semanticsLabel: 'Loading camera',
                               ),
                             ),
                     ),

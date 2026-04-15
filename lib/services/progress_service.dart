@@ -21,6 +21,11 @@ class ProgressService {
     );
   }
 
+  /// Record one sign practice session. Manages daily streaks (local time):
+  /// - First ever practice → streak = 1
+  /// - Same day again → streak unchanged
+  /// - Consecutive day → streak + 1
+  /// - Gap > 1 day → streak resets to 1
   Future<UserProgress> recordPractice({int scoreGained = 10}) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
@@ -69,6 +74,8 @@ class ProgressService {
     );
   }
 
+  /// Level thresholds: exponential curve so early levels feel fast,
+  /// later levels require sustained effort.
   int _calculateLevel(int totalScore) {
     const thresholds = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 9000];
     for (int i = thresholds.length - 1; i >= 0; i--) {

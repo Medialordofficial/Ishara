@@ -172,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 32,
                       height: 32,
                       fit: BoxFit.cover,
+                      semanticLabel: 'Ishara app logo',
                     ),
                   ),
                 ),

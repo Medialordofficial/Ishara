@@ -9,14 +9,17 @@ import base64
 import json
 import logging
 import os
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ishara")
 
 import httpx
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -53,6 +56,36 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 ALLOWED_EMERGENCY_TYPES = {"medical", "police", "fire", "natural_disaster", "other"}
 MAX_TEXT_LENGTH = 2000
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = int(os.getenv("ISHARA_RATE_LIMIT", "30"))  # requests per window
+
+
+# ─── Rate Limiting ─────────────────────────────────────────
+
+_rate_store: dict[str, list[float]] = defaultdict(list)
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Simple in-memory per-IP rate limiter."""
+    if request.url.path in ("/ping", "/health", "/docs", "/openapi.json"):
+        return await call_next(request)
+
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    window_start = now - RATE_LIMIT_WINDOW
+
+    # Prune old entries
+    _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
+
+    if len(_rate_store[client_ip]) >= RATE_LIMIT_MAX:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded. Try again later."},
+        )
+
+    _rate_store[client_ip].append(now)
+    return await call_next(request)
 
 
 # ─── Helpers ───────────────────────────────────────────────

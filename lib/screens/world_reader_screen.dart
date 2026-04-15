@@ -163,7 +163,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                       ? Stack(
                           fit: StackFit.expand,
                           children: [
-                            CameraPreview(_cameraController!),
+                            Semantics(
+                              label: 'Camera preview for reading surroundings',
+                              child: CameraPreview(_cameraController!),
+                            ),
                             if (_isReading)
                               Container(
                                 color: Colors.black.withValues(alpha: 0.4),
@@ -173,6 +176,7 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                                     children: [
                                       CircularProgressIndicator(
                                         color: Colors.white,
+                                        semanticsLabel: 'Reading the scene',
                                       ),
                                       SizedBox(height: 12),
                                       Text(
@@ -208,6 +212,7 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                       : const Center(
                           child: CircularProgressIndicator(
                             color: AppColors.success,
+                            semanticsLabel: 'Initializing camera',
                           ),
                         ),
                 ),

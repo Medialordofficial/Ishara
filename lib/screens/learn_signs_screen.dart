@@ -251,25 +251,27 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                             horizontal: 14,
                             vertical: 8,
                           ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.surface,
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: selected ? null : AppColors.premiumShadows,
-                        ),
-                        child: Text(
-                          '${cat.icon} ${cat.name}',
-                          style: TextStyle(
+                          decoration: BoxDecoration(
                             color: selected
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                                ? AppColors.primary
+                                : AppColors.surface,
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: selected
+                                ? null
+                                : AppColors.premiumShadows,
+                          ),
+                          child: Text(
+                            '${cat.icon} ${cat.name}',
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     ),
                   );
                 },

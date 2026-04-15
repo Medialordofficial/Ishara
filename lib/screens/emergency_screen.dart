@@ -185,7 +185,6 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   void dispose() {
     _chatController.dispose();
     _tts.stop();
-    _tts.dispose();
     super.dispose();
   }
 
@@ -205,6 +204,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           if (_emergencySent)
             IconButton(
               icon: const Icon(Icons.refresh, color: AppColors.primary),
+              tooltip: 'Reset emergency',
               onPressed: _reset,
             ),
         ],

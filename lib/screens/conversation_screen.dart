@@ -237,7 +237,6 @@ class _ConversationScreenState extends State<ConversationScreen>
     _speech.stop();
     _cameraController?.dispose();
     _tts.stop();
-    _tts.dispose();
     _scrollController.dispose();
     _textController.dispose();
     _pulseController.dispose();
@@ -510,7 +509,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                     const SizedBox(width: 8),
                     Semantics(
                       button: true,
-                      label: _isListening ? 'Stop listening' : 'Start listening',
+                      label: _isListening
+                          ? 'Stop listening'
+                          : 'Start listening',
                       child: GestureDetector(
                         onTap: _toggleMic,
                         child: Container(
@@ -546,7 +547,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                 // Sign interpretation toggle
                 Semantics(
                   button: true,
-                  label: _isInterpreting ? 'Stop sign reading' : 'Start sign reading',
+                  label: _isInterpreting
+                      ? 'Stop sign reading'
+                      : 'Start sign reading',
                   child: GestureDetector(
                     onTap: _isInterpreting
                         ? _stopInterpreting

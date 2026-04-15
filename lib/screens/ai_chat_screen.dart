@@ -712,55 +712,64 @@ class _CollapsibleSignReplyState extends State<_CollapsibleSignReply> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Toggle header
-          GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.sign_language,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Sign Translation',
-                          style: TextStyle(
+          Semantics(
+            button: true,
+            label: _expanded
+                ? 'Collapse sign translation'
+                : 'Expand sign translation',
+            child: GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.sign_language,
                             color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                            size: 14,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 4),
+                          Text(
+                            'Sign Translation',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${widget.signs.length} signs',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
+                    const SizedBox(width: 8),
+                    Text(
+                      '${widget.signs.length} signs',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
-                    color: AppColors.primary,
-                  ),
-                ],
+                    const Spacer(),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -882,12 +891,18 @@ class _AnimatedSignReplyState extends State<_AnimatedSignReply>
                 ),
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: () => setState(() => _isPlaying = !_isPlaying),
-                child: Icon(
-                  _isPlaying ? Icons.pause_circle : Icons.play_circle,
-                  color: AppColors.primary,
-                  size: 28,
+              Semantics(
+                button: true,
+                label: _isPlaying
+                    ? 'Pause sign animation'
+                    : 'Play sign animation',
+                child: GestureDetector(
+                  onTap: () => setState(() => _isPlaying = !_isPlaying),
+                  child: Icon(
+                    _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
                 ),
               ),
             ],

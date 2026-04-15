@@ -73,7 +73,8 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
       await _tts.speak(result);
     } catch (e) {
       setState(() {
-        _readResult = 'Unable to read. Make sure the backend server is running.';
+        _readResult =
+            'Unable to read. Make sure the backend server is running.';
         _isReading = false;
       });
     }
@@ -82,7 +83,7 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
   @override
   void dispose() {
     _cameraController?.dispose();
-    _tts.dispose();
+    _tts.stop();
     _questionController.dispose();
     super.dispose();
   }
@@ -111,8 +112,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                           shape: BoxShape.circle,
                           boxShadow: AppColors.premiumShadows,
                         ),
-                        child: const Icon(Icons.arrow_back_rounded,
-                            color: AppColors.primary),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -134,8 +137,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                       shape: BoxShape.circle,
                       boxShadow: AppColors.premiumShadows,
                     ),
-                    child: const Icon(Icons.visibility_rounded,
-                        color: AppColors.success),
+                    child: const Icon(
+                      Icons.visibility_rounded,
+                      color: AppColors.success,
+                    ),
                   ),
                 ],
               ),
@@ -167,7 +172,8 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       CircularProgressIndicator(
-                                          color: Colors.white),
+                                        color: Colors.white,
+                                      ),
                                       SizedBox(height: 12),
                                       Text(
                                         'Reading the scene...',
@@ -188,8 +194,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                                   height: 200,
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: AppColors.success
-                                          .withValues(alpha: 0.7),
+                                      color: AppColors.success.withValues(
+                                        alpha: 0.7,
+                                      ),
                                       width: 2,
                                     ),
                                     borderRadius: BorderRadius.circular(20),
@@ -200,7 +207,8 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                         )
                       : const Center(
                           child: CircularProgressIndicator(
-                              color: AppColors.success),
+                            color: AppColors.success,
+                          ),
                         ),
                 ),
               ),
@@ -227,8 +235,11 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.auto_stories,
-                                  color: AppColors.success, size: 20),
+                              const Icon(
+                                Icons.auto_stories,
+                                color: AppColors.success,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               const Text(
                                 'Reader Output',
@@ -244,8 +255,11 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                                 label: 'Read result aloud',
                                 child: GestureDetector(
                                   onTap: () => _tts.speak(_readResult),
-                                  child: const Icon(Icons.volume_up,
-                                      color: AppColors.primary, size: 22),
+                                  child: const Icon(
+                                    Icons.volume_up,
+                                    color: AppColors.primary,
+                                    size: 22,
+                                  ),
                                 ),
                               ),
                             ],
@@ -269,11 +283,16 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
             // Bottom controls — thumb accessible
             Container(
               padding: EdgeInsets.fromLTRB(
-                  24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+                24,
+                16,
+                24,
+                MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(32)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -287,8 +306,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                 children: [
                   // Question field
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(30),
@@ -299,7 +320,10 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                         hintText: 'Ask about the scene (optional)...',
                         hintStyle: TextStyle(color: AppColors.textSecondary),
                         border: InputBorder.none,
-                        icon: Icon(Icons.help_outline, color: AppColors.success),
+                        icon: Icon(
+                          Icons.help_outline,
+                          color: AppColors.success,
+                        ),
                       ),
                     ),
                   ),
@@ -307,7 +331,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                   // Capture button
                   Semantics(
                     button: true,
-                    label: _isReading ? 'Reading in progress' : 'Capture and read the scene',
+                    label: _isReading
+                        ? 'Reading in progress'
+                        : 'Capture and read the scene',
                     child: GestureDetector(
                       onTap: _isReading ? null : _captureAndRead,
                       child: Container(

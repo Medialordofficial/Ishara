@@ -14,6 +14,10 @@ class ApiService {
   String _baseUrl = 'http://192.168.1.100:8000';
   bool _initialized = false;
 
+  /// Injectable HTTP client for testability.
+  http.Client _client = http.Client();
+  set httpClient(http.Client c) => _client = c;
+
   /// Load saved server URL from SharedPreferences on first use.
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
@@ -48,7 +52,7 @@ class ApiService {
         ),
       );
 
-    final response = await request.send().timeout(const Duration(seconds: 30));
+    final response = await _client.send(request).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
@@ -70,7 +74,7 @@ class ApiService {
         ),
       );
 
-    final response = await request.send().timeout(const Duration(seconds: 30));
+    final response = await _client.send(request).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
@@ -83,11 +87,13 @@ class ApiService {
   Future<Map<String, dynamic>> classifySound(String description) async {
     await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/classify-sound');
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'description': description}),
-    ).timeout(const Duration(seconds: 15));
+    final response = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'description': description}),
+        )
+        .timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -111,7 +117,7 @@ class ApiService {
       request.fields['question'] = question;
     }
 
-    final response = await request.send().timeout(const Duration(seconds: 30));
+    final response = await _client.send(request).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
@@ -128,15 +134,17 @@ class ApiService {
   }) async {
     await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/emergency-message');
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'latitude': latitude,
-        'longitude': longitude,
-        'emergency_type': emergencyType,
-      }),
-    ).timeout(const Duration(seconds: 15));
+    final response = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'latitude': latitude,
+            'longitude': longitude,
+            'emergency_type': emergencyType,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -163,7 +171,7 @@ class ApiService {
       )
       ..fields['target_sign'] = targetSign;
 
-    final response = await request.send().timeout(const Duration(seconds: 30));
+    final response = await _client.send(request).timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       return jsonDecode(body);
@@ -175,7 +183,7 @@ class ApiService {
   Future<bool> ping() async {
     await _ensureInitialized();
     try {
-      final response = await http
+      final response = await _client
           .get(Uri.parse('$_baseUrl/ping'))
           .timeout(const Duration(seconds: 3));
       return response.statusCode == 200;
@@ -191,7 +199,7 @@ class ApiService {
   }) async {
     await _ensureInitialized();
     final uri = Uri.parse('$_baseUrl/chat');
-    final response = await http
+    final response = await _client
         .post(
           uri,
           headers: {'Content-Type': 'application/json'},

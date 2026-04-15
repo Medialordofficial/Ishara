@@ -30,6 +30,7 @@ class TtsService {
     await _tts.setLanguage(lang);
   }
 
+  /// Singleton – never truly dispose; just stop any ongoing speech.
   void dispose() {
     _tts.stop();
   }

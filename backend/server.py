@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ishara")
 
 import httpx
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -50,6 +50,9 @@ app.add_middleware(
 )
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_EMERGENCY_TYPES = {"medical", "police", "fire", "natural_disaster", "other"}
+MAX_TEXT_LENGTH = 2000
 
 
 # ─── Helpers ───────────────────────────────────────────────
@@ -71,10 +74,12 @@ async def _chat(prompt: str, image_b64: str | None = None) -> str:
 
 
 async def _read_upload(upload: UploadFile) -> str:
-    """Read an uploaded image and return base64 with size validation."""
+    """Read an uploaded image and return base64 with size & type validation."""
+    if upload.content_type and upload.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported image type: {upload.content_type}")
     data = await upload.read()
     if len(data) > MAX_IMAGE_BYTES:
-        raise ValueError(f"Image too large: {len(data)} bytes (max {MAX_IMAGE_BYTES})")
+        raise HTTPException(status_code=413, detail=f"Image too large: {len(data)} bytes (max {MAX_IMAGE_BYTES})")
     return base64.b64encode(data).decode("utf-8")
 
 
@@ -146,6 +151,11 @@ class EmergencyRequest(BaseModel):
 
 @app.post("/emergency-message")
 async def emergency_message(req: EmergencyRequest):
+    if req.emergency_type.lower() not in ALLOWED_EMERGENCY_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid emergency_type. Allowed: {', '.join(sorted(ALLOWED_EMERGENCY_TYPES))}",
+        )
     prompt = (
         f"Generate a brief, clear emergency message for a {req.emergency_type} emergency. "
         "The sender is a deaf person who cannot make voice calls. "
@@ -164,6 +174,8 @@ class ChatRequest(BaseModel):
 
 @app.post("/emergency-chat")
 async def emergency_chat(req: ChatRequest):
+    if len(req.message) > MAX_TEXT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
     prompt = (
         "You are simulating an emergency dispatcher responding to a deaf person's text. "
         "Be calm, clear, and helpful. Use simple language. "
@@ -226,6 +238,8 @@ class GeneralChatRequest(BaseModel):
 
 @app.post("/chat")
 async def general_chat(req: GeneralChatRequest):
+    if len(req.message) > MAX_TEXT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
     context = ""
     if req.history:
         context = "\n".join(

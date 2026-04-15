@@ -26,10 +26,8 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
     final results = _query.isNotEmpty
         ? SignDictionary.search(_query)
         : _selectedCategory != null
-            ? categories
-                .firstWhere((c) => c.name == _selectedCategory)
-                .signs
-            : <SignEntry>[];
+        ? categories.firstWhere((c) => c.name == _selectedCategory).signs
+        : <SignEntry>[];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -56,8 +54,10 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                               shape: BoxShape.circle,
                               boxShadow: AppColors.premiumShadows,
                             ),
-                            child: const Icon(Icons.arrow_back_rounded,
-                                color: AppColors.primary),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
@@ -74,7 +74,9 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -98,8 +100,10 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: AppColors.premiumShadows,
                     ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
                     child: TextField(
                       controller: _searchController,
                       onChanged: (val) => setState(() {
@@ -108,14 +112,21 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                       }),
                       decoration: InputDecoration(
                         hintText: 'Search signs, phrases, alphabet...',
-                        hintStyle:
-                            const TextStyle(color: AppColors.textSecondary),
+                        hintStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                        ),
                         border: InputBorder.none,
-                        icon: const Icon(Icons.search, color: AppColors.primary),
+                        icon: const Icon(
+                          Icons.search,
+                          color: AppColors.primary,
+                        ),
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear,
-                                    color: AppColors.textSecondary),
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: AppColors.textSecondary,
+                                ),
+                                tooltip: 'Clear search',
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _query = '');
@@ -149,49 +160,53 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                         selected: selected,
                         child: GestureDetector(
                           onTap: () => setState(() {
-                            _selectedCategory =
-                                selected ? null : cat.name;
+                            _selectedCategory = selected ? null : cat.name;
                           }),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? AppColors.primary
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.3),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ]
-                                : AppColors.premiumShadows,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(cat.icon,
-                                  style: const TextStyle(fontSize: 16)),
-                              const SizedBox(width: 6),
-                              Text(
-                                cat.name,
-                                style: TextStyle(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: selected
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : AppColors.premiumShadows,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  cat.icon,
+                                  style: const TextStyle(fontSize: 16),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  cat.name,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                       ),
                     );
                   },
@@ -230,35 +245,35 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
           child: GestureDetector(
             onTap: () => setState(() => _selectedCategory = cat.name),
             child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: AppColors.premiumShadows,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(cat.icon, style: const TextStyle(fontSize: 36)),
-                const SizedBox(height: 10),
-                Text(
-                  cat.name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AppColors.premiumShadows,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(cat.icon, style: const TextStyle(fontSize: 36)),
+                  const SizedBox(height: 10),
+                  Text(
+                    cat.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${cat.signs.length} signs',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
+                  const SizedBox(height: 4),
+                  Text(
+                    '${cat.signs.length} signs',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         );
       },
@@ -271,11 +286,18 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
+            const Icon(
+              Icons.search_off,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(height: 12),
             Text(
               'No signs found for "$_query"',
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -293,53 +315,55 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
           child: GestureDetector(
             onTap: () => _showSignDetail(sign),
             child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Text(sign.emoji, style: const TextStyle(fontSize: 32)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        sign.word,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        sign.description,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                const Icon(Icons.chevron_right,
-                    color: AppColors.textSecondary),
-              ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  Text(sign.emoji, style: const TextStyle(fontSize: 32)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sign.word,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          sign.description,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ),
             ),
-          ),
           ),
         );
       },
@@ -400,8 +424,10 @@ class _SignDetailSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),

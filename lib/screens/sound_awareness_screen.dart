@@ -292,72 +292,74 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
   Widget _buildPremiumListeningToggle() {
     return Semantics(
       button: true,
-      label: _isListening ? 'Stop listening for sounds' : 'Start listening for sounds',
+      label: _isListening
+          ? 'Stop listening for sounds'
+          : 'Start listening for sounds',
       child: GestureDetector(
         onTap: _toggleListening,
         child: AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, child) {
-          final scale = _isListening
-              ? 1.0 + (_pulseController.value * 0.15)
-              : 1.0;
-          final opacity = _isListening ? 1.0 - _pulseController.value : 0.0;
+          animation: _pulseController,
+          builder: (context, child) {
+            final scale = _isListening
+                ? 1.0 + (_pulseController.value * 0.15)
+                : 1.0;
+            final opacity = _isListening ? 1.0 - _pulseController.value : 0.0;
 
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              if (_isListening)
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                if (_isListening)
+                  Container(
+                    width: 220 * scale,
+                    height: 220 * scale,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: opacity * 0.2),
+                    ),
+                  ),
                 Container(
-                  width: 220 * scale,
-                  height: 220 * scale,
+                  width: 180,
+                  height: 180,
                   decoration: BoxDecoration(
+                    color: AppColors.surface,
                     shape: BoxShape.circle,
-                    color: AppColors.primary.withValues(alpha: opacity * 0.2),
-                  ),
-                ),
-              Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  shape: BoxShape.circle,
-                  boxShadow: AppColors.premiumShadows,
-                  border: Border.all(
-                    color: _isListening
-                        ? AppColors.primary
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _isListening ? Icons.hearing : Icons.hearing_disabled,
-                      size: 64,
+                    boxShadow: AppColors.premiumShadows,
+                    border: Border.all(
                       color: _isListening
                           ? AppColors.primary
-                          : AppColors.textSecondary,
+                          : Colors.transparent,
+                      width: 2,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _isListening ? 'Listening...' : 'Tap to Listen',
-                      style: TextStyle(
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _isListening ? Icons.hearing : Icons.hearing_disabled,
+                        size: 64,
                         color: _isListening
                             ? AppColors.primary
                             : AppColors.textSecondary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        _isListening ? 'Listening...' : 'Tap to Listen',
+                        style: TextStyle(
+                          color: _isListening
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 
@@ -443,16 +445,20 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
               ),
             ),
             if (_alerts.isNotEmpty)
-              GestureDetector(
-                onTap: () => setState(() {
-                  _alerts.clear();
-                  _peakDecibel = 0;
-                }),
-                child: const Text(
-                  'Clear',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
+              Semantics(
+                button: true,
+                label: 'Clear all alerts',
+                child: GestureDetector(
+                  onTap: () => setState(() {
+                    _alerts.clear();
+                    _peakDecibel = 0;
+                  }),
+                  child: const Text(
+                    'Clear',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

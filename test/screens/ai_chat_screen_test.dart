@@ -79,7 +79,7 @@ void main() {
       expect(find.text('hello'), findsOneWidget);
     });
 
-    testWidgets('sending emergency keyword shows fallback emergency response',
+    testWidgets('server offline shows honest fallback response',
         (tester) async {
       await tester.pumpWidget(_wrap(const AiChatScreen()));
       await tester.pumpAndSettle();
@@ -93,7 +93,9 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.textContaining('Emergency SOS'), findsOneWidget);
+      // When server is unreachable, the fallback shows an honest offline message
+      // rather than fake keyword-matched responses.
+      expect(find.textContaining('unreachable'), findsOneWidget);
     });
 
     testWidgets('sending empty text does not add a message', (tester) async {

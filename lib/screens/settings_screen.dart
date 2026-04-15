@@ -19,9 +19,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     text: ApiConfig.defaultPort.toString(),
   );
   final _emergencyNumberController = TextEditingController(text: '112');
+  final _apiKeyController = TextEditingController();
   final ApiService _api = ApiService();
   String _connectionStatus = '';
   bool _isTesting = false;
+  bool _apiKeyObscured = true;
+  // Validates E.164-ish phone numbers: optional +, 1-15 digits.
+  static final _phoneRegex = RegExp(r'^\+?[0-9]{1,15}$');
 
   @override
   void initState() {
@@ -38,6 +42,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final savedEmergency = prefs.getString('ishara_emergency_number');
     if (savedEmergency != null && savedEmergency.isNotEmpty) {
       _emergencyNumberController.text = savedEmergency;
+    }
+    final savedApiKey = prefs.getString('ishara_api_key');
+    if (savedApiKey != null && savedApiKey.isNotEmpty) {
+      _apiKeyController.text = savedApiKey;
+      await _api.setApiKey(savedApiKey);
     }
     // Apply saved settings to API service
     await _api.updateBaseUrl(
@@ -57,6 +66,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (emergencyNum.isNotEmpty) {
       await _api.setEmergencyNumber(emergencyNum);
     }
+    final apiKey = _apiKeyController.text.trim();
+    await prefs.setString('ishara_api_key', apiKey);
+    _api.setApiKey(apiKey);
   }
 
   Future<void> _testConnection() async {
@@ -97,6 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hostController.dispose();
     _portController.dispose();
     _emergencyNumberController.dispose();
+    _apiKeyController.dispose();
     super.dispose();
   }
 
@@ -185,6 +198,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             fillColor: AppColors.surface,
           ),
           keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 12),
+
+        // API Key
+        TextField(
+          controller: _apiKeyController,
+          obscureText: _apiKeyObscured,
+          decoration: InputDecoration(
+            labelText: 'API Key (optional)',
+            hintText: 'Leave empty if not required',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: AppColors.surface,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _apiKeyObscured ? Icons.visibility_off : Icons.visibility,
+                color: AppColors.textSecondary,
+              ),
+              tooltip: _apiKeyObscured ? 'Show API key' : 'Hide API key',
+              onPressed: () =>
+                  setState(() => _apiKeyObscured = !_apiKeyObscured),
+            ),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -284,9 +320,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
           keyboardType: TextInputType.phone,
           onChanged: (val) async {
             final trimmed = val.trim();
-            if (trimmed.isNotEmpty) {
+            if (trimmed.isNotEmpty && _phoneRegex.hasMatch(trimmed)) {
               await _api.setEmergencyNumber(trimmed);
             }
+          },
+        ),
+        // Inline validation hint
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _emergencyNumberController,
+          builder: (context, value, _) {
+            final trimmed = value.text.trim();
+            if (trimmed.isNotEmpty && !_phoneRegex.hasMatch(trimmed)) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 4, left: 12),
+                child: Text(
+                  'Enter a valid number (digits only, optional leading +, max 15 digits)',
+                  style: TextStyle(
+                    color: AppColors.danger,
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
           },
         ),
 

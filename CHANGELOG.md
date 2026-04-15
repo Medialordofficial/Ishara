@@ -16,6 +16,42 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.9.0] — 2026-04-15 — Fix Cycle 15
+
+### Accessibility
+- Replaced all `GestureDetector` interactive widgets in `AiChatScreen` with `InkWell` — now focusable via keyboard/switch access and get ink ripple feedback
+- Fixed `danger` color: `0xFFEA4335` → `0xFFB91C1C` (Red-700, ~5.9:1 WCAG AA on white)
+- Fixed `info` color: `0xFF4285F4` → `0xFF1D4ED8` (Blue-700, ~5.9:1 WCAG AA on white)
+- Added inline validation error for emergency number field (warns on invalid format)
+
+### Security / Reliability
+- Fixed `_rate_store` memory leak: empty IP keys are now pruned after each request window cleanup
+- Fixed CORS origins whitespace: `ISHARA_CORS_ORIGINS` values are now `.strip()`ped before use
+- Replaced narrow `safe_keywords` whitelist in `emergency_message` fallback validation with a robust refusal-pattern check (no false negatives for valid emergency messages)
+
+### Product / UX
+- Added API key input field in Settings → Server Connection (obscured, show/hide toggle, persisted via `flutter_secure_storage`)
+- Emergency number field now validates E.164-ish format with real-time error label
+- AI chat offline fallback replaced: instead of fake keyword-matched answers, users now receive an honest "server unreachable" message with optional offline dictionary lookup
+
+### AI / ML
+- `/emergency-chat` now supports multi-turn conversation history via `history: list[HistoryMessage]` — last 6 turns are threaded into the LLM context
+- Added 3 more few-shot examples to `/interpret-sign` prompt (Thank you/0.85, Water/0.80, More/0.75) — 5 examples total
+- `/emergency-chat` internal prompt rebuilt as structured `messages[]` array (consistent with `/chat`)
+
+### Documentation
+- Enhanced `CONTRIBUTING.md` with branch conventions, Conventional Commits format, accessibility requirements, and test baseline (294 tests)
+
+### Tests
+- **294 total tests** (220 Flutter + 74 backend — all passing)
+- Added `test_emergency_chat_with_history` — verifies history is threaded into structured messages
+- Strengthened `test_interpret_sign_prompt_includes_few_shot_examples` — now asserts all 5 sign names are present
+- Updated `test_emergency_all_valid_types` — accepts 429 (expected under sequential test-client calls)
+- Updated fallback response test: now asserts honest offline message instead of fake keyword response
+
+
+---
+
 ## [1.8.0] — 2026-04-15 — Fix Cycle 14
 
 ### Fixed — AI/ML Quality

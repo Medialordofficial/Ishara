@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Ishara API", version="1.0.0", lifespan=lifespan)
 
-ALLOWED_ORIGINS = os.getenv("ISHARA_CORS_ORIGINS", "").split(",") if os.getenv("ISHARA_CORS_ORIGINS") else ["http://localhost:8080", "http://localhost:3000"]
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ISHARA_CORS_ORIGINS", "").split(",")] if os.getenv("ISHARA_CORS_ORIGINS") else ["http://localhost:8080", "http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -178,6 +178,10 @@ async def rate_limit_middleware(request: Request, call_next):
     # Prune old entries
     _rate_store[client_ip] = [t for t in _rate_store[client_ip] if t > window_start]
 
+    # Prune empty keys to prevent unbounded memory growth under IP rotation.
+    empty_keys = [k for k, v in _rate_store.items() if not v]
+    for k in empty_keys:
+        del _rate_store[k]
     if len(_rate_store[client_ip]) >= RATE_LIMIT_MAX:
         logger.warning("RATE_LIMIT ip=%s path=%s", client_ip, request.url.path)
         return JSONResponse(
@@ -335,6 +339,9 @@ async def interpret_sign(image: UploadFile = File(...)):
         "If no clear sign is visible, say 'No sign detected'. "
         "Reply with ONLY a JSON object. Examples:\n"
         "{\"sign\": \"Hello\", \"confidence\": 0.9}  — clear greeting gesture detected\n"
+        "{\"sign\": \"Thank you\", \"confidence\": 0.85}  — flat hand moves away from chin\n"
+        "{\"sign\": \"Water\", \"confidence\": 0.8}  — W handshape taps chin twice\n"
+        "{\"sign\": \"More\", \"confidence\": 0.75}  — fingertips of both hands tap together\n"
         "{\"sign\": \"No sign detected\", \"confidence\": 0.0}  — empty or unclear frame\n"
         "Your reply (JSON only, no extra text):"
     )
@@ -438,14 +445,15 @@ async def emergency_message(req: EmergencyRequest):
     )
     result = await _chat(prompt)
     message = result.strip()
-    # Validate output: must be non-empty and not a refusal/error.
-    # If the model returns garbage, use a safe hardcoded template.
-    safe_keywords = ["emergency", "deaf", "help", "assistance",
-                     "medical", "police", "fire", "disaster"]
+    # Validate output: must be non-empty and not a clear refusal/error.
+    # Minimum length check ensures a substantive message reached TTS.
+    # Refusal patterns are checked to catch model "I cannot help" responses.
+    REFUSAL_PATTERNS = ["i cannot", "i'm unable", "i am unable", "i can't", "not able to",
+                        "i don't know", "i do not know", "cannot help", "unable to help"]
     is_valid = (
         message
         and len(message) >= 20
-        and any(kw in message.lower() for kw in safe_keywords)
+        and not any(pat in message.lower() for pat in REFUSAL_PATTERNS)
     )
     if not is_valid:
         lat_str = f"{abs(req.latitude):.5f}°{'N' if req.latitude >= 0 else 'S'}" if (req.latitude != 0.0 or req.longitude != 0.0) else ""
@@ -460,9 +468,15 @@ async def emergency_message(req: EmergencyRequest):
 
 
 # 3b. Emergency — operator chat
+class EmergencyChatHistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class ChatRequest(BaseModel):
     message: str
     context: str = Field(default="", max_length=500)
+    history: list[EmergencyChatHistoryMessage] = []
 
 @app.post("/emergency-chat", response_model=ChatResponse)
 async def emergency_chat(req: ChatRequest):
@@ -470,14 +484,22 @@ async def emergency_chat(req: ChatRequest):
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
     safe_msg = _sanitize_user_input(req.message)
     safe_ctx = _sanitize_user_input(req.context)
-    prompt = (
-        "You are simulating an emergency dispatcher responding to a deaf person's text. "
-        "Be calm, clear, and helpful. Use simple language. "
-        f"Context: {safe_ctx}\n"
-        f"Their message: {safe_msg}\n"
-        "Your response (keep it short and actionable):"
-    )
-    result = await _chat(prompt)
+    # Build structured messages for multi-turn operator chat.
+    messages: list[dict] = [
+        {
+            "role": "system",
+            "content": (
+                "You are simulating an emergency dispatcher responding to a deaf person's text. "
+                "Be calm, clear, and helpful. Use simple language. "
+                f"Context: {safe_ctx}"
+            ),
+        }
+    ]
+    # Append last 6 history entries for context.
+    for h in req.history[-6:]:
+        messages.append({"role": h.role, "content": _sanitize_user_input(h.content)})
+    messages.append({"role": "user", "content": safe_msg})
+    result = await _chat("", messages=messages)
     return ChatResponse(reply=result.strip())
 
 

@@ -93,11 +93,39 @@ flutter analyze lib/
 ## Pull Request Guidelines
 
 1. **Create a branch**: `git checkout -b feature/your-feature`
+   - Use prefixes: `feat/`, `fix/`, `test/`, `docs/`, `chore/`, `perf/`
 2. **Write tests**: All new features need unit or widget tests
-3. **Run tests**: Ensure all tests pass before submitting
+3. **Run tests**: Ensure all tests pass before submitting. Current baseline: **294 tests** (220 Flutter + 74 backend)
 4. **Run analyzer**: `flutter analyze lib/` should show 0 errors
 5. **Keep PRs small**: One feature or fix per PR
 6. **Describe changes**: Include what, why, and how in the PR description
+
+## Commit Format
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <short summary>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types**: `feat`, `fix`, `test`, `docs`, `refactor`, `chore`, `perf`
+
+**Examples**:
+```
+feat(accessibility): replace GestureDetector with InkWell for keyboard focus
+fix(security): prune empty rate-limit keys to prevent memory leak
+test(backend): add emergency-chat history threading test
+```
+
+## Accessibility Requirements
+
+- All interactive widgets must have a `Semantics` label or use a widget that provides one inherently (`ElevatedButton`, `IconButton`, `InkWell`, etc.)
+- Colors must meet **WCAG AA** contrast (≥ 4.5:1) — use `AppColors` constants
+- Do not use `GestureDetector` for primary actions — prefer `InkWell` or `IconButton`
 
 ## Deployment Guide
 

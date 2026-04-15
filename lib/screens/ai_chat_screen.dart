@@ -108,42 +108,21 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   String _generateFallbackResponse(String input) {
+    // The Ishara server is offline or unreachable.
+    // Return an honest message rather than fake keyword-matched answers.
+    // Still try a quick local dictionary lookup in case the user asked about a specific sign —
+    // that helps even when the server is down.
     final lower = input.toLowerCase();
-    if (lower.contains('hello') || lower.contains('hi')) {
-      return 'Hello! How can I help you today? I\'m here to assist with anything you need.';
-    } else if (lower.contains('name')) {
-      return 'My name is Ishara AI. I help bridge communication between deaf and hearing people.';
-    } else if (lower.contains('how are you')) {
-      return 'I\'m doing great, thank you for asking! How are you?';
-    } else if (lower.contains('help')) {
-      return 'Of course! I can help you with sign language translation, learning signs, or just chatting. What do you need?';
-    } else if (lower.contains('learn') || lower.contains('teach')) {
-      return 'I\'d love to help you learn! Try asking me about specific signs like "How do I sign hello?" or "Teach me family signs".';
-    } else if (lower.contains('sign') && lower.contains('how')) {
-      // Try to find the specific sign they're asking about
-      for (final sign in SignDictionary.allSigns) {
-        if (lower.contains(sign.word.toLowerCase())) {
-          return 'To sign "${sign.word}": ${sign.description}. Check the animated guide below!';
-        }
+    for (final sign in SignDictionary.allSigns) {
+      if (lower.contains(sign.word.toLowerCase())) {
+        return 'The Ishara server is currently unreachable. '
+            'From the offline dictionary: to sign "${sign.word}": ${sign.description}. '
+            'Check your server settings and try again.';
       }
-      return 'I can show you many signs! Try asking about specific words like hello, thank you, help, food, water, or any letter.';
-    } else if (lower.contains('weather')) {
-      return 'I can\'t check the weather, but I can teach you how to sign weather-related words! Try "How do I sign water?"';
-    } else if (lower.contains('food') ||
-        lower.contains('eat') ||
-        lower.contains('hungry')) {
-      return 'Are you hungry? Here\'s how to sign "food" and "hungry". You can also check the Food & Drink category in the Sign Dictionary!';
-    } else if (lower.contains('emergency') ||
-        lower.contains('help') ||
-        lower.contains('danger')) {
-      return 'In an emergency, use the Emergency SOS feature in the app. I can also teach you emergency signs like "help", "danger", and "call ${_api.emergencyNumber}".';
-    } else if (lower.contains('thank')) {
-      return 'You\'re welcome! Is there anything else I can help you with?';
-    } else if (lower.contains('love')) {
-      return 'The sign for "I Love You" is one of the most famous! Extend your thumb, index finger, and pinky. It combines I, L, and Y.';
-    } else {
-      return 'That\'s a great question! While I process your request, check out the sign language translation below. You can also explore the Sign Dictionary for more signs.';
     }
+    return 'The Ishara server is currently unreachable. '
+        'Please check your server settings (tap the settings icon) and try again. '
+        'You can still browse signs in the Sign Dictionary while offline.';
   }
 
   void _scrollToBottom() {
@@ -229,8 +208,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
           Semantics(
             button: true,
             label: 'Go back',
-            child: GestureDetector(
+            child: InkWell(
               onTap: () => Navigator.of(context).pop(),
+              borderRadius: BorderRadius.circular(50),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -284,7 +264,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
           Semantics(
             button: true,
             label: 'Clear chat',
-            child: GestureDetector(
+            child: InkWell(
               onTap: () => setState(() {
                 _messages.clear();
                 _chatHistory.clear();
@@ -295,6 +275,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                 );
               }),
+              borderRadius: BorderRadius.circular(50),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -320,8 +301,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
       child: Semantics(
         button: true,
         label: 'Open keyboard input',
-        child: GestureDetector(
+        child: InkWell(
           onTap: () => setState(() => _inputMinimized = false),
+          borderRadius: BorderRadius.circular(50),
           child: Container(
             width: 60,
             height: 60,
@@ -391,11 +373,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 Semantics(
                   button: true,
                   label: 'Minimize input',
-                  child: GestureDetector(
+                  child: InkWell(
                     onTap: () {
                       _focusNode.unfocus();
                       setState(() => _inputMinimized = true);
                     },
+                    borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
                       child: Icon(
@@ -440,8 +423,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 Semantics(
                   button: true,
                   label: 'Send message',
-                  child: GestureDetector(
+                  child: InkWell(
                     onTap: () => _sendMessage(_textController.text),
+                    borderRadius: BorderRadius.circular(50),
                     child: Container(
                       padding: const EdgeInsets.all(13),
                       decoration: BoxDecoration(

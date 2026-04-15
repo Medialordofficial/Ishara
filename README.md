@@ -281,7 +281,7 @@ ishara_app/
 ├── backend/
 │   ├── server.py                    # FastAPI + Gemma 4 bridge
 │   └── requirements.txt            # Python dependencies
-├── test/                            # Unit tests (293 tests)
+├── test/                            # Unit tests (294 tests)
 │   ├── models/
 │   ├── data/
 │   └── services/
@@ -336,7 +336,7 @@ _70 million people. Five modes. One phone._
 - [x] Learn Signs: Gamification (streaks, XP, 10-level system)
 - [x] Movable AI chat input across all screens
 - [x] Settings with server config persistence
-- [x] Comprehensive test suite (293 tests — 220 Flutter + 73 backend)
+- [x] Comprehensive test suite (294 tests — 220 Flutter + 74 backend)
 - [x] CI/CD pipeline
 - [ ] Full on-device Gemma inference via LiteRT/MediaPipe
 - [ ] Real-time gesture classification model (custom trained)

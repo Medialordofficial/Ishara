@@ -209,7 +209,10 @@ class _ConversationScreenState extends State<ConversationScreen>
             ChatMessage(text: interpretation, sender: MessageSender.deaf),
           );
         });
-        SemanticsService.announce('Sign interpreted: $interpretation', TextDirection.ltr);
+        SemanticsService.announce(
+          'Sign interpreted: $interpretation',
+          TextDirection.ltr,
+        );
         await _tts.speak(interpretation);
         _scrollToBottom();
       }
@@ -647,36 +650,36 @@ class _PremiumChatBubble extends StatelessWidget {
       child: Semantics(
         label: '${isDeaf ? "You said" : "Hearing user said"}: ${message.text}',
         child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
-        ),
-        decoration: BoxDecoration(
-          color: isDeaf ? AppColors.primary : AppColors.secondary,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(24),
-            topRight: const Radius.circular(24),
-            bottomLeft: Radius.circular(isDeaf ? 24 : 8),
-            bottomRight: Radius.circular(isDeaf ? 8 : 24),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.7,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: (isDeaf ? AppColors.primary : AppColors.secondary)
-                  .withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+          decoration: BoxDecoration(
+            color: isDeaf ? AppColors.primary : AppColors.secondary,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(24),
+              topRight: const Radius.circular(24),
+              bottomLeft: Radius.circular(isDeaf ? 24 : 8),
+              bottomRight: Radius.circular(isDeaf ? 8 : 24),
             ),
-          ],
-        ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: isDeaf ? Colors.white : AppColors.textPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+            boxShadow: [
+              BoxShadow(
+                color: (isDeaf ? AppColors.primary : AppColors.secondary)
+                    .withValues(alpha: 0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-        ),
+          child: Text(
+            message.text,
+            style: TextStyle(
+              color: isDeaf ? Colors.white : AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

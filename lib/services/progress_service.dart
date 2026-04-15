@@ -120,7 +120,16 @@ class UserProgress {
 
   int get nextLevelScore {
     const thresholds = [
-      100, 300, 600, 1000, 1500, 2500, 4000, 6000, 9000, 99999,
+      100,
+      300,
+      600,
+      1000,
+      1500,
+      2500,
+      4000,
+      6000,
+      9000,
+      99999,
     ];
     return thresholds[(level - 1).clamp(0, 9)];
   }

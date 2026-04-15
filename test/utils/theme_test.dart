@@ -37,17 +37,11 @@ void main() {
     });
 
     testWidgets('surface color is dark', (tester) async {
-      expect(
-        AppTheme.darkTheme.colorScheme.surface,
-        const Color(0xFF1A1F2E),
-      );
+      expect(AppTheme.darkTheme.colorScheme.surface, const Color(0xFF1A1F2E));
     });
 
     testWidgets('onSurface is light for readability', (tester) async {
-      expect(
-        AppTheme.darkTheme.colorScheme.onSurface,
-        const Color(0xFFE8EAF0),
-      );
+      expect(AppTheme.darkTheme.colorScheme.onSurface, const Color(0xFFE8EAF0));
     });
 
     testWidgets('dark theme differs from light theme', (tester) async {

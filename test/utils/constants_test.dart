@@ -57,15 +57,20 @@ void main() {
     });
 
     test('handFrameMin is less than handFrameMax', () {
-      expect(PoseThresholds.handFrameMin, lessThan(PoseThresholds.handFrameMax));
+      expect(
+        PoseThresholds.handFrameMin,
+        lessThan(PoseThresholds.handFrameMax),
+      );
     });
 
     test('score weights sum to a meaningful total', () {
       // With all checks triggered twice (left+right), max possible ≈ 2*(0.3+0.1+0.1+0.15) = 1.3
-      final maxScore = 2 * (PoseThresholds.weightHandRaised +
-          PoseThresholds.weightHandVisible +
-          PoseThresholds.weightElbowBent +
-          PoseThresholds.weightNearFace);
+      final maxScore =
+          2 *
+          (PoseThresholds.weightHandRaised +
+              PoseThresholds.weightHandVisible +
+              PoseThresholds.weightElbowBent +
+              PoseThresholds.weightNearFace);
       expect(maxScore, greaterThan(PoseThresholds.signingConfidence));
     });
 

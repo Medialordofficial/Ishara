@@ -51,7 +51,9 @@ void main() {
       expect(find.text('Dark'), findsOneWidget);
     });
 
-    testWidgets('shows quick start guide steps after scrolling', (tester) async {
+    testWidgets('shows quick start guide steps after scrolling', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const SettingsScreen()));
       await tester.pumpAndSettle();
 

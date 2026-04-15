@@ -109,15 +109,14 @@ void main() {
         final body = jsonDecode(request.body);
         expect(body['history'], isNotNull);
         expect(body['history'], hasLength(1));
-        return http.Response(
-          jsonEncode({'reply': 'Noted.'}),
-          200,
-        );
+        return http.Response(jsonEncode({'reply': 'Noted.'}), 200);
       });
 
       final result = await api.chatLLM(
         'follow up',
-        history: [{'role': 'user', 'content': 'first message'}],
+        history: [
+          {'role': 'user', 'content': 'first message'},
+        ],
       );
       expect(result, 'Noted.');
     });
@@ -136,27 +135,20 @@ void main() {
       api.httpClient = MockClient((request) async {
         expect(request.url.path, '/ping');
         expect(request.method, 'GET');
-        return http.Response(
-          jsonEncode({'status': 'ok'}),
-          200,
-        );
+        return http.Response(jsonEncode({'status': 'ok'}), 200);
       });
 
       expect(await api.ping(), isTrue);
     });
 
     test('returns false on 500', () async {
-      api.httpClient = MockClient(
-        (_) async => http.Response('error', 500),
-      );
+      api.httpClient = MockClient((_) async => http.Response('error', 500));
 
       expect(await api.ping(), isFalse);
     });
 
     test('returns false on exception', () async {
-      api.httpClient = MockClient(
-        (_) => throw Exception('network error'),
-      );
+      api.httpClient = MockClient((_) => throw Exception('network error'));
 
       expect(await api.ping(), isFalse);
     });
@@ -179,10 +171,7 @@ void main() {
 
     test('throws ApiResponseException on server error', () async {
       api.httpClient = MockClient.streaming((request, _) async {
-        return http.StreamedResponse(
-          Stream.value(utf8.encode('error')),
-          500,
-        );
+        return http.StreamedResponse(Stream.value(utf8.encode('error')), 500);
       });
 
       expect(
@@ -197,9 +186,7 @@ void main() {
       api.httpClient = MockClient.streaming((request, _) async {
         expect(request.url.path, '/read-world');
         return http.StreamedResponse(
-          Stream.value(
-            utf8.encode(jsonEncode({'description': 'A stop sign'})),
-          ),
+          Stream.value(utf8.encode(jsonEncode({'description': 'A stop sign'}))),
           200,
         );
       });
@@ -217,9 +204,7 @@ void main() {
       api.httpClient = MockClient.streaming((request, _) async {
         expect(request.url.path, '/evaluate-sign');
         return http.StreamedResponse(
-          Stream.value(
-            utf8.encode(jsonEncode({'feedback': 'Good form!'})),
-          ),
+          Stream.value(utf8.encode(jsonEncode({'feedback': 'Good form!'}))),
           200,
         );
       });
@@ -302,10 +287,7 @@ void main() {
 
     test('throws ApiResponseException on server error', () async {
       api.httpClient = MockClient.streaming((request, _) async {
-        return http.StreamedResponse(
-          Stream.value(utf8.encode('error')),
-          503,
-        );
+        return http.StreamedResponse(Stream.value(utf8.encode('error')), 503);
       });
 
       expect(

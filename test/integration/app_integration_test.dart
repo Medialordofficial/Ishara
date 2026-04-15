@@ -136,7 +136,11 @@ void main() {
       final api = ApiService();
       api.httpClient = MockClient((req) async {
         return http.Response(
-          jsonEncode({'sound': 'alarm', 'level': 'critical', 'description': 'Fire alarm'}),
+          jsonEncode({
+            'sound': 'alarm',
+            'level': 'critical',
+            'description': 'Fire alarm',
+          }),
           200,
         );
       });

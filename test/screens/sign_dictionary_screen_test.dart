@@ -50,10 +50,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Type a known sign name
-      await tester.enterText(
-        find.byType(TextField),
-        'Hello',
-      );
+      await tester.enterText(find.byType(TextField), 'Hello');
       await tester.pumpAndSettle();
 
       // Grid should be replaced by list
@@ -89,7 +86,9 @@ void main() {
       expect(find.byType(GridView), findsOneWidget);
     });
 
-    testWidgets('tapping category chip replaces grid with sign list', (tester) async {
+    testWidgets('tapping category chip replaces grid with sign list', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const SignDictionaryScreen()));
       await tester.pumpAndSettle();
 

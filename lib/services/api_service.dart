@@ -84,13 +84,18 @@ class ApiService {
           ),
         );
 
-      final response = await _client.send(request).timeout(const Duration(seconds: 30));
+      final response = await _client
+          .send(request)
+          .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
         final json = jsonDecode(body);
         return json['sign'] ?? '';
       }
-      throw ApiResponseException('Sign interpretation failed', statusCode: response.statusCode);
+      throw ApiResponseException(
+        'Sign interpretation failed',
+        statusCode: response.statusCode,
+      );
     });
   }
 
@@ -107,13 +112,18 @@ class ApiService {
         ),
       );
 
-    final response = await _client.send(request).timeout(const Duration(seconds: 30));
+    final response = await _client
+        .send(request)
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
       return json['text'] ?? '';
     }
-    throw ApiResponseException('Speech-to-text failed', statusCode: response.statusCode);
+    throw ApiResponseException(
+      'Speech-to-text failed',
+      statusCode: response.statusCode,
+    );
   }
 
   /// Classify a sound description for sound awareness
@@ -132,7 +142,10 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
-      throw ApiResponseException('Sound classification failed', statusCode: response.statusCode);
+      throw ApiResponseException(
+        'Sound classification failed',
+        statusCode: response.statusCode,
+      );
     });
   }
 
@@ -152,13 +165,18 @@ class ApiService {
       request.fields['question'] = question;
     }
 
-    final response = await _client.send(request).timeout(const Duration(seconds: 30));
+    final response = await _client
+        .send(request)
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
       return json['description'] ?? '';
     }
-    throw ApiResponseException('World reading failed', statusCode: response.statusCode);
+    throw ApiResponseException(
+      'World reading failed',
+      statusCode: response.statusCode,
+    );
   }
 
   /// Generate emergency message with location
@@ -184,7 +202,10 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    throw ApiResponseException('Emergency message generation failed', statusCode: response.statusCode);
+    throw ApiResponseException(
+      'Emergency message generation failed',
+      statusCode: response.statusCode,
+    );
   }
 
   /// Evaluate a sign attempt for the Learn mode
@@ -204,12 +225,17 @@ class ApiService {
       )
       ..fields['target_sign'] = targetSign;
 
-    final response = await _client.send(request).timeout(const Duration(seconds: 30));
+    final response = await _client
+        .send(request)
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode == 200) {
       final body = await response.stream.bytesToString();
       return jsonDecode(body);
     }
-    throw ApiResponseException('Sign evaluation failed', statusCode: response.statusCode);
+    throw ApiResponseException(
+      'Sign evaluation failed',
+      statusCode: response.statusCode,
+    );
   }
 
   /// Health check
@@ -250,7 +276,10 @@ class ApiService {
         final json = jsonDecode(response.body);
         return json['reply'] ?? json['response'] ?? json['text'] ?? '';
       }
-      throw ApiResponseException('LLM chat failed', statusCode: response.statusCode);
+      throw ApiResponseException(
+        'LLM chat failed',
+        statusCode: response.statusCode,
+      );
     });
   }
 }

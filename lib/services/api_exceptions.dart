@@ -22,5 +22,5 @@ class ApiResponseException extends IsharaApiException {
 class RetryExhaustedException extends IsharaApiException {
   final Object originalError;
   const RetryExhaustedException(this.originalError)
-      : super('All retry attempts failed');
+    : super('All retry attempts failed');
 }

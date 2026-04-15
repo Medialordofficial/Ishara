@@ -85,20 +85,26 @@ class PoseDetectionService {
     bool leftHandUp = false;
     bool rightHandUp = false;
     if (leftWrist != null) {
-      leftHandUp = leftWrist.y <= leftShoulder.y + PoseThresholds.handRaiseTolerance;
+      leftHandUp =
+          leftWrist.y <= leftShoulder.y + PoseThresholds.handRaiseTolerance;
       if (leftHandUp) score += PoseThresholds.weightHandRaised;
     }
     if (rightWrist != null) {
-      rightHandUp = rightWrist.y <= rightShoulder.y + PoseThresholds.handRaiseTolerance;
+      rightHandUp =
+          rightWrist.y <= rightShoulder.y + PoseThresholds.handRaiseTolerance;
       if (rightHandUp) score += PoseThresholds.weightHandRaised;
     }
 
     // Check 2: Hands within visible frame.
     // Prevents scoring when hands are clipped at frame edges.
-    if (leftWrist != null && leftWrist.x > PoseThresholds.handFrameMin && leftWrist.x < PoseThresholds.handFrameMax) {
+    if (leftWrist != null &&
+        leftWrist.x > PoseThresholds.handFrameMin &&
+        leftWrist.x < PoseThresholds.handFrameMax) {
       score += PoseThresholds.weightHandVisible;
     }
-    if (rightWrist != null && rightWrist.x > PoseThresholds.handFrameMin && rightWrist.x < PoseThresholds.handFrameMax) {
+    if (rightWrist != null &&
+        rightWrist.x > PoseThresholds.handFrameMin &&
+        rightWrist.x < PoseThresholds.handFrameMax) {
       score += PoseThresholds.weightHandVisible;
     }
 
@@ -120,18 +126,22 @@ class PoseDetectionService {
     if (nose != null) {
       if (leftWrist != null) {
         final distToFace = _distance(leftWrist, nose);
-        if (distToFace < PoseThresholds.handFaceDistance) score += PoseThresholds.weightNearFace;
+        if (distToFace < PoseThresholds.handFaceDistance)
+          score += PoseThresholds.weightNearFace;
       }
       if (rightWrist != null) {
         final distToFace = _distance(rightWrist, nose);
-        if (distToFace < PoseThresholds.handFaceDistance) score += PoseThresholds.weightNearFace;
+        if (distToFace < PoseThresholds.handFaceDistance)
+          score += PoseThresholds.weightNearFace;
       }
     }
 
     final confidence = score.clamp(0.0, 1.0);
     // Require at least one hand up AND confidence above threshold.
     // Prevents false positives from resting or gesturing casually.
-    final isSigning = (leftHandUp || rightHandUp) && confidence > PoseThresholds.signingConfidence;
+    final isSigning =
+        (leftHandUp || rightHandUp) &&
+        confidence > PoseThresholds.signingConfidence;
 
     String status;
     if (isSigning && confidence > 0.6) {

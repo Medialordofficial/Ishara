@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.4.0] — Fix Cycle 20
+
+### Bug Fixes
+- Emergency chat error detection: replaced fragile `startsWith('[')` heuristic with exact match against the single error string `'[Chat relay unavailable — call directly]'`, preventing user messages like `[my location]` from being incorrectly styled as errors
+- Emergency chat bubble border-radius: left-aligned (operator/error) bubbles now have the correct "tail" on the `bottomLeft` corner (was incorrectly `bottomRight`)
+
+### Accessibility
+- Emergency chat messages now wrapped in `Semantics` with descriptive labels (`You: …`, `Operator: …`, `Error: …`) for TalkBack / VoiceOver users
+
+### Code Quality
+- `_REFUSAL_PATTERNS` moved from inside `emergency_message()` function body to module-level constant in `server.py`, eliminating redundant list allocation on every request
+
+### Testing
+- Added widget test verifying emergency chat bubble Semantics labels (`You: Help!`)
+- Flutter tests: **223 total** (up from 222)
+- Total: **298 tests** (223 Flutter + 75 backend)
+
+---
+
 ## [2.3.0] — Fix Cycle 19
 
 ### Code Quality

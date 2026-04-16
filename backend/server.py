@@ -86,6 +86,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Ishara API", version="1.0.0", lifespan=lifespan)
 
+# Module-level constant: model refusal patterns re-used in emergency_message
+# validation. Defined here to avoid re-allocation on every request.
+_REFUSAL_PATTERNS = (
+    "i cannot", "i'm unable", "i am unable", "i can't", "not able to",
+    "i don't know", "i do not know", "cannot help", "unable to help",
+)
+
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ISHARA_CORS_ORIGINS", "").split(",")] if os.getenv("ISHARA_CORS_ORIGINS") else ["http://localhost:8080", "http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
@@ -468,12 +475,10 @@ async def emergency_message(req: EmergencyRequest):
     # Validate output: must be non-empty and not a clear refusal/error.
     # Minimum length check ensures a substantive message reached TTS.
     # Refusal patterns are checked to catch model "I cannot help" responses.
-    REFUSAL_PATTERNS = ["i cannot", "i'm unable", "i am unable", "i can't", "not able to",
-                        "i don't know", "i do not know", "cannot help", "unable to help"]
     is_valid = (
         message
         and len(message) >= 20
-        and not any(pat in message.lower() for pat in REFUSAL_PATTERNS)
+        and not any(pat in message.lower() for pat in _REFUSAL_PATTERNS)
     )
     if not is_valid:
         lat_str = f"{abs(req.latitude):.5f}°{'N' if req.latitude >= 0 else 'S'}" if (req.latitude != 0.0 or req.longitude != 0.0) else ""

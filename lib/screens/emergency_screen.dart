@@ -516,10 +516,22 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 else
                   ..._chatMessages.map(
                     (message) {
-                      final isError = message.startsWith('[') && message.endsWith(']');
+                      // Exact match against the single error string emitted by the
+                      // emergency-chat catch block — avoids false positives for
+                      // user messages like "[my location is X]".
+                      const chatRelayError =
+                          '[Chat relay unavailable — call directly]';
+                      final isError = message == chatRelayError;
                       final isOperator = message.startsWith('Operator: ');
-                      return Align(
-                      alignment: isError || isOperator
+                      final isLeftAligned = isError || isOperator;
+                      return Semantics(
+                        label: isError
+                            ? 'Error: ${message.replaceAll('[', '').replaceAll(']', '')}'
+                            : isOperator
+                                ? message
+                                : 'You: $message',
+                        child: Align(
+                      alignment: isLeftAligned
                           ? Alignment.centerLeft
                           : Alignment.centerRight,
                       child: Container(
@@ -537,11 +549,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           border: isError
                               ? Border.all(color: AppColors.warning, width: 1.5)
                               : null,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                            bottomLeft: Radius.circular(20),
-                            bottomRight: Radius.circular(6),
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(isLeftAligned ? 6 : 20),
+                            bottomRight: Radius.circular(isLeftAligned ? 20 : 6),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -576,7 +588,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           ],
                         ),
                       ),
-                    );
+                    ), // Align
+                    ); // Semantics
                     },
                   ),
               ],

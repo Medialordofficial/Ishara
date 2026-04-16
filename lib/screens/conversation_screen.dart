@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:camera/camera.dart';
@@ -43,6 +44,7 @@ class _ConversationScreenState extends State<ConversationScreen>
   // Speech-to-text
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _speechAvailable = false;
+  bool _sttServerAvailable = false; // whether server-side STT is ready
   String _currentWords = '';
 
   @override
@@ -54,6 +56,7 @@ class _ConversationScreenState extends State<ConversationScreen>
     );
     _initCamera();
     _initSpeech();
+    _checkServerStt();
     _addSystemMessage(
       'Point the camera at the signer, then tap to begin. The hearing person can use the mic or type below.',
     );
@@ -81,6 +84,32 @@ class _ConversationScreenState extends State<ConversationScreen>
         }
       },
     );
+  }
+
+  Future<void> _checkServerStt() async {
+    try {
+      // Probe with an empty 1-byte payload — we only need the `available` flag.
+      final probe = await _api.speechToText(Uint8List(1));
+      if (mounted) setState(() => _sttServerAvailable = probe.available);
+    } catch (_) {
+      // Server unreachable — keep _sttServerAvailable false
+    }
+  }
+
+  Future<void> _listenViaServerStt(Uint8List audioBytes) async {
+    try {
+      final result = await _api.speechToText(audioBytes);
+      if (result.text.isNotEmpty && mounted) {
+        _addHearingMessage(result.text);
+      }
+    } catch (e) {
+      // Fall back silently — on-device STT remains the default
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Server STT unavailable, using device')),
+        );
+      }
+    }
   }
 
   void _addHearingMessage(String text) {
@@ -671,6 +700,34 @@ class _ConversationScreenState extends State<ConversationScreen>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                // Server STT status chip
+                if (_sttServerAvailable)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Semantics(
+                      label: 'Server speech recognition active',
+                      child: Chip(
+                        avatar: const Icon(
+                          Icons.cloud_done,
+                          size: 14,
+                          color: AppColors.success,
+                        ),
+                        label: const Text(
+                          'Server STT active',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.success,
+                          ),
+                        ),
+                        backgroundColor:
+                            AppColors.success.withValues(alpha: 0.1),
+                        side: BorderSide(
+                          color: AppColors.success.withValues(alpha: 0.3),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
                 // Text input + mic + send

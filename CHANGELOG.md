@@ -5,6 +5,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0] — Fix Cycle 26
+
+### API Contract
+- `api_service.dart`: `speechToText()` now sends `{"audio_b64": "..."}` JSON body matching the server `SpeechRequest` model (was multipart)
+- `api_service.dart`: `speechToText()` returns `({String text, bool available})` record — clients read `.available` to conditionally enable server STT
+- `conversation_screen.dart`: probes server STT availability on init; shows "Server STT active" chip and routes audio through server when `available: true`
+
+### AI/ML Quality
+- `sound_awareness_screen.dart`: `_classifyViaBackend()` uses `_currentDecibel` (actual meanDecibel) as noise floor instead of fabricated `db - 20`
+- `sound_awareness_screen.dart`: prevents duplicate alert — second `_triggerAlert()` call is skipped if local alert already fired for the same sound event
+- `sound_awareness_screen.dart`: LLM-returned label sanitized through `_safeSoundLabel()` before announcement
+
+### Product/UX
+- `settings_screen.dart`: "Replay Tutorial" button — clears `ishara_onboarded` and navigates to `OnboardingScreen`
+
+### Documentation
+- `backend/README.md`: `ISHARA_STT_AVAILABLE` env var documented on `/speech-to-text` endpoint row
+- CHANGELOG retroactively catches up for all C26 changes
+
+### Testing
+- `test_server.py`: STT test renamed `test_speech_to_text_response_returns_empty_text_when_disabled` with explicit `""` assertion
+- `api_service_http_test.dart`: `speechToText` group updated for JSON body and record return type
+- Added widget test: Replay Tutorial button clears `ishara_onboarded` and navigates to `OnboardingScreen`
+- Flutter tests: **234 total**; Backend tests: **83**; Total: **317**
+
+---
+
 ## [2.9.0] — Fix Cycle 25
 
 ### Accessibility

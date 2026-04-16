@@ -133,28 +133,60 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
 
   Future<void> _classifyViaBackend(double db) async {
     try {
-      // Build a richer description so the LLM can discriminate between
-      // sound types (e.g. doorbell vs siren) rather than just a raw dB value.
-      final noiseFloor = db - 20; // approximate background noise estimate
+      // Use actual meanDecibel (_currentDecibel) as the noise floor proxy —
+      // it reflects ambient level and avoids the fabricated db-20 constant.
+      final noiseFloor = _currentDecibel;
       final description = 'Sudden sound event: '
           'peak ${db.toInt()} dB, '
           'noise floor ~${noiseFloor.toInt()} dB, '
           'duration approximately 1–3 seconds. '
           'Classify the most likely real-world sound source.';
       final result = await _api.classifySound(description);
-      final label = result['label'] ?? result['sound'] ?? '';
+      final rawLabel = result['label'] ?? result['sound'] ?? '';
+      // Sanitize LLM output before announcing to users.
+      final label = _safeSoundLabel(rawLabel);
       if (label.isNotEmpty && mounted) {
-        _triggerAlert(
-          SoundAlert(
-            label: label,
-            confidence: (result['confidence'] as num?)?.toDouble() ?? 0.85,
-            level: AlertLevel.critical,
-          ),
-        );
+        // Update the existing alert label in-place to avoid a duplicate
+        // screen-reader announcement and second notification for the same event.
+        _updateLastAlertLabel(label);
       }
     } catch (_) {
       // Backend unavailable — local alert already triggered
     }
+  }
+
+  /// Sanitize LLM-returned sound labels: strip control characters, truncate, and
+  /// reject any token that looks like an injection attempt.
+  String _safeSoundLabel(String raw) {
+    if (raw.isEmpty) return '';
+    // Strip all control chars and leading/trailing whitespace.
+    var clean = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
+    // Truncate to a safe display length.
+    if (clean.length > 80) clean = '${clean.substring(0, 80)}…';
+    // Reject if it contains code-injection patterns.
+    if (RegExp(r'<[^>]+>|javascript:|data:', caseSensitive: false)
+        .hasMatch(clean)) {
+      return '';
+    }
+    return clean;
+  }
+
+  void _updateLastAlertLabel(String label) {
+    if (_alerts.isEmpty) return;
+    setState(() {
+      _alerts[0] = SoundAlert(
+        label: label,
+        confidence: _alerts[0].confidence,
+        level: _alerts[0].level,
+      );
+    });
+    // Re-announce the refined label to screen readers.
+    // ignore: deprecated_member_use
+    SemanticsService.announce(
+      'Sound identified: $label',
+      TextDirection.ltr,
+      assertiveness: Assertiveness.assertive,
+    );
   }
 
   void _triggerAlert(SoundAlert alert) {

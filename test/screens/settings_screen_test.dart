@@ -232,5 +232,30 @@ void main() {
       expect(portField, isNotEmpty,
           reason: 'Port 99999 must be clamped to 65535 in display');
     });
+
+    testWidgets('Replay Tutorial button clears ishara_onboarded key',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'ishara_onboarded': true});
+
+      await tester.pumpWidget(_wrap(const SettingsScreen()));
+      await tester.pumpAndSettle();
+
+      // Scroll until the Replay Tutorial button is visible.
+      await tester.scrollUntilVisible(
+        find.text('Replay Tutorial'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Replay Tutorial'), findsOneWidget);
+
+      await tester.tap(find.text('Replay Tutorial'));
+      await tester.pumpAndSettle();
+
+      // After tap, ishara_onboarded should have been removed.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('ishara_onboarded'), isFalse);
+    });
   });
 }

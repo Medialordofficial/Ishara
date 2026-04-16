@@ -287,23 +287,28 @@ void main() {
   });
 
   group('speechToText', () {
-    test('sends audio multipart and returns text', () async {
-      api.httpClient = MockClient.streaming((request, _) async {
+    test('sends JSON body with audio_b64 and returns (text, available)', () async {
+      api.httpClient = MockClient((request) async {
         expect(request.url.path, '/speech-to-text');
         expect(request.method, 'POST');
-        return http.StreamedResponse(
-          Stream.value(utf8.encode(jsonEncode({'text': 'hello world'}))),
+        expect(request.headers['Content-Type'],
+            contains('application/json'));
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body.containsKey('audio_b64'), isTrue);
+        return http.Response(
+          jsonEncode({'text': 'hello world', 'available': true}),
           200,
         );
       });
 
       final result = await api.speechToText(Uint8List.fromList([0, 1, 2]));
-      expect(result, 'hello world');
+      expect(result.text, 'hello world');
+      expect(result.available, isTrue);
     });
 
     test('throws ApiResponseException on server error', () async {
-      api.httpClient = MockClient.streaming((request, _) async {
-        return http.StreamedResponse(Stream.value(utf8.encode('error')), 503);
+      api.httpClient = MockClient((_) async {
+        return http.Response('error', 503);
       });
 
       expect(

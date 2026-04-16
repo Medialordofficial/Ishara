@@ -171,12 +171,13 @@ def test_auth_rejects_wrong_key(monkeypatch):
 # ─── Endpoint Response Structure ───────────────────────────
 
 
-def test_speech_to_text_placeholder():
+def test_speech_to_text_response_returns_empty_text_when_disabled():
+    """When STT is disabled (default), text is empty string, not a placeholder message."""
     r = client.post("/speech-to-text", json={"audio_b64": "abc"})
     assert r.status_code == 200
     data = r.json()
+    assert data["text"] == "", "text should be empty string when STT is disabled"
     assert data["available"] is False
-    assert "text" in data
 
 
 def test_evaluate_sign_requires_image_and_target():

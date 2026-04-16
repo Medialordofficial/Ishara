@@ -62,7 +62,7 @@ The app must then send `X-API-Key: your-secret-key` in every request header. The
 | `POST` | `/read-world` | Describe what the camera sees (multipart image + optional question) |
 | `POST` | `/evaluate-sign` | Evaluate a user's sign attempt (multipart image + target sign) |
 | `POST` | `/chat` | General LLM conversation |
-| `POST` | `/speech-to-text` | Placeholder for server-side STT (not yet implemented) |
+| `POST` | `/speech-to-text` | Returns `{"text": "", "available": false}` by default. Set `ISHARA_STT_AVAILABLE=true` to enable server-side Whisper (integration code required) |
 
 Interactive API docs available at: `http://localhost:8000/docs`
 

@@ -213,32 +213,42 @@ class ApiService {
     }
   }
 
-  /// Send audio for speech-to-text
-  Future<String> speechToText(Uint8List audioBytes) async {
+  /// Send audio bytes for speech-to-text (server-side).
+  ///
+  /// Encodes [audioBytes] as base-64 and sends JSON `{"audio_b64": "..."}` to
+  /// the `/speech-to-text` endpoint (matching the server's `SpeechRequest` model).
+  ///
+  /// Returns a record `(text, available)` where `available` indicates whether
+  /// the server has a real STT engine configured (`ISHARA_STT_AVAILABLE=true`).
+  /// When `available` is `false`, callers should fall back to on-device STT.
+  Future<({String text, bool available})> speechToText(
+      Uint8List audioBytes) async {
     await _ensureInitialized();
-    final uri = Uri.parse('$_baseUrl/speech-to-text');
-    final request = http.MultipartRequest('POST', uri)
-      ..headers.addAll(_authHeaders)
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'audio',
-          audioBytes,
-          filename: 'audio.wav',
-        ),
+    return _retry(() async {
+      final uri = Uri.parse('$_baseUrl/speech-to-text');
+      final audiob64 = base64Encode(audioBytes);
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              ..._authHeaders,
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'audio_b64': audiob64}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        return (
+          text: (json['text'] as String?) ?? '',
+          available: (json['available'] as bool?) ?? false,
+        );
+      }
+      throw ApiResponseException(
+        'Speech-to-text failed',
+        statusCode: response.statusCode,
       );
-
-    final response = await _client
-        .send(request)
-        .timeout(const Duration(seconds: 30));
-    if (response.statusCode == 200) {
-      final body = await response.stream.bytesToString();
-      final json = jsonDecode(body);
-      return json['text'] ?? '';
-    }
-    throw ApiResponseException(
-      'Speech-to-text failed',
-      statusCode: response.statusCode,
-    );
+    });
   }
 
   /// Classify a sound description for sound awareness

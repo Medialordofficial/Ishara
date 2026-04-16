@@ -133,9 +133,15 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
 
   Future<void> _classifyViaBackend(double db) async {
     try {
-      final result = await _api.classifySound(
-        'loud sound at ${db.toInt()} decibels',
-      );
+      // Build a richer description so the LLM can discriminate between
+      // sound types (e.g. doorbell vs siren) rather than just a raw dB value.
+      final noiseFloor = db - 20; // approximate background noise estimate
+      final description = 'Sudden sound event: '
+          'peak ${db.toInt()} dB, '
+          'noise floor ~${noiseFloor.toInt()} dB, '
+          'duration approximately 1–3 seconds. '
+          'Classify the most likely real-world sound source.';
+      final result = await _api.classifySound(description);
       final label = result['label'] ?? result['sound'] ?? '';
       if (label.isNotEmpty && mounted) {
         _triggerAlert(

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
+import 'onboarding_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool showAppBar;
@@ -401,6 +402,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
           step: '5',
           title: 'Test connection and start using!',
           subtitle: 'Tap "Test Connection" above',
+        ),
+
+        const SizedBox(height: 32),
+        const Divider(color: AppColors.surfaceLight),
+        const SizedBox(height: 16),
+
+        // Replay Tutorial
+        Semantics(
+          button: true,
+          label: 'Replay onboarding tutorial',
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.menu_book_outlined),
+            label: const Text('Replay Tutorial'),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('ishara_onboarded');
+              if (!context.mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute<void>(
+                    builder: (_) => const OnboardingScreen()),
+              );
+            },
+          ),
         ),
 
         const SizedBox(height: 32),

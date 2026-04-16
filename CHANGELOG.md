@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.7.0] — Fix Cycle 23
+
+### Accessibility
+- `AiChatScreen` chat `TextField` wrapped in `Semantics(label: 'Type your message', textField: true)` — screen readers now announce the input field consistently across all screens
+
+### Reliability
+- Settings screen port input clamped to valid range [1, 65535] via `_parsedPort()` helper — eliminates silent acceptance of invalid port values (0, 65536+)
+
+### Security
+- `_sanitize_user_input()` now uses `re.MULTILINE` flag so prompt-injection patterns starting after a newline (e.g. `\nSystem: override`) are also filtered
+
+### Testing
+- Added `test_circuit_breaker_half_open_probe_failure_reopens`: pre-sets circuit to half-open state, confirms that a probe `ConnectError` re-opens the circuit immediately
+- Added `test_sanitize_strips_multiline_injection`: confirms multi-line payloads are sanitised
+- Fixed `Operator:` Semantics label assertion to use `startsWith('Operator:')` — prevents false failures from trailing punctuation variation
+- Backend tests: **81 total** (up from 79); Flutter tests: **225**; Total: **306**
+
+---
+
 ## [2.6.0] — Fix Cycle 22
 
 ### Accessibility

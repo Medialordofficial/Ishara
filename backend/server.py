@@ -239,7 +239,7 @@ def _sanitize_user_input(text: str) -> str:
     ]
     sanitized = text
     for pat in patterns:
-        sanitized = re.sub(pat, "[filtered]", sanitized)
+        sanitized = re.sub(pat, "[filtered]", sanitized, flags=re.MULTILINE)
     return sanitized.strip()
 
 

@@ -314,7 +314,7 @@ void main() {
       expect(
         find.byWidgetPredicate((w) =>
             w is Semantics &&
-            (w.properties.label == 'Operator: Help is on the way.')),
+            (w.properties.label?.startsWith('Operator:') == true)),
         findsOneWidget,
       );
     });

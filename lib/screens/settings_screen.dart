@@ -52,17 +52,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Apply saved settings to API service
     await _api.updateBaseUrl(
       _hostController.text.trim(),
-      port: int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
+      port: _parsedPort(),
     );
+  }
+
+  /// Returns a valid port in [1, 65535], defaulting to [ApiConfig.defaultPort].
+  int _parsedPort() {
+    final parsed = int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort;
+    return parsed.clamp(1, 65535);
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('ishara_host', _hostController.text.trim());
-    await prefs.setInt(
-      'ishara_port',
-      int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
-    );
+    await prefs.setInt('ishara_port', _parsedPort());
     final emergencyNum = _emergencyNumberController.text.trim();
     if (emergencyNum.isNotEmpty) {
       await _api.setEmergencyNumber(emergencyNum);
@@ -80,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await _api.updateBaseUrl(
       _hostController.text.trim(),
-      port: int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort,
+      port: _parsedPort(),
     );
 
     // Save settings

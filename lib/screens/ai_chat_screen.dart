@@ -408,18 +408,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: TextField(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      decoration: const InputDecoration(
-                        hintText: 'Ask anything...',
-                        hintStyle: TextStyle(color: AppColors.textSecondary),
-                        border: InputBorder.none,
+                    child: Semantics(
+                      label: 'Type your message',
+                      textField: true,
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _focusNode,
+                        decoration: const InputDecoration(
+                          hintText: 'Ask anything...',
+                          hintStyle: TextStyle(color: AppColors.textSecondary),
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: _sendMessage,
+                        textInputAction: TextInputAction.send,
+                        maxLines: 3,
+                        minLines: 1,
                       ),
-                      onSubmitted: _sendMessage,
-                      textInputAction: TextInputAction.send,
-                      maxLines: 3,
-                      minLines: 1,
                     ),
                   ),
                 ),

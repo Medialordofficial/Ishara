@@ -166,6 +166,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 _buildHeader(),
                 const SizedBox(height: 8),
                 Expanded(
+                  // GestureDetector (not InkWell) intentionally: full-scroll-area tap
+                  // dismisses soft keyboard. No visual button feedback needed here.
                   child: GestureDetector(
                     onTap: () => _focusNode.unfocus(),
                     child: ListView.builder(
@@ -330,6 +332,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   Widget _buildDraggableInput() {
+    // GestureDetector (not InkWell) intentionally: onVerticalDragUpdate is
+    // required for drag repositioning — InkWell does not support drag callbacks.
     return GestureDetector(
       onVerticalDragUpdate: (details) {
         setState(() {

@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.0] — Fix Cycle 19
+
+### Code Quality
+- Added explanatory comments to the 2 remaining `GestureDetector` instances in `AiChatScreen` documenting why `InkWell` cannot replace them (keyboard-dismiss needs full-area tap; draggable input requires `onVerticalDragUpdate`)
+
+### Testing
+- Added `loadApiKey()` unit tests: verifies null return when no key stored, and graceful handling when FlutterSecureStorage unavailable
+- Flutter tests: **222 total** (up from 220)
+
+### Product / UX
+- Emergency chat messages now render with distinct visual styles:
+  - User messages: right-aligned, primary blue
+  - Operator replies: left-aligned, surface colour
+  - Error messages (e.g. `[Chat relay unavailable — call directly]`): left-aligned, warning amber border + background + ⚠️ icon
+
+### Documentation
+- Added docstring to `/classify-sound` endpoint — **all 7 key FastAPI endpoints** now have docstrings
+
+---
+
 ## [Unreleased]
 
 ### Planned

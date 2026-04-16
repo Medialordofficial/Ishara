@@ -392,6 +392,12 @@ _SOUND_CATEGORIES = {
 
 @app.post("/classify-sound", response_model=SoundClassification)
 async def classify_sound(req: SoundRequest):
+    """Classify an ambient sound description for a deaf Sound Awareness user.
+
+    Maps LLM output to one of 11 known categories (doorbell, alarm, siren, etc.)
+    with urgency level: critical, warning, or info.
+    Falls back to 'other / info' if the LLM response is unrecognised.
+    """
     safe_desc = _sanitize_user_input(req.description)
     prompt = (
         "You are helping a deaf person understand sounds around them. "

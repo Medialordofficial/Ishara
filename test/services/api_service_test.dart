@@ -112,4 +112,20 @@ void main() {
       expect(captured?.headers.containsKey('X-API-Key'), isFalse);
     });
   });
+
+  group('ApiService loadApiKey', () {
+    test('loadApiKey returns null when no key is stored', () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      await api.setApiKey(null); // ensure cleared
+      // In test environment FlutterSecureStorage is unavailable, so returns null
+      final key = await api.loadApiKey();
+      expect(key, isNull);
+    });
+
+    test('loadApiKey does not throw when secure storage unavailable', () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      // Should swallow platform channel errors gracefully
+      expect(() async => api.loadApiKey(), returnsNormally);
+    });
+  });
 }

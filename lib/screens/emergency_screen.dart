@@ -515,8 +515,13 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   )
                 else
                   ..._chatMessages.map(
-                    (message) => Align(
-                      alignment: Alignment.centerRight,
+                    (message) {
+                      final isError = message.startsWith('[') && message.endsWith(']');
+                      final isOperator = message.startsWith('Operator: ');
+                      return Align(
+                      alignment: isError || isOperator
+                          ? Alignment.centerLeft
+                          : Alignment.centerRight,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.symmetric(
@@ -524,7 +529,14 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           vertical: 14,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: isError
+                              ? AppColors.warning.withValues(alpha: 0.15)
+                              : isOperator
+                                  ? AppColors.surface
+                                  : AppColors.primary,
+                          border: isError
+                              ? Border.all(color: AppColors.warning, width: 1.5)
+                              : null,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(20),
                             topRight: Radius.circular(20),
@@ -539,16 +551,33 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                             ),
                           ],
                         ),
-                        child: Text(
-                          message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isError) ...[
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: AppColors.warning, size: 16),
+                              const SizedBox(width: 6),
+                            ],
+                            Flexible(
+                              child: Text(
+                                message,
+                                style: TextStyle(
+                                  color: isError
+                                      ? AppColors.warning
+                                      : isOperator
+                                          ? AppColors.textPrimary
+                                          : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                    );
+                    },
                   ),
               ],
             ),

@@ -752,6 +752,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Semantics(
                       label: 'Server speech recognition active',
+                      excludeSemantics: true,
                       child: Chip(
                         avatar: const Icon(
                           Icons.cloud_done,
@@ -785,17 +786,21 @@ class _ConversationScreenState extends State<ConversationScreen>
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: AppColors.premiumShadows,
                         ),
-                        child: TextField(
-                          controller: _textController,
-                          decoration: const InputDecoration(
-                            hintText: 'Hearing person types here...',
-                            hintStyle: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
+                        child: Semantics(
+                          label: 'Hearing person types here',
+                          textField: true,
+                          child: TextField(
+                            controller: _textController,
+                            decoration: const InputDecoration(
+                              hintText: 'Hearing person types here...',
+                              hintStyle: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
                             ),
-                            border: InputBorder.none,
+                            onSubmitted: (_) => _sendTextMessage(),
                           ),
-                          onSubmitted: (_) => _sendTextMessage(),
                         ),
                       ),
                     ),
@@ -812,10 +817,12 @@ class _ConversationScreenState extends State<ConversationScreen>
                             color: AppColors.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.send_rounded,
-                            color: AppColors.primary,
-                            size: 22,
+                          child: const ExcludeSemantics(
+                            child: Icon(
+                              Icons.send_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
                           ),
                         ),
                       ),
@@ -848,10 +855,12 @@ class _ConversationScreenState extends State<ConversationScreen>
                               ),
                             ],
                           ),
-                          child: Icon(
-                            _isListening ? Icons.mic : Icons.mic_none,
-                            color: Colors.white,
-                            size: 22,
+                          child: ExcludeSemantics(
+                            child: Icon(
+                              _isListening ? Icons.mic : Icons.mic_none,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
                         ),
                       ),
@@ -893,10 +902,12 @@ class _ConversationScreenState extends State<ConversationScreen>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            _isInterpreting ? Icons.stop : Icons.sign_language,
-                            color: Colors.white,
-                            size: 22,
+                          ExcludeSemantics(
+                            child: Icon(
+                              _isInterpreting ? Icons.stop : Icons.sign_language,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(

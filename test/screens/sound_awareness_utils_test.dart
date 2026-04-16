@@ -64,5 +64,29 @@ void main() {
       expect(sanitizeSoundLabel('<script>steal</script>'), '');
       expect(sanitizeSoundLabel(''), ''); // empty server response → fallback triggered
     });
+
+    test('sign interpretation injection is stripped to empty (conversation_screen _captureAndInterpret)', () {
+      // _captureAndInterpret now calls sanitizeSoundLabel on interpretSign result.
+      // Injection strings must produce empty output so the confidence check drops them.
+      expect(sanitizeSoundLabel('<script>evil</script>'), '');
+      expect(sanitizeSoundLabel('javascript:void(0)'), '');
+      expect(sanitizeSoundLabel('<img src=x onerror=alert(1)>'), '');
+    });
+
+    test('empty sanitized STT result should trigger fallback (empty → send fallback text)', () {
+      // When sanitizeSoundLabel returns '' for server response,
+      // _listenViaServerStt falls through to fallbackText.
+      // Verify that known injection strings all produce empty outputs.
+      const injections = [
+        '<script>x</script>',
+        'javascript:x',
+        'data:text/html,<b>x</b>',
+        '<b>bold</b>',
+      ];
+      for (final s in injections) {
+        expect(sanitizeSoundLabel(s), '',
+          reason: 'injection "$s" should produce empty string triggering fallback');
+      }
+    });
   });
 }

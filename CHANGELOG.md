@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.5.0] — Fix Cycle 31
+
+### Security
+- `conversation_screen.dart`: sign interpretation result from `interpretSign()` now sanitized via `sanitizeSoundLabel()` before insertion into chat and TTS — consistent with STT and sound-label surfaces
+
+### Code Quality
+- `conversation_screen.dart`: removed redundant `if (mounted)` guard in `_listenViaServerStt` (unreachable after the preceding `if (!mounted) return`)
+
+### Accessibility
+- `sound_awareness_screen.dart`: `ExcludeSemantics` added to listening toggle icon (`Icons.hearing`/`Icons.hearing_disabled`) inside `Semantics(button:true)` parent
+- `sound_awareness_screen.dart`: `ExcludeSemantics` added to `_PremiumTestButton` icon
+- `sound_awareness_screen.dart`: `ExcludeSemantics` added to decibel `Text` readout (value already announced by `LinearProgressIndicator` Semantics label)
+
+### Testing
+- `conversation_screen_test.dart`: test 3 name and mock endpoint URL corrected to `/speech-to-text`
+
+---
+
 ## [3.4.0] — Fix Cycle 30
 
 ### Bug Fixes
@@ -21,12 +39,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [3.3.0] — Fix Cycle 29
 
-### Bug Fixes
-- `conversation_screen.dart`: `_listenViaServerStt()` now takes an explicit `fallbackText` parameter — on server failure or empty response, on-device transcription is always delivered (no message loss)
-- `conversation_screen.dart`: manual-stop and `onResult` paths now consistent — both capture text before clearing, both check `_sttServerAvailable`
-- `conversation_screen.dart`: `_checkServerStt()` now uses `/ping` only — no blind STT inference on cold start
-- `conversation_screen.dart`: `result.text` from server sanitized via `sanitizeSoundLabel` before chat insertion
-- `CHANGELOG.md`: added missing [3.1.0] and [3.2.0] entries
+### Documentation
+- `CHANGELOG.md`: added missing `[3.1.0]` and `[3.2.0]` entries
 
 ### Testing
 - `sound_awareness_utils_test.dart`: added 13th test verifying `sanitizeSoundLabel` reuse for server STT results

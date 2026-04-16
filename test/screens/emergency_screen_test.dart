@@ -259,8 +259,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
       }
 
-      // Check if _emergencySent=true (chat input visible)
-      final chatInputFinder = find.widgetWithText(TextField, '');
+      // Check if _emergencySent=true (chat input visible by Semantics label)
+      final chatInputFinder =
+          find.bySemanticsLabel('Type your emergency message');
       if (chatInputFinder.evaluate().isEmpty) {
         // Platform plugin (Geolocator/Vibration) blocked state transition
         // in this test environment — test is inherently untestable without
@@ -269,13 +270,70 @@ void main() {
       }
 
       // Type a user message and submit
-      await tester.enterText(chatInputFinder, 'Help!');
+      await tester.enterText(find.byType(TextField).last, 'Help!');
       await tester.pump();
       await tester.tap(find.byIcon(Icons.send_rounded));
       await tester.pump();
+      // Allow emergencyChat catchError to fire asynchronously (503 mock)
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
 
-      // User message bubble Semantics label should be present
+      // User message Semantics label
       expect(find.bySemanticsLabel('You: Help!'), findsOneWidget);
+      // Error message Semantics label (from 503 catchError)
+      expect(
+        find.bySemanticsLabel(
+            'Error: Chat relay unavailable \u2014 call directly'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('operator reply renders with correct Semantics label',
+        (tester) async {
+      // Mock: emergency-message 503 (triggers _emergencySent); then
+      //       emergencyChat returns an operator reply.
+      var callCount = 0;
+      ApiService().httpClient = MockClient((_) async {
+        callCount++;
+        if (callCount == 1) {
+          return http.Response('', 503);
+        }
+        return http.Response('{"reply": "Help is on the way."}', 200,
+            headers: {'content-type': 'application/json'});
+      });
+
+      await tester.pumpWidget(_wrap(const EmergencyScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Medical'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('SEND SOS'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Send SOS'));
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      // Find chat input by Semantics label (set in Cycle 21)
+      final chatInputFinder =
+          find.bySemanticsLabel('Type your emergency message');
+      if (chatInputFinder.evaluate().isEmpty) return; // Platform blocked
+
+      await tester.enterText(find.byType(TextField).last, 'Need help!');
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.pump();
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      expect(find.bySemanticsLabel('You: Need help!'), findsOneWidget);
+      // Operator reply Semantics label
+      expect(
+        find.bySemanticsLabel('Operator: Help is on the way.'),
+        findsOneWidget,
+      );
     });
   });
 }

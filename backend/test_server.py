@@ -979,3 +979,92 @@ def test_interpret_sign_prompt_includes_few_shot_examples(monkeypatch):
     assert 'More' in captured[0], "Expected 'More' example sign in prompt"
     assert 'No sign detected' in captured[0], "Expected 'No sign detected' in prompt"
 
+
+
+def test_read_world_question_too_long_returns_400(monkeypatch):
+    """read-world /question field must be <= MAX_TEXT_LENGTH chars."""
+    import server
+
+    async def noop_chat(*a, **k):
+        return "description"
+
+    monkeypatch.setattr(server, "_chat", noop_chat)
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    long_q = "x" * (server.MAX_TEXT_LENGTH + 1)
+    r = client.post(
+        "/read-world",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+        data={"question": long_q},
+    )
+    assert r.status_code == 400
+    assert "too long" in r.json()["detail"].lower()
+
+
+def test_evaluate_sign_target_too_long_returns_400(monkeypatch):
+    """/evaluate-sign target_sign must be <= MAX_TEXT_LENGTH chars."""
+    import server
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    long_target = "y" * (server.MAX_TEXT_LENGTH + 1)
+    r = client.post(
+        "/evaluate-sign",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+        data={"target_sign": long_target},
+    )
+    assert r.status_code == 400
+    assert "too long" in r.json()["detail"].lower()
+
+
+def test_circuit_breaker_opens_after_threshold(monkeypatch):
+    """Circuit opens after CIRCUIT_FAILURE_THRESHOLD consecutive ConnectErrors."""
+    import asyncio
+    import httpx
+    import server
+
+    class FailingClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, *a, **k):
+            raise httpx.ConnectError("unreachable")
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: FailingClient())
+
+    # Trigger enough failures to open the circuit
+    for _ in range(server.CIRCUIT_FAILURE_THRESHOLD):
+        try:
+            asyncio.run(server._chat("test"))
+        except Exception:
+            pass
+
+    assert server._circuit_open_at is not None, "Circuit should be open"
+
+
+def test_circuit_breaker_fast_fails_when_open(monkeypatch):
+    """Once circuit is open, _chat raises 503 immediately without calling Ollama."""
+    import asyncio
+    import time
+    import server
+
+    # Force circuit open
+    server._circuit_open_at = time.time()
+    server._circuit_fail_count = server.CIRCUIT_FAILURE_THRESHOLD
+
+    call_count = 0
+
+    class TrackingClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, *a, **k):
+            nonlocal call_count
+            call_count += 1
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: TrackingClient())
+
+    try:
+        asyncio.run(server._chat("test"))
+        assert False, "Should have raised"
+    except Exception as e:
+        assert "503" in str(e) or "circuit" in str(e).lower()
+
+    assert call_count == 0, "Ollama should not have been called when circuit is open"

@@ -95,7 +95,7 @@ flutter analyze lib/
 1. **Create a branch**: `git checkout -b feature/your-feature`
    - Use prefixes: `feat/`, `fix/`, `test/`, `docs/`, `chore/`, `perf/`
 2. **Write tests**: All new features need unit or widget tests
-3. **Run tests**: Ensure all tests pass before submitting. Current baseline: **298 tests** (223 Flutter + 75 backend)
+3. **Run tests**: Ensure all tests pass before submitting. Current baseline: **303 tests** (224 Flutter + 79 backend)
 4. **Run analyzer**: `flutter analyze lib/` should show 0 errors
 5. **Keep PRs small**: One feature or fix per PR
 6. **Describe changes**: Include what, why, and how in the PR description
@@ -157,6 +157,7 @@ The default setup runs entirely on your local network:
 | `ISHARA_API_KEY` | (empty) | Set to require API key auth |
 | `ISHARA_RATE_LIMIT` | `30` | Max requests per IP per minute |
 | `ISHARA_CORS_ORIGINS` | `http://localhost:8080,http://localhost:3000` | Comma-separated allowed origins |
+| `ISHARA_SIGN_LANGUAGE` | `ASL (American Sign Language)` | Sign language dialect used in prompts |
 
 ## License
 

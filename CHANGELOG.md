@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.5.0] — Fix Cycle 21
+
+### Accessibility
+- Emergency chat `TextField` now has persistent `Semantics(label: 'Type your emergency message')` ancestor — TalkBack/VoiceOver announces the field label even while the user is typing
+
+### Testing
+- Added widget tests for Operator and Error Semantics labels in emergency chat bubbles
+- Added backend tests: circuit breaker opens after threshold, fast-fail when open, `MAX_TEXT_LENGTH` guards on `/read-world` and `/evaluate-sign`
+- Flutter tests: **224 total** (up from 223); Backend tests: **79 total** (up from 75); Total: **303**
+
+### Security / Reliability
+- Added `MAX_TEXT_LENGTH` (2000 chars) validation to `/read-world` question and `/evaluate-sign` target_sign — consistent with all other text endpoints
+- Implemented Ollama circuit breaker: opens after 3 consecutive `ConnectError`s, fast-fails with 503 for 30 s, then half-opens for a probe; prevents 30 s × 2-retry latency when Ollama is persistently down
+- Added `conftest.py` to reset circuit-breaker globals between backend tests
+
+### Documentation
+- Added `ISHARA_SIGN_LANGUAGE` env var to CONTRIBUTING.md production configuration table
+
+---
+
 ## [2.4.0] — Fix Cycle 20
 
 ### Bug Fixes

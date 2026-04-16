@@ -607,7 +607,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: AppColors.premiumShadows,
                   ),
-                  child: TextField(
+                  child: Semantics(
+                    label: 'Type your emergency message',
+                    child: TextField(
                     controller: _chatController,
                     decoration: const InputDecoration(
                       hintText: 'Type message...',
@@ -617,6 +619,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                       fillColor: Colors.transparent,
                     ),
                     onSubmitted: (_) => _sendChatMessage(),
+                  ),
                   ),
                 ),
               ),

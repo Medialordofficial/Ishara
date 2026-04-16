@@ -109,6 +109,17 @@ RATE_LIMIT_WINDOW = 60  # seconds
 RATE_LIMIT_MAX = int(os.getenv("ISHARA_RATE_LIMIT", "30"))  # requests per window
 API_KEY = os.getenv("ISHARA_API_KEY", "")  # Set to enable auth
 
+# ---------------------------------------------------------------------------
+# Circuit breaker for Ollama availability.
+# Opens after CIRCUIT_FAILURE_THRESHOLD consecutive ConnectErrors;
+# re-probes after CIRCUIT_RESET_SECONDS seconds.
+# Prevents users from waiting 30 s × 2 retries when Ollama is persistently down.
+# ---------------------------------------------------------------------------
+CIRCUIT_FAILURE_THRESHOLD = 3
+CIRCUIT_RESET_SECONDS = 30
+_circuit_fail_count = 0
+_circuit_open_at: float | None = None   # time.time() when circuit was opened
+
 # Reject oversized bodies before they are read into memory.
 # MAX_IMAGE_BYTES is the content check; this Starlette layer rejects at
 # the transport level — prevents memory exhaustion from large payloads.
@@ -268,6 +279,19 @@ async def _chat(
     Retries once on timeout before raising HTTP 504.
     """
     last_exc: Exception | None = None
+    global _circuit_fail_count, _circuit_open_at
+    # Fast-fail when the circuit is open (Ollama persistently unreachable)
+    if _circuit_open_at is not None:
+        elapsed = time.time() - _circuit_open_at
+        if elapsed < CIRCUIT_RESET_SECONDS:
+            raise HTTPException(
+                status_code=503,
+                detail=f"AI service offline (circuit open, resets in {CIRCUIT_RESET_SECONDS - int(elapsed)}s). Is Ollama running?"
+            )
+        else:
+            # Half-open: allow one probe request through
+            _circuit_open_at = None
+            _circuit_fail_count = 0
     for attempt in range(2):  # 1 retry on transient timeout
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
@@ -282,6 +306,7 @@ async def _chat(
                     }
                     r = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
                     r.raise_for_status()
+                    _circuit_fail_count = 0  # reset on success
                     return r.json().get("response", "")
                 else:
                     # Text-only path — /api/chat enforces role separation
@@ -306,8 +331,13 @@ async def _chat(
                     }
                     r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
                     r.raise_for_status()
+                    _circuit_fail_count = 0  # reset on success
                     return r.json().get("message", {}).get("content", "")
         except httpx.ConnectError as exc:
+            _circuit_fail_count += 1
+            if _circuit_fail_count >= CIRCUIT_FAILURE_THRESHOLD:
+                _circuit_open_at = time.time()
+                logger.error("Circuit breaker OPEN: Ollama unreachable after %d consecutive failures", _circuit_fail_count)
             raise HTTPException(status_code=503, detail="Cannot reach Ollama. Is it running?") from exc
         except httpx.TimeoutException as exc:
             last_exc = exc
@@ -545,6 +575,8 @@ async def read_world(
     With a question: answers the specific question about the image.
     Without: summarises text, objects, and safety-relevant information.
     """
+    if question and len(question) > MAX_TEXT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Question too long (max {MAX_TEXT_LENGTH} chars)")
     b64 = await _read_upload(image)
     safe_question = _sanitize_user_input(question) if question.strip() else ""
     if safe_question:
@@ -576,6 +608,8 @@ async def evaluate_sign(
 
     Provides 2-3 sentences of encouraging feedback on gesture accuracy.
     """
+    if len(target_sign) > MAX_TEXT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Target sign too long (max {MAX_TEXT_LENGTH} chars)")
     b64 = await _read_upload(image)
     safe_target = _sanitize_user_input(target_sign)
     prompt = (

@@ -702,8 +702,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                     Semantics(
                       button: true,
                       label: 'Send message',
-                      child: GestureDetector(
+                      child: InkWell(
                         onTap: _sendTextMessage,
+                        borderRadius: BorderRadius.circular(50),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -724,8 +725,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                       label: _isListening
                           ? 'Stop listening'
                           : 'Start listening',
-                      child: GestureDetector(
+                      child: InkWell(
                         onTap: _toggleMic,
+                        borderRadius: BorderRadius.circular(50),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -762,10 +764,11 @@ class _ConversationScreenState extends State<ConversationScreen>
                   label: _isInterpreting
                       ? 'Stop sign reading'
                       : 'Start sign reading',
-                  child: GestureDetector(
+                  child: InkWell(
                     onTap: _isInterpreting
                         ? _stopInterpreting
                         : _startInterpreting,
+                    borderRadius: BorderRadius.circular(28),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 14),

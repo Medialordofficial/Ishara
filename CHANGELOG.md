@@ -16,6 +16,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.1.0] — 2026-04-15 — Fix Cycle 17
+
+### Accessibility (Critical Regression Fix)
+- Converted all remaining interactive `GestureDetector` widgets to `InkWell` across all screens:
+  - `SignDictionaryScreen`: back button, category chips, sign list items, category grid items
+  - `WorldReaderScreen`: back button, read-aloud button, capture & read button
+  - `AiChatScreen`: sign translation expand/collapse toggle, play/pause animation button, `_ControlButton` helper widget
+  - `ConversationScreen`: send message button, microphone toggle, start/stop sign reading button
+- Only 2 `GestureDetector` instances remain (both legitimate non-interactive uses):
+  - Keyboard dismiss tap on the message area (`onTap: _focusNode.unfocus()`)
+  - Draggable input widget (`onVerticalDragUpdate` — `InkWell` does not support drag gestures)
+
+### Documentation
+- Fixed `CONTRIBUTING.md` test baseline: updated from 294 → 295 tests
+
+---
+
 ## [2.0.0] — 2026-04-15 — Fix Cycle 16
 
 ### Accessibility

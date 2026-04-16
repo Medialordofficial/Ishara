@@ -45,8 +45,9 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                       Semantics(
                         button: true,
                         label: 'Go back',
-                        child: GestureDetector(
+                        child: InkWell(
                           onTap: () => Navigator.of(context).pop(),
+                          borderRadius: BorderRadius.circular(50),
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -158,10 +159,11 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                         button: true,
                         label: '${cat.name} category',
                         selected: selected,
-                        child: GestureDetector(
+                        child: InkWell(
                           onTap: () => setState(() {
                             _selectedCategory = selected ? null : cat.name;
                           }),
+                          borderRadius: BorderRadius.circular(25),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
@@ -242,8 +244,9 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
         return Semantics(
           button: true,
           label: '${cat.name} category, ${cat.signs.length} signs',
-          child: GestureDetector(
+          child: InkWell(
             onTap: () => setState(() => _selectedCategory = cat.name),
+            borderRadius: BorderRadius.circular(24),
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -312,8 +315,9 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
         return Semantics(
           button: true,
           label: '${sign.word} sign, tap for details',
-          child: GestureDetector(
+          child: InkWell(
             onTap: () => _showSignDetail(sign),
+            borderRadius: BorderRadius.circular(20),
             child: Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(18),

@@ -211,7 +211,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           _chatHistory.add({'role': 'assistant', 'content': reply});
           _tts.speak(reply);
         })
-        .catchError((_) {/* server offline — TTS-only fallback is fine */});
+        .catchError((_) {
+          /* server offline — TTS-only fallback is fine */
+        });
   }
 
   Future<void> _dialEmergency() async {

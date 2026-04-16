@@ -120,8 +120,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                   Semantics(
                     button: true,
                     label: 'Go back',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(50),
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -275,8 +276,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                               Semantics(
                                 button: true,
                                 label: 'Read result aloud',
-                                child: GestureDetector(
+                                child: InkWell(
                                   onTap: () => _tts.speak(_readResult),
+                                  borderRadius: BorderRadius.circular(50),
                                   child: const Icon(
                                     Icons.volume_up,
                                     color: AppColors.primary,
@@ -356,8 +358,9 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                     label: _isReading
                         ? 'Reading in progress'
                         : 'Capture and read the scene',
-                    child: GestureDetector(
+                    child: InkWell(
                       onTap: _isReading ? null : _captureAndRead,
+                      borderRadius: BorderRadius.circular(30),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 18),

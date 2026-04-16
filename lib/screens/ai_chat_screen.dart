@@ -715,8 +715,9 @@ class _CollapsibleSignReplyState extends State<_CollapsibleSignReply> {
             label: _expanded
                 ? 'Collapse sign translation'
                 : 'Expand sign translation',
-            child: GestureDetector(
+            child: InkWell(
               onTap: () => setState(() => _expanded = !_expanded),
+              borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -894,8 +895,9 @@ class _AnimatedSignReplyState extends State<_AnimatedSignReply>
                 label: _isPlaying
                     ? 'Pause sign animation'
                     : 'Play sign animation',
-                child: GestureDetector(
+                child: InkWell(
                   onTap: () => setState(() => _isPlaying = !_isPlaying),
+                  borderRadius: BorderRadius.circular(50),
                   child: Icon(
                     _isPlaying ? Icons.pause_circle : Icons.play_circle,
                     color: AppColors.primary,
@@ -1081,8 +1083,9 @@ class _ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

@@ -338,15 +338,19 @@ class _WorldReaderScreenState extends State<WorldReaderScreen> {
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: TextField(
-                      controller: _questionController,
-                      decoration: const InputDecoration(
-                        hintText: 'Ask about the scene (optional)...',
-                        hintStyle: TextStyle(color: AppColors.textSecondary),
-                        border: InputBorder.none,
-                        icon: Icon(
-                          Icons.help_outline,
-                          color: AppColors.success,
+                    child: Semantics(
+                      label: 'Ask a question about the scene',
+                      textField: true,
+                      child: TextField(
+                        controller: _questionController,
+                        decoration: const InputDecoration(
+                          hintText: 'Ask about the scene (optional)...',
+                          hintStyle: TextStyle(color: AppColors.textSecondary),
+                          border: InputBorder.none,
+                          icon: Icon(
+                            Icons.help_outline,
+                            color: AppColors.success,
+                          ),
                         ),
                       ),
                     ),

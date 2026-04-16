@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'services/notification_service.dart';
 import 'utils/theme.dart';
 import 'utils/constants.dart';
@@ -23,11 +24,15 @@ void main() async {
     _ => ThemeMode.system,
   };
 
-  runApp(const IsharaApp());
+  final onboarded = prefs.getBool('ishara_onboarded') ?? false;
+
+  runApp(IsharaApp(showOnboarding: !onboarded));
 }
 
 class IsharaApp extends StatelessWidget {
-  const IsharaApp({super.key});
+  const IsharaApp({super.key, this.showOnboarding = false});
+
+  final bool showOnboarding;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +45,7 @@ class IsharaApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: mode,
-          home: const HomeScreen(),
+          home: showOnboarding ? const OnboardingScreen() : const HomeScreen(),
         );
       },
     );

@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.8.0] — Fix Cycle 24
+
+### Product/UX
+- Added first-launch onboarding wizard (`OnboardingScreen`) — 4-page swipeable introduction covering sign language interpretation, conversation mode, emergency SOS, and server setup
+- `main.dart` reads `SharedPreferences['ishara_onboarded']` on startup; shows `OnboardingScreen` on first run, `HomeScreen` on subsequent runs
+- Skip button allows users to bypass the wizard at any point
+
+### Accessibility
+- `home_screen.dart` search `TextField` wrapped in `Semantics(label: 'Search signs and phrases', textField: true)` — persistent label even after typing starts
+- `sign_dictionary_screen.dart` search `TextField` wrapped in `Semantics(label: 'Search signs and phrases', textField: true)`
+- `world_reader_screen.dart` question `TextField` wrapped in `Semantics(label: 'Ask a question about the scene', textField: true)`
+
+### Reliability
+- `settings_screen.dart` `_loadSavedSettings` now displays clamped port value: `savedPort.clamp(1, 65535).toString()` — UI matches the validated value
+
+### Testing
+- Added `test/screens/onboarding_screen_test.dart` (5 tests): renders first page, Skip present, Next advances page, last page shows Get Started, onboarding shows when not onboarded
+- Added settings port clamp tests: port 0 → displays "1"; port 99999 → displays "65535"
+- Flutter tests: **232 total** (up from 225); Backend tests: **81**; Total: **313**
+
+---
+
 ## [2.7.0] — Fix Cycle 23
 
 ### Accessibility

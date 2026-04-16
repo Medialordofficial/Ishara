@@ -38,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final savedHost = prefs.getString('ishara_host');
     final savedPort = prefs.getInt('ishara_port');
     if (savedHost != null) _hostController.text = savedHost;
-    if (savedPort != null) _portController.text = savedPort.toString();
+    if (savedPort != null) _portController.text = savedPort.clamp(1, 65535).toString();
     final savedEmergency = prefs.getString('ishara_emergency_number');
     if (savedEmergency != null && savedEmergency.isNotEmpty) {
       _emergencyNumberController.text = savedEmergency;

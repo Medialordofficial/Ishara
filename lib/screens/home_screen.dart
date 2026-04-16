@@ -293,27 +293,31 @@ class _HomeScreenState extends State<HomeScreen> {
               boxShadow: AppColors.premiumShadows,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => setState(() => _searchQuery = val),
-              decoration: InputDecoration(
-                hintText: 'Search signs, phrases, alphabet...',
-                hintStyle: const TextStyle(color: AppColors.textSecondary),
-                border: InputBorder.none,
-                icon: const Icon(Icons.search, color: AppColors.primary),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(
-                          Icons.clear,
-                          color: AppColors.textSecondary,
-                        ),
-                        tooltip: 'Clear search',
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
+            child: Semantics(
+              label: 'Search signs and phrases',
+              textField: true,
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) => setState(() => _searchQuery = val),
+                decoration: InputDecoration(
+                  hintText: 'Search signs, phrases, alphabet...',
+                  hintStyle: const TextStyle(color: AppColors.textSecondary),
+                  border: InputBorder.none,
+                  icon: const Icon(Icons.search, color: AppColors.primary),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            color: AppColors.textSecondary,
+                          ),
+                          tooltip: 'Clear search',
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                ),
               ),
             ),
           ),

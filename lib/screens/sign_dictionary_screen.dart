@@ -105,35 +105,39 @@ class _SignDictionaryScreenState extends State<SignDictionaryScreen> {
                       horizontal: 20,
                       vertical: 4,
                     ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (val) => setState(() {
-                        _query = val;
-                        if (val.isNotEmpty) _selectedCategory = null;
-                      }),
-                      decoration: InputDecoration(
-                        hintText: 'Search signs, phrases, alphabet...',
-                        hintStyle: const TextStyle(
-                          color: AppColors.textSecondary,
+                    child: Semantics(
+                      label: 'Search signs and phrases',
+                      textField: true,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) => setState(() {
+                          _query = val;
+                          if (val.isNotEmpty) _selectedCategory = null;
+                        }),
+                        decoration: InputDecoration(
+                          hintText: 'Search signs, phrases, alphabet...',
+                          hintStyle: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                          border: InputBorder.none,
+                          icon: const Icon(
+                            Icons.search,
+                            color: AppColors.primary,
+                          ),
+                          suffixIcon: _query.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  tooltip: 'Clear search',
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _query = '');
+                                  },
+                                )
+                              : null,
                         ),
-                        border: InputBorder.none,
-                        icon: const Icon(
-                          Icons.search,
-                          color: AppColors.primary,
-                        ),
-                        suffixIcon: _query.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear,
-                                  color: AppColors.textSecondary,
-                                ),
-                                tooltip: 'Clear search',
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _query = '');
-                                },
-                              )
-                            : null,
                       ),
                     ),
                   ),

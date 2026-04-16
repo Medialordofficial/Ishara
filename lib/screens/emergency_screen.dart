@@ -212,7 +212,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           _tts.speak(reply);
         })
         .catchError((_) {
-          /* server offline — TTS-only fallback is fine */
+          // Backend offline — show a visible stub so the user knows the chat
+          // relay is down, but the SOS flow is never blocked.
+          if (!mounted) return;
+          setState(() {
+            _chatMessages.add('[Chat relay unavailable — call directly]');
+          });
         });
   }
 

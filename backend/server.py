@@ -334,6 +334,12 @@ SIGN_LANGUAGE_SYSTEM = os.getenv("ISHARA_SIGN_LANGUAGE", "ASL (American Sign Lan
 # 1. Conversation Mode — interpret sign language from camera frame
 @app.post("/interpret-sign", response_model=SignResponse)
 async def interpret_sign(image: UploadFile = File(...)):
+    """Interpret a sign language gesture from an uploaded image.
+
+    Uses Gemma 4 multimodal to identify the sign and return confidence.
+    Returns 'No sign detected' with confidence 0.0 for unclear frames.
+    Max image size: 10 MB. Accepted types: JPEG, PNG, WebP, GIF.
+    """
     b64 = await _read_upload(image)
     prompt = (
         f"You are an expert {SIGN_LANGUAGE_SYSTEM} interpreter. "
@@ -421,6 +427,11 @@ class EmergencyRequest(BaseModel):
 
 @app.post("/emergency-message", response_model=EmergencyMessageResponse)
 async def emergency_message(req: EmergencyRequest):
+    """Generate a concise emergency message for a deaf SOS sender.
+
+    Validates emergency type and GPS coordinates before LLM call.
+    Falls back to a template message if the LLM response is insufficient.
+    """
     if not (EmergencyRequest._valid_coord(req.latitude) and EmergencyRequest._valid_coord(req.longitude)):
         raise HTTPException(status_code=400, detail="Invalid latitude or longitude")
     if not (-90 <= req.latitude <= 90 and -180 <= req.longitude <= 180):
@@ -483,6 +494,12 @@ class ChatRequest(BaseModel):
 
 @app.post("/emergency-chat", response_model=ChatResponse)
 async def emergency_chat(req: ChatRequest):
+    """Multi-turn chat between a deaf user and a simulated dispatcher.
+
+    Uses temperature=0.7 for natural empathetic responses.
+    Caps history at last 6 entries to prevent token overflow.
+    All user input is sanitised before inclusion in the prompt.
+    """
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
     safe_msg = _sanitize_user_input(req.message)
@@ -512,6 +529,11 @@ async def read_world(
     image: UploadFile = File(...),
     question: str = Form(""),
 ):
+    """Describe what a camera sees for a deaf user (World Reader mode).
+
+    With a question: answers the specific question about the image.
+    Without: summarises text, objects, and safety-relevant information.
+    """
     b64 = await _read_upload(image)
     safe_question = _sanitize_user_input(question) if question.strip() else ""
     if safe_question:
@@ -539,6 +561,10 @@ async def evaluate_sign(
     image: UploadFile = File(...),
     target_sign: str = Form(...),
 ):
+    """Evaluate a student's sign language attempt (Learn Signs mode).
+
+    Provides 2-3 sentences of encouraging feedback on gesture accuracy.
+    """
     b64 = await _read_upload(image)
     safe_target = _sanitize_user_input(target_sign)
     prompt = (
@@ -566,6 +592,11 @@ class GeneralChatRequest(BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 async def general_chat(req: GeneralChatRequest):
+    """General accessibility assistant chat (Ishara AI).
+
+    Answers sign language questions, accessibility tips, and general queries.
+    Multi-turn history (last 6 entries) maintains conversation context.
+    """
     if len(req.message) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Message too long (max {MAX_TEXT_LENGTH} chars)")
     safe_msg = _sanitize_user_input(req.message)

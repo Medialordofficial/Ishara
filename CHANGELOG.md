@@ -16,6 +16,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.0] — 2026-04-15 — Fix Cycle 18
+
+### Code Quality
+- `ApiService` factory: added doc-comment clarifying the singleton initialisation-only mutation pattern; marked with `// ignore: use_setters_to_change_properties` to make the intent explicit
+
+### Product / UX
+- Emergency chat now shows `[Chat relay unavailable — call directly]` when the backend is unreachable, replacing the silent swallow — users now know when the chat relay is down
+
+### Documentation
+- Added comprehensive docstrings to all 6 key FastAPI endpoints: `/interpret-sign`, `/emergency-message`, `/emergency-chat`, `/chat`, `/read-world`, `/evaluate-sign`
+
+---
+
 ## [2.1.0] — 2026-04-15 — Fix Cycle 17
 
 ### Accessibility (Critical Regression Fix)

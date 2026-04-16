@@ -11,6 +11,13 @@ import 'api_exceptions.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
+  // ignore: use_setters_to_change_properties
+  /// Returns the shared singleton instance.
+  ///
+  /// [baseUrl] is an **initialisation-only** override intended for tests and
+  /// the [updateBaseUrl] settings flow. It mutates the singleton's URL once so
+  /// the entire app shares the same configured instance. Do not call with
+  /// [baseUrl] after the app is running; use [updateBaseUrl] instead.
   factory ApiService({String? baseUrl}) {
     if (baseUrl != null) _instance._baseUrl = baseUrl;
     return _instance;

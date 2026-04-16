@@ -271,6 +271,25 @@ def test_speech_to_text_response_schema():
     assert isinstance(data["available"], bool)
 
 
+def test_speech_to_text_returns_unavailable_by_default():
+    """When ISHARA_STT_AVAILABLE is not set, available must be False."""
+    import server
+    assert server.STT_AVAILABLE is False
+    r = client.post("/speech-to-text", json={"audio_b64": "abc"})
+    assert r.status_code == 200
+    assert r.json()["available"] is False
+    assert r.json()["text"] == ""
+
+
+def test_speech_to_text_returns_available_when_flag_set(monkeypatch):
+    """When ISHARA_STT_AVAILABLE is True, endpoint returns available=True."""
+    import server
+    monkeypatch.setattr(server, "STT_AVAILABLE", True)
+    r = client.post("/speech-to-text", json={"audio_b64": "abc"})
+    assert r.status_code == 200
+    assert r.json()["available"] is True
+
+
 # ─── Chat & Emergency Endpoint Tests ──────────────────────
 
 

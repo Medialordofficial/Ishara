@@ -30,6 +30,11 @@ from pydantic import BaseModel, Field
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("ISHARA_MODEL", "gemma4")
 
+# Set ISHARA_STT_AVAILABLE=true when a server-side Whisper integration is deployed.
+# When false (default), the /speech-to-text endpoint returns available=False and
+# the Flutter app should fall back to on-device speech_to_text instead.
+STT_AVAILABLE: bool = os.getenv("ISHARA_STT_AVAILABLE", "false").lower() == "true"
+
 
 # ─── Response Models ───────────────────────────────────────
 
@@ -413,11 +418,15 @@ class SpeechRequest(BaseModel):
 @app.post("/speech-to-text", response_model=SpeechToTextResponse)
 async def speech_to_text(_req: SpeechRequest):
     # On-device STT via Flutter speech_to_text package is the primary path.
-    # This endpoint is reserved for server-side Whisper integration.
-    return SpeechToTextResponse(
-        text="[Server STT not yet available \u2014 use on-device speech_to_text]",
-        available=False,
-    )
+    # Server-side Whisper integration can be enabled by setting:
+    #   ISHARA_STT_AVAILABLE=true (plus the relevant Whisper integration code).
+    if not STT_AVAILABLE:
+        return SpeechToTextResponse(
+            text="",
+            available=False,
+        )
+    # --- Future: route to Whisper here when STT_AVAILABLE is True ---
+    return SpeechToTextResponse(text="", available=True)
 
 
 # 2. Sound Awareness — classify an audio description

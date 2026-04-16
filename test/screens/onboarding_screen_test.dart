@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ishara/screens/onboarding_screen.dart';
+import 'package:ishara/main.dart' show IsharaApp;
 
 Widget _wrap(Widget child) {
   return MaterialApp(home: child);
@@ -50,13 +51,21 @@ void main() {
       expect(find.text('Get Started'), findsOneWidget);
     });
 
-    testWidgets('IsharaApp shows OnboardingScreen when not onboarded',
+    testWidgets('IsharaApp routes to OnboardingScreen when showOnboarding is true',
         (tester) async {
-      SharedPreferences.setMockInitialValues({'ishara_onboarded': false});
-      await tester.pumpWidget(_wrap(const OnboardingScreen()));
+      await tester.pumpWidget(const IsharaApp(showOnboarding: true));
       await tester.pump();
 
       expect(find.text('Welcome to Ishara'), findsOneWidget);
+    });
+
+    testWidgets('IsharaApp routes to HomeScreen when showOnboarding is false',
+        (tester) async {
+      await tester.pumpWidget(const IsharaApp(showOnboarding: false));
+      await tester.pump();
+
+      // HomeScreen shows the app name / greeting, not the onboarding title
+      expect(find.text('Welcome to Ishara'), findsNothing);
     });
   });
 }

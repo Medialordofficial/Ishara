@@ -5,6 +5,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.9.0] — Fix Cycle 25
+
+### Accessibility
+- Onboarding dot indicators wrapped in `Semantics(label: 'Page N of 4', selected: ...)` — screen readers now announce current page position
+- Decorative onboarding page icons marked `ExcludeSemantics` — eliminates redundant unlabelled icon announcements
+
+### Reliability
+- `main()` `SharedPreferences` reads wrapped in `try/catch` — corrupt storage on Android no longer crashes startup; falls back to system theme + show onboarding
+
+### Testing
+- Fixed onboarding test 5: now pumps `IsharaApp(showOnboarding: true)` and asserts `OnboardingScreen` renders (vs. `HomeScreen` with `showOnboarding: false`)
+- Added `test_speech_to_text_returns_unavailable_by_default` — asserts `available: false` when `STT_AVAILABLE` is False
+- Added `test_speech_to_text_returns_available_when_flag_set` — asserts `available: true` when `STT_AVAILABLE` monkeypatched to True
+
+### AI/ML Quality
+- Added `STT_AVAILABLE` env-var flag (`ISHARA_STT_AVAILABLE=true`) to mark server-side Whisper availability
+- `/speech-to-text` endpoint now returns clean `{"text": "", "available": false}` by default; returns `{"text": "", "available": true}` when flag is set — Flutter client should check `available` before presenting server STT as an option
+- Cleared misleading placeholder text from stub response
+
+### Documentation
+- Flutter tests: **233 total** (up from 232); Backend tests: **83** (up from 81); Total: **316**
+
+---
+
 ## [2.8.0] — Fix Cycle 24
 
 ### Product/UX

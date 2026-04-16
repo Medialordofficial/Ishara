@@ -108,16 +108,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 _pages.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentPage == i ? 20 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _currentPage == i
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
-                    borderRadius: BorderRadius.circular(4),
+                (i) => Semantics(
+                  label: 'Page ${i + 1} of ${_pages.length}',
+                  selected: _currentPage == i,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: _currentPage == i ? 20 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _currentPage == i
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
               ),
@@ -170,7 +174,7 @@ class _OnboardingPage {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 96, color: AppColors.primary),
+          ExcludeSemantics(child: Icon(icon, size: 96, color: AppColors.primary)),
           const SizedBox(height: 32),
           Text(
             title,

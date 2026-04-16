@@ -15,16 +15,25 @@ void main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await NotificationService().init();
 
-  // Restore persisted theme preference.
-  final prefs = await SharedPreferences.getInstance();
-  final savedTheme = prefs.getString('ishara_theme') ?? 'system';
-  themeNotifier.value = switch (savedTheme) {
-    'dark' => ThemeMode.dark,
-    'light' => ThemeMode.light,
-    _ => ThemeMode.system,
-  };
+  // Restore persisted theme preference and onboarding flag.
+  // Wrap in try/catch — a corrupt SharedPreferences store on Android should
+  // not crash the app; fall back to safe defaults instead.
+  ThemeMode savedThemeMode = ThemeMode.system;
+  bool onboarded = false;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final savedTheme = prefs.getString('ishara_theme') ?? 'system';
+    savedThemeMode = switch (savedTheme) {
+      'dark' => ThemeMode.dark,
+      'light' => ThemeMode.light,
+      _ => ThemeMode.system,
+    };
+    onboarded = prefs.getBool('ishara_onboarded') ?? false;
+  } catch (_) {
+    // Proceed with defaults — theme = system, onboarding shown.
+  }
 
-  final onboarded = prefs.getBool('ishara_onboarded') ?? false;
+  themeNotifier.value = savedThemeMode;
 
   runApp(IsharaApp(showOnboarding: !onboarded));
 }

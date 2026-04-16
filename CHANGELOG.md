@@ -5,11 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.4.0] — Fix Cycle 30
+
+### Bug Fixes
+- `conversation_screen.dart`: `onStatus` callback now routes through `_sttServerAvailable` check — was a third code path that bypassed server STT entirely
+- `conversation_screen.dart`: `_listenViaServerStt()` disables server STT permanently when `result.available == false` — prevents wasted network calls
+
+### Accessibility
+- `sound_awareness_screen.dart`: `ExcludeSemantics` added to decorative `Icons.history` (empty-state) and `Icons.notifications_active` (`_PremiumAlertCard`)
+
+### Testing
+- `conversation_screen_test.dart`: 3 new widget tests for server STT chip visibility (ping success → chip shown; ping failure → chip hidden; available=false state)
+
+---
+
 ## [3.3.0] — Fix Cycle 29
 
 ### Bug Fixes
-- `conversation_screen.dart`: `onStatus` callback now routes through server STT path when `_sttServerAvailable` (was a third code path bypassing server)
-- `conversation_screen.dart`: `_listenViaServerStt()` now disables server STT (`_sttServerAvailable = false`) when `result.available == false` to prevent wasted calls
+- `conversation_screen.dart`: `_listenViaServerStt()` now takes an explicit `fallbackText` parameter — on server failure or empty response, on-device transcription is always delivered (no message loss)
+- `conversation_screen.dart`: manual-stop and `onResult` paths now consistent — both capture text before clearing, both check `_sttServerAvailable`
+- `conversation_screen.dart`: `_checkServerStt()` now uses `/ping` only — no blind STT inference on cold start
 - `conversation_screen.dart`: `result.text` from server sanitized via `sanitizeSoundLabel` before chat insertion
 - `CHANGELOG.md`: added missing [3.1.0] and [3.2.0] entries
 

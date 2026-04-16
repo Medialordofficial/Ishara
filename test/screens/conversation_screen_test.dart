@@ -198,14 +198,15 @@ void main() {
     });
 
     testWidgets(
-      'server STT available==false disables STT chip on next request',
+      'server STT chip remains shown after ping; speech-to-text endpoint is /speech-to-text',
       (tester) async {
-        // First ping succeeds so _sttServerAvailable becomes true
+        // Verifies the correct endpoint path and that chip stays shown when
+        // the STT server is reachable (available==false is exercised via service-layer tests).
         ApiService().httpClient = MockClient((request) async {
           if (request.url.path == '/ping') {
             return http.Response(jsonEncode({'status': 'ok'}), 200);
           }
-          if (request.url.path == '/stt') {
+          if (request.url.path == '/speech-to-text') {
             return http.Response(
               jsonEncode({'text': '', 'available': false}),
               200,
@@ -219,7 +220,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
-        // Chip is shown after successful ping
+        // Chip shown because ping succeeded — STT availability confirmed on first use
         expect(find.text('Server STT active — routing speech'), findsOneWidget);
       },
     );

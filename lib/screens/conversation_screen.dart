@@ -132,7 +132,7 @@ class _ConversationScreenState extends State<ConversationScreen>
     }
     if (!mounted) return;
     // Always deliver the on-device transcription as the fallback.
-    if (mounted) _addHearingMessage(fallbackText);
+    _addHearingMessage(fallbackText);
   }
 
   void _addHearingMessage(String text) {
@@ -303,7 +303,7 @@ class _ConversationScreenState extends State<ConversationScreen>
 
       final bytes = await image.readAsBytes();
       final result = await _api.interpretSign(bytes);
-      final interpretation = (result['sign'] as String?) ?? '';
+      final interpretation = sanitizeSoundLabel((result['sign'] as String?) ?? '');
       final confidence = (result['confidence'] as double?) ?? 0.0;
 
       // Only announce and speak results above the confidence threshold

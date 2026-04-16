@@ -326,12 +326,14 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            '${_currentDecibel.toInt()} dB',
-            style: TextStyle(
-              color: levelColor,
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
+          ExcludeSemantics(
+            child: Text(
+              '${_currentDecibel.toInt()} dB',
+              style: TextStyle(
+                color: levelColor,
+                fontSize: 36,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -385,12 +387,14 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        _isListening ? Icons.hearing : Icons.hearing_disabled,
-                        size: 64,
-                        color: _isListening
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
+                      ExcludeSemantics(
+                        child: Icon(
+                          _isListening ? Icons.hearing : Icons.hearing_disabled,
+                          size: 64,
+                          color: _isListening
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -583,7 +587,7 @@ class _PremiumTestButton extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
           ),
-          child: Icon(icon, color: color, size: 28),
+          child: ExcludeSemantics(child: Icon(icon, color: color, size: 28)),
         ),
       ),
     );

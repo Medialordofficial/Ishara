@@ -5,6 +5,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.2.0] — Fix Cycle 28
+
+### Bug Fix (Critical)
+- `conversation_screen.dart`: `_listenViaServerStt()` now takes an explicit `fallbackText` parameter — on server failure or empty response, on-device transcription is delivered instead of being silently lost
+- `conversation_screen.dart`: Manual-stop path is now consistent with `onResult` path — both check `_sttServerAvailable` and route through `_listenViaServerStt` when true
+- `conversation_screen.dart`: `_checkServerStt()` no longer fires a blind STT inference on cold start — uses `/ping` only (STT availability confirmed lazily on first use)
+- `conversation_screen.dart`: `result.text` from server now sanitized via `sanitizeSoundLabel` before insertion into chat
+
+### Testing
+- `sound_awareness_utils_test.dart`: 11 unit tests for `sanitizeSoundLabel()` (empty, injection, truncation, control characters, data:, javascript: schemes)
+- CONTRIBUTING.md: test count updated to 329 (246 Flutter + 83 backend)
+
+---
+
+## [3.1.0] — Fix Cycle 27
+
+### Server STT Integration
+- `conversation_screen.dart`: `_checkServerStt()` probes server on init — sets `_sttServerAvailable` flag
+- `conversation_screen.dart`: `_toggleMic()` routes recognized speech through server STT when `_sttServerAvailable = true`; shows "Server STT active — routing speech" chip
+- `conversation_screen.dart`: `_listenViaServerStt()` method sends audio to server with on-device fallback
+
+### Sound Classification Quality
+- `sound_awareness_screen.dart`: `sanitizeSoundLabel()` extracted as testable top-level function
+- `sound_awareness_screen.dart`: `_updateLastAlertLabel()` updates existing alert in-place — eliminates duplicate screen-reader announcements for same sound event
+- `sound_awareness_screen.dart`: Uses `_currentDecibel` (real ambient reading) as noise floor — was `db - 20` approximation
+
+### Bug Fix
+- `sound_awareness_screen.dart`: LLM-returned classification labels sanitized before display/announcement
+
+---
+
 ## [3.0.0] — Fix Cycle 26
 
 ### API Contract

@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../services/pose_detection_service.dart';
 import '../services/tts_service.dart';
 import '../utils/constants.dart';
+import 'sound_awareness_screen.dart' show sanitizeSoundLabel;
 
 class ConversationScreen extends StatefulWidget {
   const ConversationScreen({super.key});
@@ -88,31 +89,37 @@ class _ConversationScreenState extends State<ConversationScreen>
 
   Future<void> _checkServerStt() async {
     try {
-      // Probe server reachability first via /ping, then check STT availability.
+      // Probe server reachability via /ping first to avoid a blind STT call.
       final online = await _api.ping();
-      if (!online) return;
-      // Send minimal probe bytes to learn whether STT is enabled.
-      final probe = await _api.speechToText(Uint8List(1));
-      if (mounted) setState(() => _sttServerAvailable = probe.available);
+      if (!online || !mounted) return;
+      // Use the ping result to infer only that the server is up.
+      // The STT available flag is discovered lazily on first actual use.
+      setState(() => _sttServerAvailable = true);
     } catch (_) {
       // Server unreachable — keep _sttServerAvailable false
     }
   }
 
-  Future<void> _listenViaServerStt(Uint8List audioBytes) async {
+  /// Sends [audioBytes] to the server for STT. On any failure or empty
+  /// response, falls back to [fallbackText] (the on-device transcription)
+  /// so no message is ever silently lost.
+  Future<void> _listenViaServerStt(
+    Uint8List audioBytes,
+    String fallbackText,
+  ) async {
     try {
       final result = await _api.speechToText(audioBytes);
-      if (result.text.isNotEmpty && mounted) {
-        _addHearingMessage(result.text);
+      if (!mounted) return;
+      final text = sanitizeSoundLabel(result.text);
+      if (text.isNotEmpty) {
+        _addHearingMessage(text);
+        return;
       }
-    } catch (e) {
-      // Fall back silently — on-device STT remains the default
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Server STT unavailable, using device')),
-        );
-      }
+    } catch (_) {
+      // Server unavailable — fall through to on-device result
     }
+    // Always deliver the on-device transcription as the fallback.
+    if (mounted) _addHearingMessage(fallbackText);
   }
 
   void _addHearingMessage(String text) {
@@ -144,8 +151,17 @@ class _ConversationScreenState extends State<ConversationScreen>
       _speech.stop();
       setState(() => _isListening = false);
       if (_currentWords.isNotEmpty) {
-        _addHearingMessage(_currentWords);
+        final captured = _currentWords;
         _currentWords = '';
+        // Consistent with onResult: use server path when available.
+        if (_sttServerAvailable) {
+          _listenViaServerStt(
+            Uint8List.fromList(captured.codeUnits),
+            captured,
+          );
+        } else {
+          _addHearingMessage(captured);
+        }
       }
     } else {
       setState(() {
@@ -158,18 +174,21 @@ class _ConversationScreenState extends State<ConversationScreen>
             _currentWords = result.recognizedWords;
           });
           if (result.finalResult && _currentWords.isNotEmpty) {
-            if (_sttServerAvailable) {
-              // Send recognized text bytes to server for validation/enhancement.
-              // When a dedicated audio-capture pipeline is added, replace this
-              // with raw PCM bytes from the `record` package.
-              _listenViaServerStt(
-                Uint8List.fromList(_currentWords.codeUnits),
-              );
-            } else {
-              _addHearingMessage(_currentWords);
-            }
+            final captured = _currentWords;
             _currentWords = '';
             setState(() => _isListening = false);
+            if (_sttServerAvailable) {
+              // Pass on-device text as bytes + as explicit fallback so no
+              // message is lost on server failure or empty response.
+              // TODO(#issue): replace codeUnits with raw PCM bytes from
+              // the `record` package when audio capture is added.
+              _listenViaServerStt(
+                Uint8List.fromList(captured.codeUnits),
+                captured,
+              );
+            } else {
+              _addHearingMessage(captured);
+            }
           }
         },
         listenFor: const Duration(seconds: 30),

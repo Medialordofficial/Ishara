@@ -56,5 +56,13 @@ void main() {
       final exactly80 = 'a' * 80;
       expect(sanitizeSoundLabel(exactly80), exactly80);
     });
+
+    test('reuses sanitization for server STT results (used in conversation_screen)', () {
+      // Verifies that sanitizeSoundLabel is safe to use on server-returned text
+      // (the same function is used in _listenViaServerStt for STT results)
+      expect(sanitizeSoundLabel('Hello world'), 'Hello world');
+      expect(sanitizeSoundLabel('<script>steal</script>'), '');
+      expect(sanitizeSoundLabel(''), ''); // empty server response → fallback triggered
+    });
   });
 }

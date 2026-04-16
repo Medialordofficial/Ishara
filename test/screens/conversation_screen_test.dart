@@ -224,5 +224,59 @@ void main() {
         expect(find.text('Server STT active — routing speech'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'injection payload in text field is sanitized; no bubble added',
+      (tester) async {
+        await tester.pumpWidget(_wrap(const ConversationScreen()));
+        await tester.pump();
+
+        // Initially only the system message → delete button not shown
+        expect(find.byIcon(Icons.delete_outline), findsNothing);
+
+        // Enter injection payload and send
+        await tester.enterText(
+          find.byType(TextField),
+          '<script>alert("xss")</script>',
+        );
+        await tester.tap(find.byIcon(Icons.send_rounded));
+        await tester.pump();
+
+        // Sanitization strips HTML to empty → no new message added → delete
+        // button still absent (only shows when message count > 1)
+        expect(
+          find.byIcon(Icons.delete_outline),
+          findsNothing,
+          reason: 'injection strips to empty; no bubble should be added',
+        );
+      },
+    );
+
+    testWidgets('TextField Semantics does not use excludeSemantics',
+        (tester) async {
+      // Regression guard: ensures excludeSemantics:true is NOT on the TextField
+      // wrapper, which would strip text-value/cursor/editing-action nodes from
+      // the accessibility tree.
+      await tester.pumpWidget(_wrap(const ConversationScreen()));
+      await tester.pump();
+
+      // Find all Semantics widgets that wrap a TextField
+      final semanticsWidgets = tester
+          .widgetList<Semantics>(find.ancestor(
+            of: find.byType(TextField),
+            matching: find.byType(Semantics),
+          ))
+          .toList();
+
+      for (final s in semanticsWidgets) {
+        expect(
+          s.excludeSemantics,
+          isFalse,
+          reason:
+              'No Semantics ancestor of TextField may use excludeSemantics:true '
+              '(would strip text-value, cursor, and editing-action nodes)',
+        );
+      }
+    });
   });
 }

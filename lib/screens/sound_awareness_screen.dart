@@ -13,7 +13,7 @@ import '../utils/constants.dart';
 /// Exported as a top-level function so it can be unit-tested in isolation.
 String sanitizeSoundLabel(String raw) {
   if (raw.isEmpty) return '';
-  var clean = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
+  var clean = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F\u202A-\u202E\u2066-\u2069]'), '').trim();
   if (clean.length > 80) clean = '${clean.substring(0, 80)}\u2026';
   if (RegExp(r'<[^>]+>|javascript:|data:', caseSensitive: false)
       .hasMatch(clean)) {

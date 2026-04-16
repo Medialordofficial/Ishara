@@ -364,7 +364,7 @@ class _ConversationScreenState extends State<ConversationScreen>
               if (correct.isNotEmpty) {
                 final messenger = ScaffoldMessenger.of(context);
                 await _api.sendFeedback(
-                  interpretedSign: incorrectSign,
+                  interpretedSign: sanitizeSoundLabel(incorrectSign),
                   correctSign: correct,
                 );
                 if (mounted) {
@@ -722,8 +722,8 @@ class _ConversationScreenState extends State<ConversationScreen>
                           onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
                               await _api.sendFeedback(
-                                interpretedSign: _lastSign,
-                                correctSign: _lastSign,
+                                interpretedSign: sanitizeSoundLabel(_lastSign),
+                                correctSign: sanitizeSoundLabel(_lastSign),
                               );
                               if (mounted) {
                                 messenger.showSnackBar(

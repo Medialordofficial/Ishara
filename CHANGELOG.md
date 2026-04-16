@@ -5,7 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.8.0] — Fix Cycle 34
+## [3.9.0] — Fix Cycle 36
+
+### Accessibility
+- `conversation_screen.dart`: CHANGELOG label corrected from "Fix Cycle 34" to "Fix Cycle 35" in [3.8.0] entry
+
+### Security
+- `conversation_screen.dart`: `sendFeedback()` call site now uses `sanitizeSoundLabel(_lastSign)` and `sanitizeSoundLabel(incorrectSign)` for defense-in-depth at API boundary (both thumb-up and correction-dialog paths)
+- `sound_awareness_screen.dart`: `sanitizeSoundLabel()` regex extended to strip Unicode directional-override characters (U+202A–U+202E, U+2066–U+2069) preventing RTL/LTR spoofing attacks
+
+### Testing
+- `sound_awareness_utils_test.dart`: test 17 added — Unicode directional-override characters (U+202E, U+202A, U+2066–U+2068) are stripped by `sanitizeSoundLabel`
+- `conversation_screen_test.dart`: test 18 added — HTML injection payload in TextField is sanitized and no chat bubble is added
+- `conversation_screen_test.dart`: test 19 added — No `Semantics` ancestor of `TextField` uses `excludeSemantics: true` (regression guard)
+
+### Documentation
+- `CONTRIBUTING.md`: test baseline updated to 339 tests (256 Flutter + 83 backend)
+
+---
+
+## [3.8.0] — Fix Cycle 35
 
 ### Accessibility
 - `conversation_screen.dart`: `TextField` Semantics: removed erroneous `excludeSemantics: true` (was stripping text-value/cursor/editing-action semantic nodes); changed `hintText` to `'Type here…'` to avoid duplicate announcement with label

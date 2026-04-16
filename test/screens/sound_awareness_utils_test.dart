@@ -93,5 +93,14 @@ void main() {
       expect(sanitizeSoundLabel('   '), '');
       expect(sanitizeSoundLabel('\t\n'), '');
     });
+
+    test('strips Unicode directional override characters', () {
+      // U+202E = Right-To-Left Override (spoofs displayed text direction)
+      expect(sanitizeSoundLabel('Hello\u202Eworld'), 'Helloworld');
+      // U+202A = Left-To-Right Embedding
+      expect(sanitizeSoundLabel('\u202AHidden'), 'Hidden');
+      // U+2066 = Left-To-Right Isolate, U+2067 = Right-To-Left Isolate, U+2068 = First Strong Isolate
+      expect(sanitizeSoundLabel('Start\u2066\u2067Middle\u2068End'), 'StartMiddleEnd');
+    });
   });
 }

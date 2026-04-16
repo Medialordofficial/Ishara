@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.8.0] — Fix Cycle 34
+
+### Accessibility
+- `conversation_screen.dart`: `TextField` Semantics: removed erroneous `excludeSemantics: true` (was stripping text-value/cursor/editing-action semantic nodes); changed `hintText` to `'Type here…'` to avoid duplicate announcement with label
+- `conversation_screen.dart`: thumb-up/thumb-down `IconButton` wrappers simplified — outer `Semantics(button:true)` removed; use `IconButton(tooltip:)` directly (matches `delete_outline` pattern)
+- `conversation_screen.dart`: LIVE badge `Row` restored to `const Row` with `ExcludeSemantics` child
+
+### Security
+- `conversation_screen.dart`: on-device STT `captured` text and user-typed text in `_sendTextMessage` sanitized via `sanitizeSoundLabel()` before `_addHearingMessage`
+- `conversation_screen.dart`: `_listenViaServerStt` fallback path sanitized; empty result after sanitization is now suppressed (no empty bubble)
+
+### Testing
+- `sound_awareness_utils_test.dart`: test 16 added — whitespace-only input returns empty string
+
+### Documentation
+- `CONTRIBUTING.md`: test baseline updated to 336 tests (253 Flutter + 83 backend)
+
+---
+
 ## [3.7.0] — Fix Cycle 33
 
 ### Accessibility
@@ -19,10 +38,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `sound_awareness_utils_test.dart`: test 6 truncation bound tightened to `equals(81)` (80 chars + 1-code-unit ellipsis)
 - `sound_awareness_utils_test.dart`: test 10 renamed to 'rejects html tag angle brackets as injection'
 - `sound_awareness_utils_test.dart`: test 15 renamed to 'all injection strings produce empty output for sanitizeSoundLabel'
-- `sound_awareness_utils_test.dart`: test 16 added — whitespace-only input returns empty string
-
-### Documentation
-- `CONTRIBUTING.md`: test baseline updated to 336 tests (253 Flutter + 83 backend)
 
 ---
 

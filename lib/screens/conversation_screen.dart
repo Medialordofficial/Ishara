@@ -132,7 +132,8 @@ class _ConversationScreenState extends State<ConversationScreen>
     }
     if (!mounted) return;
     // Always deliver the on-device transcription as the fallback.
-    _addHearingMessage(sanitizeSoundLabel(fallbackText));
+    final safeFallback = sanitizeSoundLabel(fallbackText);
+    if (safeFallback.isNotEmpty) _addHearingMessage(safeFallback);
   }
 
   void _addHearingMessage(String text) {
@@ -789,11 +790,10 @@ class _ConversationScreenState extends State<ConversationScreen>
                         child: Semantics(
                           label: 'Hearing person types here',
                           textField: true,
-                          excludeSemantics: true,
                           child: TextField(
                             controller: _textController,
                             decoration: const InputDecoration(
-                              hintText: 'Hearing person types here...',
+                              hintText: 'Type here…',
                               hintStyle: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 14,

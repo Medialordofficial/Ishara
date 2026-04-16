@@ -50,7 +50,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Hearing person types here...'), findsOneWidget);
+      expect(find.text('Type here\u2026'), findsOneWidget);
     });
 
     testWidgets('renders send button icon', (tester) async {

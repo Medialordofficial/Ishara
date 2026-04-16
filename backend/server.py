@@ -289,9 +289,11 @@ async def _chat(
                 detail=f"AI service offline (circuit open, resets in {CIRCUIT_RESET_SECONDS - int(elapsed)}s). Is Ollama running?"
             )
         else:
-            # Half-open: allow one probe request through
+            # Half-open: allow one probe request through. Any failure during
+            # the probe immediately re-opens the circuit (fail_count goes to 1
+            # then the ConnectError handler opens at threshold=1 via _circuit_open_at).
             _circuit_open_at = None
-            _circuit_fail_count = 0
+            _circuit_fail_count = CIRCUIT_FAILURE_THRESHOLD - 1  # one more failure → re-open
     for attempt in range(2):  # 1 retry on transient timeout
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
@@ -366,7 +368,7 @@ async def ping():
     return PingResponse(status="ok", model=MODEL)
 
 
-SIGN_LANGUAGE_SYSTEM = os.getenv("ISHARA_SIGN_LANGUAGE", "ASL (American Sign Language)")
+SIGN_LANGUAGE_SYSTEM = _sanitize_user_input(os.getenv("ISHARA_SIGN_LANGUAGE", "ASL (American Sign Language)"))
 
 # 1. Conversation Mode — interpret sign language from camera frame
 @app.post("/interpret-sign", response_model=SignResponse)

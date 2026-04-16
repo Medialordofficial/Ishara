@@ -9,7 +9,13 @@ import '../services/tts_service.dart';
 import '../utils/constants.dart';
 
 class EmergencyScreen extends StatefulWidget {
-  const EmergencyScreen({super.key});
+  const EmergencyScreen({super.key, this.initialEmergencySent = false});
+
+  /// Override the initial [_emergencySent] state. Intended for widget tests
+  /// that need to test the active-emergency UI without triggering platform
+  /// plugins (Geolocator, Vibration) that are unavailable in test environments.
+  // ignore: avoid_positional_boolean_parameters
+  final bool initialEmergencySent;
 
   @override
   State<EmergencyScreen> createState() => _EmergencyScreenState();
@@ -246,6 +252,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       _chatMessages.clear();
       _chatHistory.clear();
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _emergencySent = widget.initialEmergencySent;
   }
 
   @override
@@ -609,6 +621,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   ),
                   child: Semantics(
                     label: 'Type your emergency message',
+                    textField: true,
                     child: TextField(
                     controller: _chatController,
                     decoration: const InputDecoration(

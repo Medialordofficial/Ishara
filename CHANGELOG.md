@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.6.0] — Fix Cycle 22
+
+### Accessibility
+- Emergency chat `TextField` Semantics label now uses `textField: true` property so the label is correctly recognised as a text-field by screen readers (TalkBack/VoiceOver)
+- `EmergencyScreen` accepts `initialEmergencySent` constructor parameter enabling direct widget tests of active-emergency UI without triggering Geolocator/Vibration platform plugins
+
+### Security
+- `ISHARA_SIGN_LANGUAGE` env var sanitised by `_sanitize_user_input()` before interpolation into the LLM system prompt — closes the prompt-injection hygiene gap flagged in Cycles 19–21
+
+### Reliability
+- Circuit breaker half-open probe failure now immediately re-closes the circuit (fail count preset to `CIRCUIT_FAILURE_THRESHOLD - 1` before probe, so a single failure triggers re-open)
+
+### Testing
+- Rewrote `chat bubbles render with correct semantics labels` and `operator reply renders with correct Semantics label` tests to use `initialEmergencySent: true` — assertions now always execute (no more silent early-bail on missing platform plugins)
+- Added `loadApiKey` happy-path test: `setApiKey('round-trip-key')` → `hasApiKeyInMemory == true`; clears → `hasApiKeyInMemory == false`
+- Added `hasApiKeyInMemory` getter to `ApiService` for testability without `FlutterSecureStorage`
+- Flutter tests: **225 total** (up from 224); Backend tests: **79 total**; Total: **304**
+
+### Documentation
+- `docs/AI_METRICS.md` Retry Behavior section updated with server-side circuit breaker description and interaction note with client-side retry layer
+
+---
+
 ## [2.5.0] — Fix Cycle 21
 
 ### Accessibility

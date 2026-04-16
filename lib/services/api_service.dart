@@ -84,6 +84,10 @@ class ApiService {
     }
   }
 
+  /// Whether an API key is currently held in memory.
+  /// Exposed for unit tests that cannot access [FlutterSecureStorage].
+  bool get hasApiKeyInMemory => _apiKey != null && _apiKey!.isNotEmpty;
+
   /// Get auth headers if API key is set.
   Map<String, String> get _authHeaders =>
       _apiKey != null && _apiKey!.isNotEmpty ? {'X-API-Key': _apiKey!} : {};

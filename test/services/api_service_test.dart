@@ -127,5 +127,16 @@ void main() {
       // Should swallow platform channel errors gracefully
       expect(() async => api.loadApiKey(), returnsNormally);
     });
+
+    test('setApiKey stores key in memory, hasApiKeyInMemory reflects it',
+        () async {
+      final api = ApiService(baseUrl: 'http://localhost:8000');
+      await api.setApiKey(null);
+      expect(api.hasApiKeyInMemory, isFalse);
+      await api.setApiKey('round-trip-key');
+      expect(api.hasApiKeyInMemory, isTrue);
+      await api.setApiKey(null);
+      expect(api.hasApiKeyInMemory, isFalse);
+    });
   });
 }

@@ -93,12 +93,21 @@ Measured on a local WiFi network with Ollama running on a machine with NVIDIA RT
 | Pose detection (on-device) | ~33ms (30 fps) | N/A |
 
 ### Retry Behavior
-Transient failures (timeouts, network errors) trigger automatic retry with exponential backoff:
+The system uses two complementary layers of fault-tolerance:
+
+**Server-side circuit breaker** (backend `_chat()`, added v2.5.0):
+- 3 consecutive `ConnectError`s open the circuit for 30 seconds, returning 503 immediately without waiting for Ollama's 5-second connect timeout.
+- After 30 s the circuit half-opens; a probe failure immediately re-opens it.
+- On a successful Ollama response the failure count resets to 0.
+
+**Client-side retry** (Flutter `ApiService`), for transient non-connection failures:
 - Attempt 1: Immediate
 - Attempt 2: After 500ms
 - Attempt 3: After 1000ms
 
 After 3 total attempts, a `RetryExhaustedException` is thrown.
+
+> Note: When the circuit is open the server returns 503 before the client's retry layer can trigger a new Ollama `ConnectError`.
 
 ## Privacy Architecture
 

@@ -95,7 +95,7 @@ flutter analyze lib/
 1. **Create a branch**: `git checkout -b feature/your-feature`
    - Use prefixes: `feat/`, `fix/`, `test/`, `docs/`, `chore/`, `perf/`
 2. **Write tests**: All new features need unit or widget tests
-3. **Run tests**: Ensure all tests pass before submitting. Current baseline: **335 tests** (252 Flutter + 83 backend)
+3. **Run tests**: Ensure all tests pass before submitting. Current baseline: **336 tests** (253 Flutter + 83 backend)
 4. **Run analyzer**: `flutter analyze lib/` should show 0 errors
 5. **Keep PRs small**: One feature or fix per PR
 6. **Describe changes**: Include what, why, and how in the PR description

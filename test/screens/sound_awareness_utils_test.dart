@@ -74,9 +74,9 @@ void main() {
     });
 
     test('all injection strings produce empty output for sanitizeSoundLabel', () {
-      // When sanitizeSoundLabel returns '' for server response,
-      // _listenViaServerStt falls through to fallbackText.
-      // Verify that known injection strings all produce empty outputs.
+      // Verifies that all known injection patterns return '' from sanitizeSoundLabel.
+      // This also covers the C33 correction-dialog sanitization fix: any injection
+      // typed by a user in the correction dialog will be stripped to '' before sendFeedback.
       const injections = [
         '<script>x</script>',
         'javascript:x',
@@ -85,8 +85,13 @@ void main() {
       ];
       for (final s in injections) {
         expect(sanitizeSoundLabel(s), '',
-          reason: 'injection "$s" should produce empty string triggering fallback');
+          reason: 'injection "$s" should produce empty string');
       }
+    });
+
+    test('returns empty string for whitespace-only input', () {
+      expect(sanitizeSoundLabel('   '), '');
+      expect(sanitizeSoundLabel('\t\n'), '');
     });
   });
 }

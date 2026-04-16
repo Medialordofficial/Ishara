@@ -86,7 +86,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                   captured,
                 );
               } else {
-                _addHearingMessage(captured);
+                _addHearingMessage(sanitizeSoundLabel(captured));
               }
             }
           }
@@ -132,7 +132,7 @@ class _ConversationScreenState extends State<ConversationScreen>
     }
     if (!mounted) return;
     // Always deliver the on-device transcription as the fallback.
-    _addHearingMessage(fallbackText);
+    _addHearingMessage(sanitizeSoundLabel(fallbackText));
   }
 
   void _addHearingMessage(String text) {
@@ -173,7 +173,7 @@ class _ConversationScreenState extends State<ConversationScreen>
             captured,
           );
         } else {
-          _addHearingMessage(captured);
+          _addHearingMessage(sanitizeSoundLabel(captured));
         }
       }
     } else {
@@ -200,7 +200,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                 captured,
               );
             } else {
-              _addHearingMessage(captured);
+              _addHearingMessage(sanitizeSoundLabel(captured));
             }
           }
         },
@@ -212,7 +212,7 @@ class _ConversationScreenState extends State<ConversationScreen>
   }
 
   void _sendTextMessage() {
-    final text = _textController.text.trim();
+    final text = sanitizeSoundLabel(_textController.text.trim());
     if (text.isEmpty) return;
     _textController.clear();
     _addHearingMessage(text);
@@ -489,9 +489,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                               color: AppColors.danger,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
+                              children: [
                                 ExcludeSemantics(
                                   child: Icon(
                                     Icons.circle,
@@ -711,16 +711,14 @@ class _ConversationScreenState extends State<ConversationScreen>
                             ],
                           ),
                         ),
-                        Semantics(
-                          button: true,
-                          label: 'Mark interpretation as correct',
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.thumb_up_outlined,
-                              size: 20,
-                              color: AppColors.success,
-                            ),
-                            onPressed: () async {
+                        IconButton(
+                          tooltip: 'Mark interpretation as correct',
+                          icon: const Icon(
+                            Icons.thumb_up_outlined,
+                            size: 20,
+                            color: AppColors.success,
+                          ),
+                          onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
                               await _api.sendFeedback(
                                 interpretedSign: _lastSign,
@@ -735,19 +733,15 @@ class _ConversationScreenState extends State<ConversationScreen>
                                 );
                               }
                             },
-                          ),
                         ),
-                        Semantics(
-                          button: true,
-                          label: 'Report incorrect interpretation',
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.thumb_down_outlined,
-                              size: 20,
-                              color: AppColors.danger,
-                            ),
-                            onPressed: () => _showCorrectionDialog(_lastSign),
+                        IconButton(
+                          tooltip: 'Report incorrect interpretation',
+                          icon: const Icon(
+                            Icons.thumb_down_outlined,
+                            size: 20,
+                            color: AppColors.danger,
                           ),
+                          onPressed: () => _showCorrectionDialog(_lastSign),
                         ),
                       ],
                     ),
@@ -795,6 +789,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                         child: Semantics(
                           label: 'Hearing person types here',
                           textField: true,
+                          excludeSemantics: true,
                           child: TextField(
                             controller: _textController,
                             decoration: const InputDecoration(

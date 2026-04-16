@@ -5,15 +5,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.7.0] — Fix Cycle 33
+
+### Accessibility
+- `conversation_screen.dart`: `ExcludeSemantics` added to `Icons.circle` in LIVE badge
+- `conversation_screen.dart`: `ExcludeSemantics` added to `Icons.person`/`Icons.person_outline` in signing-status overlay
+- `conversation_screen.dart`: `ExcludeSemantics` added to `Icons.auto_graph` in confidence trend row
+
+### Security
+- `conversation_screen.dart`: correction dialog user input now sanitized via `sanitizeSoundLabel()` before passing to `sendFeedback()` — prevents prompt injection via the feedback endpoint
+
+### Testing
+- `sound_awareness_utils_test.dart`: test 6 truncation bound tightened to `equals(81)` (80 chars + 1-code-unit ellipsis)
+- `sound_awareness_utils_test.dart`: test 10 renamed to 'rejects html tag angle brackets as injection'
+- `sound_awareness_utils_test.dart`: test 15 renamed to 'all injection strings produce empty output for sanitizeSoundLabel'
+- `sound_awareness_utils_test.dart`: test 16 added — whitespace-only input returns empty string
+
+### Documentation
+- `CONTRIBUTING.md`: test baseline updated to 336 tests (253 Flutter + 83 backend)
+
+---
+
 ## [3.6.0] — Fix Cycle 32
 
 ### Accessibility
 - `conversation_screen.dart`: `TextField` wrapped in `Semantics(label: 'Hearing person types here', textField: true)` for screen-reader clarity
 - `conversation_screen.dart`: `ExcludeSemantics` added to `Icons.send_rounded`, `Icons.mic`/`Icons.mic_none`, `Icons.stop`/`Icons.sign_language` (all inside `Semantics(button:true, label:...)` parents)
 - `conversation_screen.dart`: server STT `Chip` Semantics wrapper gains `excludeSemantics: true` to prevent dual announcement
-
-### Security
-- `conversation_screen.dart`: correction dialog user input now sanitized via `sanitizeSoundLabel()` before passing to `sendFeedback()` — prevents prompt injection via the feedback endpoint
 
 ### Testing
 - `sound_awareness_utils_test.dart`: test 14 — sign interpretation injection strings are stripped to empty

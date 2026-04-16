@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.10.0] — Fix Cycle 37
+
+### Code Quality
+- `conversation_screen.dart`: thumb-up `sendFeedback()` deduplicates repeated `sanitizeSoundLabel(_lastSign)` into a single `final safeSign` variable (reduces computation; no behaviour change)
+
+---
+
 ## [3.9.0] — Fix Cycle 36
 
 ### Accessibility

@@ -9,6 +9,19 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../utils/constants.dart';
 
+/// Sanitize an LLM-returned sound label before displaying or announcing it.
+/// Exported as a top-level function so it can be unit-tested in isolation.
+String sanitizeSoundLabel(String raw) {
+  if (raw.isEmpty) return '';
+  var clean = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
+  if (clean.length > 80) clean = '${clean.substring(0, 80)}\u2026';
+  if (RegExp(r'<[^>]+>|javascript:|data:', caseSensitive: false)
+      .hasMatch(clean)) {
+    return '';
+  }
+  return clean;
+}
+
 class SoundAwarenessScreen extends StatefulWidget {
   const SoundAwarenessScreen({super.key});
 
@@ -155,21 +168,8 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
     }
   }
 
-  /// Sanitize LLM-returned sound labels: strip control characters, truncate, and
-  /// reject any token that looks like an injection attempt.
-  String _safeSoundLabel(String raw) {
-    if (raw.isEmpty) return '';
-    // Strip all control chars and leading/trailing whitespace.
-    var clean = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
-    // Truncate to a safe display length.
-    if (clean.length > 80) clean = '${clean.substring(0, 80)}…';
-    // Reject if it contains code-injection patterns.
-    if (RegExp(r'<[^>]+>|javascript:|data:', caseSensitive: false)
-        .hasMatch(clean)) {
-      return '';
-    }
-    return clean;
-  }
+  /// Delegates to the top-level [sanitizeSoundLabel] for testability.
+  String _safeSoundLabel(String raw) => sanitizeSoundLabel(raw);
 
   void _updateLastAlertLabel(String label) {
     if (_alerts.isEmpty) return;

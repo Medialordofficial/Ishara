@@ -88,7 +88,10 @@ class _ConversationScreenState extends State<ConversationScreen>
 
   Future<void> _checkServerStt() async {
     try {
-      // Probe with an empty 1-byte payload — we only need the `available` flag.
+      // Probe server reachability first via /ping, then check STT availability.
+      final online = await _api.ping();
+      if (!online) return;
+      // Send minimal probe bytes to learn whether STT is enabled.
       final probe = await _api.speechToText(Uint8List(1));
       if (mounted) setState(() => _sttServerAvailable = probe.available);
     } catch (_) {
@@ -155,7 +158,16 @@ class _ConversationScreenState extends State<ConversationScreen>
             _currentWords = result.recognizedWords;
           });
           if (result.finalResult && _currentWords.isNotEmpty) {
-            _addHearingMessage(_currentWords);
+            if (_sttServerAvailable) {
+              // Send recognized text bytes to server for validation/enhancement.
+              // When a dedicated audio-capture pipeline is added, replace this
+              // with raw PCM bytes from the `record` package.
+              _listenViaServerStt(
+                Uint8List.fromList(_currentWords.codeUnits),
+              );
+            } else {
+              _addHearingMessage(_currentWords);
+            }
             _currentWords = '';
             setState(() => _isListening = false);
           }
@@ -715,7 +727,7 @@ class _ConversationScreenState extends State<ConversationScreen>
                           color: AppColors.success,
                         ),
                         label: const Text(
-                          'Server STT active',
+                          'Server STT active — routing speech',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.success,

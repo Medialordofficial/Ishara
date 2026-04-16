@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.6.0] — Fix Cycle 32
+
+### Accessibility
+- `conversation_screen.dart`: `TextField` wrapped in `Semantics(label: 'Hearing person types here', textField: true)` for screen-reader clarity
+- `conversation_screen.dart`: `ExcludeSemantics` added to `Icons.send_rounded`, `Icons.mic`/`Icons.mic_none`, `Icons.stop`/`Icons.sign_language` (all inside `Semantics(button:true, label:...)` parents)
+- `conversation_screen.dart`: server STT `Chip` Semantics wrapper gains `excludeSemantics: true` to prevent dual announcement
+
+### Security
+- `conversation_screen.dart`: correction dialog user input now sanitized via `sanitizeSoundLabel()` before passing to `sendFeedback()` — prevents prompt injection via the feedback endpoint
+
+### Testing
+- `sound_awareness_utils_test.dart`: test 14 — sign interpretation injection strings are stripped to empty
+- `sound_awareness_utils_test.dart`: test 15 — all injection patterns produce empty output
+
+### Documentation
+- `CHANGELOG.md`: `[3.5.0]` Fix Cycle 31 entry added; `[3.3.0]` repaired to minimal content
+- `CONTRIBUTING.md`: test baseline updated to 335 tests (252 Flutter + 83 backend)
+
+---
+
 ## [3.5.0] — Fix Cycle 31
 
 ### Security

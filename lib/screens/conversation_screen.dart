@@ -358,7 +358,7 @@ class _ConversationScreenState extends State<ConversationScreen>
           ),
           FilledButton(
             onPressed: () async {
-              final correct = controller.text.trim();
+              final correct = sanitizeSoundLabel(controller.text.trim());
               Navigator.of(ctx).pop();
               if (correct.isNotEmpty) {
                 final messenger = ScaffoldMessenger.of(context);
@@ -489,13 +489,15 @@ class _ConversationScreenState extends State<ConversationScreen>
                               color: AppColors.danger,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.circle,
-                                  color: Colors.white,
-                                  size: 10,
+                              children: const [
+                                ExcludeSemantics(
+                                  child: Icon(
+                                    Icons.circle,
+                                    color: Colors.white,
+                                    size: 10,
+                                  ),
                                 ),
                                 SizedBox(width: 6),
                                 Text(
@@ -527,17 +529,19 @@ class _ConversationScreenState extends State<ConversationScreen>
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  _poseConfidence >
-                                          PoseThresholds.signingConfidence
-                                      ? Icons.person
-                                      : Icons.person_outline,
-                                  color:
-                                      _poseConfidence >
-                                          PoseThresholds.signingConfidence
-                                      ? AppColors.success
-                                      : Colors.white70,
-                                  size: 16,
+                                ExcludeSemantics(
+                                  child: Icon(
+                                    _poseConfidence >
+                                            PoseThresholds.signingConfidence
+                                        ? Icons.person
+                                        : Icons.person_outline,
+                                    color:
+                                        _poseConfidence >
+                                            PoseThresholds.signingConfidence
+                                        ? AppColors.success
+                                        : Colors.white70,
+                                    size: 16,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -675,15 +679,17 @@ class _ConversationScreenState extends State<ConversationScreen>
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  Icon(
-                                    Icons.auto_graph,
-                                    size: 12,
-                                    color: _lastConfidence >= 0.7
-                                        ? AppColors.success
-                                        : _lastConfidence >=
-                                              PoseThresholds.interpretConfidence
-                                        ? AppColors.warning
-                                        : AppColors.danger,
+                                  ExcludeSemantics(
+                                    child: Icon(
+                                      Icons.auto_graph,
+                                      size: 12,
+                                      color: _lastConfidence >= 0.7
+                                          ? AppColors.success
+                                          : _lastConfidence >=
+                                                PoseThresholds.interpretConfidence
+                                          ? AppColors.warning
+                                          : AppColors.danger,
+                                    ),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(

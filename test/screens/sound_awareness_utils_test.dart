@@ -26,7 +26,7 @@ void main() {
     test('truncates strings longer than 80 characters', () {
       final long = 'a' * 100;
       final result = sanitizeSoundLabel(long);
-      expect(result.length, lessThanOrEqualTo(82)); // 80 chars + ellipsis (…)
+      expect(result.length, equals(81)); // 80 chars + ellipsis '…' (1 code unit)
       expect(result.endsWith('…'), isTrue);
     });
 
@@ -42,7 +42,7 @@ void main() {
       expect(sanitizeSoundLabel('data:text/html,<h1>x</h1>'), '');
     });
 
-    test('allows normal text with angle brackets that are not tags', () {
+    test('rejects html tag angle brackets as injection', () {
       // Angle brackets inside normal text that form a tag → rejected
       expect(sanitizeSoundLabel('<b>bold</b>'), '');
     });
@@ -73,7 +73,7 @@ void main() {
       expect(sanitizeSoundLabel('<img src=x onerror=alert(1)>'), '');
     });
 
-    test('empty sanitized STT result should trigger fallback (empty → send fallback text)', () {
+    test('all injection strings produce empty output for sanitizeSoundLabel', () {
       // When sanitizeSoundLabel returns '' for server response,
       // _listenViaServerStt falls through to fallbackText.
       // Verify that known injection strings all produce empty outputs.

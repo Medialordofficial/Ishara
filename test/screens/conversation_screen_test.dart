@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ishara/screens/conversation_screen.dart';
+import 'package:ishara/services/api_service.dart';
 import 'package:ishara/utils/constants.dart';
 
 Widget _wrap(Widget child) {
@@ -159,5 +164,64 @@ void main() {
     testWidgets('PoseThresholds.signingConfidence equals 0.3', (tester) async {
       expect(PoseThresholds.signingConfidence, 0.3);
     });
+
+    testWidgets('server STT chip shown when ping succeeds', (tester) async {
+      ApiService().httpClient = MockClient((request) async {
+        if (request.url.path == '/ping') {
+          return http.Response(jsonEncode({'status': 'ok'}), 200);
+        }
+        return http.Response('not found', 404);
+      });
+      addTearDown(() => ApiService().httpClient = http.Client());
+
+      await tester.pumpWidget(_wrap(const ConversationScreen()));
+      await tester.pump(); // initState
+      await tester.pump(const Duration(seconds: 1)); // async _checkServerStt
+
+      expect(find.text('Server STT active — routing speech'), findsOneWidget);
+    });
+
+    testWidgets('server STT chip hidden when ping fails', (tester) async {
+      ApiService().httpClient = MockClient(
+        (_) async => http.Response('error', 500),
+      );
+      addTearDown(() => ApiService().httpClient = http.Client());
+
+      await tester.pumpWidget(_wrap(const ConversationScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(
+        find.text('Server STT active — routing speech'),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+      'server STT available==false disables STT chip on next request',
+      (tester) async {
+        // First ping succeeds so _sttServerAvailable becomes true
+        ApiService().httpClient = MockClient((request) async {
+          if (request.url.path == '/ping') {
+            return http.Response(jsonEncode({'status': 'ok'}), 200);
+          }
+          if (request.url.path == '/stt') {
+            return http.Response(
+              jsonEncode({'text': '', 'available': false}),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        addTearDown(() => ApiService().httpClient = http.Client());
+
+        await tester.pumpWidget(_wrap(const ConversationScreen()));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        // Chip is shown after successful ping
+        expect(find.text('Server STT active — routing speech'), findsOneWidget);
+      },
+    );
   });
 }

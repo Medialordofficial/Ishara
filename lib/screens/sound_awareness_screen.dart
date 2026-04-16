@@ -528,7 +528,9 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
             ),
             child: const Column(
               children: [
-                Icon(Icons.history, size: 48, color: AppColors.textSecondary),
+                const ExcludeSemantics(
+                  child: Icon(Icons.history, size: 48, color: AppColors.textSecondary),
+                ),
                 SizedBox(height: 16),
                 Text(
                   'No sounds detected yet.',
@@ -628,7 +630,9 @@ class _PremiumAlertCard extends StatelessWidget {
                 color: _color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.notifications_active, color: _color),
+              child: ExcludeSemantics(
+                child: Icon(Icons.notifications_active, color: _color),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(

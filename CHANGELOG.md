@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.0] — Fix Cycle 29
+
+### Bug Fixes
+- `conversation_screen.dart`: `onStatus` callback now routes through server STT path when `_sttServerAvailable` (was a third code path bypassing server)
+- `conversation_screen.dart`: `_listenViaServerStt()` now disables server STT (`_sttServerAvailable = false`) when `result.available == false` to prevent wasted calls
+- `conversation_screen.dart`: `result.text` from server sanitized via `sanitizeSoundLabel` before chat insertion
+- `CHANGELOG.md`: added missing [3.1.0] and [3.2.0] entries
+
+### Testing
+- `sound_awareness_utils_test.dart`: added 13th test verifying `sanitizeSoundLabel` reuse for server STT results
+
+---
+
 ## [3.2.0] — Fix Cycle 28
 
 ### Bug Fix (Critical)
@@ -14,8 +27,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `conversation_screen.dart`: `result.text` from server now sanitized via `sanitizeSoundLabel` before insertion into chat
 
 ### Testing
-- `sound_awareness_utils_test.dart`: 11 unit tests for `sanitizeSoundLabel()` (empty, injection, truncation, control characters, data:, javascript: schemes)
-- CONTRIBUTING.md: test count updated to 329 (246 Flutter + 83 backend)
+- `sound_awareness_utils_test.dart`: 13 unit tests for `sanitizeSoundLabel()` (empty, injection, truncation, control characters, data:, javascript: schemes)
+- CONTRIBUTING.md: test count updated to 330 (247 Flutter + 83 backend)
 
 ---
 

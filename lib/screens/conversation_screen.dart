@@ -78,8 +78,16 @@ class _ConversationScreenState extends State<ConversationScreen>
           if (mounted && _isListening) {
             setState(() => _isListening = false);
             if (_currentWords.isNotEmpty) {
-              _addHearingMessage(_currentWords);
+              final captured = _currentWords;
               _currentWords = '';
+              if (_sttServerAvailable) {
+                _listenViaServerStt(
+                  Uint8List.fromList(captured.codeUnits),
+                  captured,
+                );
+              } else {
+                _addHearingMessage(captured);
+              }
             }
           }
         }
@@ -109,15 +117,20 @@ class _ConversationScreenState extends State<ConversationScreen>
   ) async {
     try {
       final result = await _api.speechToText(audioBytes);
-      if (!mounted) return;
-      final text = sanitizeSoundLabel(result.text);
-      if (text.isNotEmpty) {
-        _addHearingMessage(text);
-        return;
+      if (!result.available) {
+        // STT engine not available — disable future server calls
+        if (mounted) setState(() => _sttServerAvailable = false);
+      } else if (mounted) {
+        final text = sanitizeSoundLabel(result.text);
+        if (text.isNotEmpty) {
+          _addHearingMessage(text);
+          return;
+        }
       }
     } catch (_) {
       // Server unavailable — fall through to on-device result
     }
+    if (!mounted) return;
     // Always deliver the on-device transcription as the fallback.
     if (mounted) _addHearingMessage(fallbackText);
   }

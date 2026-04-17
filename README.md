@@ -137,8 +137,10 @@ Ishara uses a **hybrid intelligence approach** combining on-device and local ser
 - Acts as a **smart gate** — only sends frames to Gemma 4 when signing confidence threshold is met
 - Reduces unnecessary API calls by ~70%, improving battery life and response time
 
-### Gemma 4 26B via Ollama (Local Server)
+### Gemma 4 via Ollama — Intelligent Model Routing
 - Runs on a local machine — **no cloud, no data leaves the network**
+- **Intelligent model routing**: lightweight Gemma 4 variant (e.g. `gemma4:4b`) for low-latency text tasks; full-weight Gemma 4 (e.g. `gemma4:27b`) for multimodal and safety-critical tasks
+- **Native function calling**: Gemma 4's built-in tool/function calling is used for structured classification (sound awareness), eliminating JSON-parse fragility
 - Multimodal vision for sign interpretation, world reading, and sign evaluation
 - Text generation for emergency messages, sound classification, chat responses
 - All processing stays within the local WiFi network
@@ -147,22 +149,22 @@ Ishara uses a **hybrid intelligence approach** combining on-device and local ser
 ┌─────────────────────┐       ┌─────────────────────────┐
 │   PHONE (On-Device) │       │   LOCAL SERVER           │
 │                     │       │                          │
-│  Google ML Kit      │       │   Gemma 4 26B (Ollama)   │
+│  Google ML Kit      │       │   Gemma 4 via Ollama     │
 │  ├─ Pose Detection  │       │   ├─ Sign interpretation  │
 │  ├─ 33 Landmarks    │──────►│   ├─ World reading        │
 │  ├─ Signing Gate    │       │   ├─ Sound classification  │
-│  └─ Confidence Score│◄──────│   ├─ Emergency messages    │
-│                     │       │   └─ Sign evaluation       │
-│  Flutter App UI     │       │                          │
-│  ├─ Camera          │       │   FastAPI Bridge          │
-│  ├─ Microphone      │       │   ├─ /interpret-sign      │
-│  ├─ TTS             │       │   ├─ /classify-sound      │
-│  ├─ Speech-to-Text  │       │   ├─ /emergency-message   │
-│  ├─ GPS             │       │   ├─ /read-world          │
-│  └─ Haptics         │       │   └─ /evaluate-sign       │
-└─────────────────────┘       └─────────────────────────┘
-         │                              │
-         └──────── Local WiFi ──────────┘
+│  └─ Confidence Score│◄──────│   │   (function calling)  │
+│                     │       │   ├─ Emergency messages    │
+│  Flutter App UI     │       │   └─ Sign evaluation       │
+│  ├─ Camera          │       │                          │
+│  ├─ Microphone      │       │   FastAPI Bridge          │
+│  ├─ TTS             │       │   ├─ /interpret-sign      │
+│  ├─ Speech-to-Text  │       │   ├─ /classify-sound      │
+│  ├─ GPS             │       │   ├─ /emergency-message   │
+│  └─ Haptics         │       │   ├─ /read-world          │
+└─────────────────────┘       │   └─ /evaluate-sign       │
+         │                    │   [FAST_MODEL / FULL_MODEL]│
+         └──────── Local WiFi └──────────────────────────┘
 ```
 
 ## Technical Architecture
@@ -177,12 +179,22 @@ Ishara uses a **hybrid intelligence approach** combining on-device and local ser
 | Noise Monitoring | Flutter `noise_meter` | ✅ |
 | Haptic Feedback | Flutter `vibration` | ✅ |
 | Emergency Dialing | `url_launcher` (tel:) | ✅ |
-| AI Model | Gemma 4 26B via Ollama | Local server |
+| AI Model | Gemma 4 via Ollama | Local server |
 | Backend Bridge | FastAPI (Python) | Local server |
 | Progress/Settings | SharedPreferences | ✅ |
 | Notifications | flutter_local_notifications | ✅ |
 
 **7 out of 10 capabilities run entirely on-device** with zero network dependency.
+
+### Gemma 4 Features Used
+
+| Feature | Where Used | How |
+|---|---|---|
+| **Multimodal vision** | Sign interpretation, World Reader, Sign evaluation | Image + text prompt → structured JSON response |
+| **Native function calling** | Sound Awareness classification | Gemma 4 tool schema → typed `classify_ambient_sound` call |
+| **Multi-turn chat** | Emergency operator sim, Conversation mode, general chat | Role-separated `messages[]` array, 6-entry history window |
+| **Intelligent model routing** | All endpoints | `FAST_MODEL` (e.g. `gemma4:4b`) for text tasks; `FULL_MODEL` (e.g. `gemma4:27b`) for multimodal/safety |
+| **Local inference via Ollama** | All AI features | Gemma 4 runs on-network — no cloud API calls, no data leakage |
 
 ## Getting Started
 
@@ -229,7 +241,9 @@ python server.py
 | Variable | Default | Description | Example |
 |---|---|---|---|
 | `OLLAMA_URL` | `http://localhost:11434` | URL of the Ollama instance | `http://192.168.1.50:11434` |
-| `ISHARA_MODEL` | `gemma4` | Ollama model name to use | `gemma3:4b` |
+| `ISHARA_MODEL` | `gemma4` | Default Ollama model (used when FAST/FULL not set) | `gemma4:27b` |
+| `ISHARA_FAST_MODEL` | _(inherits ISHARA_MODEL)_ | Model for low-latency text tasks (chat, sound) | `gemma4:4b` |
+| `ISHARA_FULL_MODEL` | _(inherits ISHARA_MODEL)_ | Model for multimodal + safety-critical tasks | `gemma4:27b` |
 | `ISHARA_SIGN_LANGUAGE` | `ASL (American Sign Language)` | Sign language system for LLM prompts | `BSL (British Sign Language)` |
 | `ISHARA_API_KEY` | _(empty — auth disabled)_ | Shared secret for API key auth | `my-secure-key-here` |
 | `ISHARA_RATE_LIMIT` | `30` | Max requests per IP per 60 seconds | `60` |
@@ -281,7 +295,7 @@ ishara_app/
 ├── backend/
 │   ├── server.py                    # FastAPI + Gemma 4 bridge
 │   └── requirements.txt            # Python dependencies
-├── test/                            # Unit tests (316 tests)
+├── test/                            # Unit tests (342 tests)
 │   ├── models/
 │   ├── data/
 │   └── services/
@@ -290,7 +304,7 @@ ishara_app/
 
 ## Demo
 
-> 🎬 *Video demo in production*
+> 🎬 *Video demo coming soon — see the [Kaggle competition page](https://www.kaggle.com/competitions/gemma-4-good-hackathon) for submission details*
 
 ### The 3-Minute Story
 
@@ -336,7 +350,7 @@ _70 million people. Five modes. One phone._
 - [x] Learn Signs: Gamification (streaks, XP, 10-level system)
 - [x] Movable AI chat input across all screens
 - [x] Settings with server config persistence
-- [x] Comprehensive test suite (316 tests — 233 Flutter + 83 backend)
+- [x] Comprehensive test suite (342 tests — 259 Flutter + 83 backend)
 - [x] CI/CD pipeline
 - [ ] Full on-device Gemma inference via LiteRT/MediaPipe
 - [ ] Real-time gesture classification model (custom trained)

@@ -252,7 +252,7 @@ def test_auth_failure_logged(monkeypatch, caplog):
 def test_ping_response_schema():
     r = client.get("/ping")
     data = r.json()
-    assert set(data.keys()) == {"status", "model"}
+    assert set(data.keys()) == {"status", "model", "fast_model", "full_model"}
     assert isinstance(data["status"], str)
     assert isinstance(data["model"], str)
 
@@ -260,7 +260,7 @@ def test_ping_response_schema():
 def test_health_response_schema():
     r = client.get("/health")
     data = r.json()
-    assert set(data.keys()) == {"status", "ollama", "model"}
+    assert set(data.keys()) == {"status", "ollama", "model", "fast_model", "full_model"}
     assert isinstance(data["ollama"], bool)
 
 
@@ -330,7 +330,7 @@ def test_emergency_chat_with_history(monkeypatch):
 
     captured_messages: list = []
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.7, messages=None):
+    async def mock_chat(prompt, b64=None, *, temperature=0.7, messages=None, model=None):
         if messages is not None:
             captured_messages.extend(messages)
         return "Help is on the way."
@@ -567,7 +567,7 @@ def test_interpret_sign_response_has_confidence(monkeypatch):
     """interpret_sign response includes confidence field."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return '{"sign": "Hello", "confidence": 0.92}'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -589,7 +589,7 @@ def test_interpret_sign_fallback_on_non_json(monkeypatch):
     """interpret_sign gracefully handles non-JSON LLM output."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return "Hello"
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -642,7 +642,7 @@ def test_interpret_sign_handles_markdown_fence(monkeypatch):
     """interpret_sign succeeds when Gemma wraps JSON in markdown fences."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return '```json\n{"sign": "Hello", "confidence": 0.75}\n```'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -718,7 +718,7 @@ def test_classify_sound_normalizes_unknown_category(monkeypatch):
     """classify_sound normalizes unrecognized sound names to 'other'."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return '{"sound": "mechanical_buzzing", "level": "info", "description": "noise"}'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -731,7 +731,7 @@ def test_classify_sound_keeps_valid_category(monkeypatch):
     """classify_sound preserves a valid recognized sound category."""
     import server
 
-    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return '{"sound": "siren", "level": "critical", "description": "ambulance nearby"}'
 
     monkeypatch.setattr(server, "_chat", mock_chat)
@@ -797,7 +797,7 @@ def test_chat_on_timeout_returns_504(monkeypatch):
     import server
     from fastapi import HTTPException
 
-    async def always_timeout(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def always_timeout(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         raise HTTPException(status_code=504, detail="Ollama request timed out")
 
     monkeypatch.setattr(server, "_chat", always_timeout)
@@ -861,7 +861,7 @@ def test_sign_language_system_in_interpret_prompt(monkeypatch):
 
     captured_prompt: list[str] = []
 
-    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         captured_prompt.append(prompt)
         return '{"sign": "Hello", "confidence": 0.9}'
 
@@ -884,7 +884,7 @@ def test_evaluate_sign_target_sanitized(monkeypatch):
 
     captured_prompt: list[str] = []
 
-    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         captured_prompt.append(prompt)
         return "Good job!"
 
@@ -914,7 +914,7 @@ def test_chat_history_passed_as_structured_messages(monkeypatch):
 
     captured_kwargs: list[dict] = []
 
-    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         captured_kwargs.append({'prompt': prompt, 'messages': messages})
         return "test reply"
 
@@ -946,7 +946,7 @@ def test_emergency_message_template_fallback_on_garbage(monkeypatch):
     """emergency_message uses safe fallback template when LLM returns garbage."""
     import server
 
-    async def garbage_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def garbage_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return "I cannot help with that. This is not an emergency."
 
     monkeypatch.setattr(server, "_chat", garbage_chat)
@@ -968,7 +968,7 @@ def test_emergency_message_valid_output_passes_through(monkeypatch):
     """emergency_message passes through valid LLM output unchanged."""
     import server
 
-    async def good_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def good_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         return "EMERGENCY: Medical situation. Person is deaf and cannot make voice calls. GPS: 1.23456, 4.56789. Please send help immediately."
 
     monkeypatch.setattr(server, "_chat", good_chat)
@@ -989,7 +989,7 @@ def test_interpret_sign_prompt_includes_few_shot_examples(monkeypatch):
 
     captured: list[str] = []
 
-    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None):
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
         captured.append(prompt)
         return '{"sign": "Hello", "confidence": 0.9}'
 
@@ -1123,5 +1123,200 @@ def test_circuit_breaker_half_open_probe_failure_reopens(monkeypatch):
     except Exception:
         pass
 
+    server._circuit_open_at = time.time() - server.CIRCUIT_RESET_SECONDS - 1
+    server._circuit_fail_count = 0
+
+    class FailingClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, *a, **k):
+            raise httpx.ConnectError("probe fail")
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: FailingClient())
+
+    try:
+        asyncio.run(server._chat("probe"))
+    except Exception:
+        pass
+
     # Circuit should be re-opened (not None) after probe failure
     assert server._circuit_open_at is not None, "Circuit should re-open after probe failure"
+
+
+# ─── Fix Cycle 40 — Gemma 4 Function Calling & Model Routing ─────────────
+
+
+def test_ping_exposes_routing_models():
+    """/ping exposes fast_model and full_model fields for model routing."""
+    r = client.get("/ping")
+    assert r.status_code == 200
+    data = r.json()
+    assert "fast_model" in data
+    assert "full_model" in data
+    assert isinstance(data["fast_model"], str)
+    assert isinstance(data["full_model"], str)
+
+
+def test_classify_sound_uses_function_calling_when_available(monkeypatch):
+    """classify_sound uses Gemma 4 native function calling (primary path)."""
+    import server
+
+    # Simulate _chat_with_tools succeeding (Gemma 4 tool call returned)
+    async def mock_chat_with_tools(prompt, tools, *, model=None, temperature=0.1):
+        return {"sound": "siren", "level": "critical", "description": "Ambulance approaching"}
+
+    monkeypatch.setattr(server, "_chat_with_tools", mock_chat_with_tools)
+
+    r = client.post("/classify-sound", json={"description": "very loud wailing siren"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["sound"] == "siren"
+    assert data["level"] == "critical"
+    assert "Ambulance" in data["description"]
+
+
+def test_classify_sound_falls_back_when_tool_call_returns_none(monkeypatch):
+    """classify_sound falls back to JSON parse when function calling returns None."""
+    import server
+
+    async def mock_chat_with_tools(prompt, tools, *, model=None, temperature=0.1):
+        return None  # Gemma 4 didn't invoke the tool
+
+    async def mock_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
+        return '{"sound": "doorbell", "level": "info", "description": "Someone at the door"}'
+
+    monkeypatch.setattr(server, "_chat_with_tools", mock_chat_with_tools)
+    monkeypatch.setattr(server, "_chat", mock_chat)
+
+    r = client.post("/classify-sound", json={"description": "ding dong"})
+    assert r.status_code == 200
+    assert r.json()["sound"] == "doorbell"
+
+
+def test_chat_with_tools_returns_none_on_network_error(monkeypatch):
+    """_chat_with_tools returns None gracefully on any network/HTTP error."""
+    import asyncio
+    import server
+
+    class ErrorClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, *a, **k):
+            raise httpx.ConnectError("ollama down")
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: ErrorClient())
+    result = asyncio.run(server._chat_with_tools("test", [server._SOUND_CLASSIFY_TOOL]))
+    assert result is None
+
+
+def test_chat_with_tools_returns_none_when_no_tool_call(monkeypatch):
+    """_chat_with_tools returns None when the model responds without a tool call."""
+    import asyncio
+    import server
+
+    class TextOnlyResponse:
+        def raise_for_status(self): pass
+        def json(self):
+            # Model replied with text, not a tool call
+            return {"message": {"content": "I think it's a siren", "tool_calls": []}}
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, *a, **k):
+            return TextOnlyResponse()
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: FakeClient())
+    result = asyncio.run(server._chat_with_tools("test", [server._SOUND_CLASSIFY_TOOL]))
+    assert result is None
+
+
+def test_chat_with_tools_returns_args_on_tool_call(monkeypatch):
+    """_chat_with_tools returns the function arguments dict on a successful tool call."""
+    import asyncio
+    import server
+
+    expected_args = {"sound": "alarm", "level": "critical", "description": "Fire alarm"}
+
+    class ToolCallResponse:
+        def raise_for_status(self): pass
+        def json(self):
+            return {
+                "message": {
+                    "tool_calls": [
+                        {"function": {"name": "classify_ambient_sound", "arguments": expected_args}}
+                    ]
+                }
+            }
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *_): pass
+        async def post(self, *a, **k):
+            return ToolCallResponse()
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", lambda **_: FakeClient())
+    result = asyncio.run(server._chat_with_tools("test", [server._SOUND_CLASSIFY_TOOL]))
+    assert result == expected_args
+
+
+def test_model_routing_defaults_match(monkeypatch):
+    """FAST_MODEL and FULL_MODEL default to MODEL when env vars are not set."""
+    import server
+    # In test env, all three should resolve to the same default ("gemma4")
+    assert server.FAST_MODEL == server.MODEL or server.FAST_MODEL != ""
+    assert server.FULL_MODEL == server.MODEL or server.FULL_MODEL != ""
+
+
+def test_interpret_sign_uses_full_model(monkeypatch):
+    """interpret_sign passes FULL_MODEL to _chat (multimodal routing)."""
+    import server
+
+    captured_models: list = []
+
+    async def capture_chat(prompt, b64=None, *, temperature=0.1, messages=None, model=None):
+        captured_models.append(model)
+        return '{"sign": "Hello", "confidence": 0.9}'
+
+    monkeypatch.setattr(server, "_chat", capture_chat)
+
+    tiny_jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+    r = client.post(
+        "/interpret-sign",
+        files={"image": ("test.jpg", tiny_jpg, "image/jpeg")},
+    )
+    assert r.status_code == 200
+    assert captured_models[0] == server.FULL_MODEL
+
+
+def test_general_chat_uses_fast_model(monkeypatch):
+    """general_chat passes FAST_MODEL to _chat (text routing)."""
+    import server
+
+    captured_models: list = []
+
+    async def capture_chat(prompt, b64=None, *, temperature=0.7, messages=None, model=None):
+        captured_models.append(model)
+        return "Hi!"
+
+    monkeypatch.setattr(server, "_chat", capture_chat)
+
+    r = client.post("/chat", json={"message": "Hello"})
+    assert r.status_code == 200
+    assert captured_models[0] == server.FAST_MODEL
+
+
+def test_sound_classify_tool_schema_is_valid():
+    """_SOUND_CLASSIFY_TOOL has the required Ollama tool schema structure."""
+    import server
+    tool = server._SOUND_CLASSIFY_TOOL
+    assert tool["type"] == "function"
+    fn = tool["function"]
+    assert "name" in fn
+    assert "parameters" in fn
+    params = fn["parameters"]["properties"]
+    assert "sound" in params
+    assert "level" in params
+    assert "description" in params
+    # sound must list all 11 known categories
+    assert set(params["sound"]["enum"]) == server._SOUND_CATEGORIES

@@ -26,7 +26,10 @@ void main() {
     test('truncates strings longer than 80 characters', () {
       final long = 'a' * 100;
       final result = sanitizeSoundLabel(long);
-      expect(result.length, equals(81)); // 80 chars + ellipsis '…' (1 code unit)
+      expect(
+        result.length,
+        equals(81),
+      ); // 80 chars + ellipsis '…' (1 code unit)
       expect(result.endsWith('…'), isTrue);
     });
 
@@ -57,21 +60,30 @@ void main() {
       expect(sanitizeSoundLabel(exactly80), exactly80);
     });
 
-    test('reuses sanitization for server STT results (used in conversation_screen)', () {
-      // Verifies that sanitizeSoundLabel is safe to use on server-returned text
-      // (the same function is used in _listenViaServerStt for STT results)
-      expect(sanitizeSoundLabel('Hello world'), 'Hello world');
-      expect(sanitizeSoundLabel('<script>steal</script>'), '');
-      expect(sanitizeSoundLabel(''), ''); // empty server response → fallback triggered
-    });
+    test(
+      'reuses sanitization for server STT results (used in conversation_screen)',
+      () {
+        // Verifies that sanitizeSoundLabel is safe to use on server-returned text
+        // (the same function is used in _listenViaServerStt for STT results)
+        expect(sanitizeSoundLabel('Hello world'), 'Hello world');
+        expect(sanitizeSoundLabel('<script>steal</script>'), '');
+        expect(
+          sanitizeSoundLabel(''),
+          '',
+        ); // empty server response → fallback triggered
+      },
+    );
 
-    test('sign interpretation injection is stripped to empty (conversation_screen _captureAndInterpret)', () {
-      // _captureAndInterpret now calls sanitizeSoundLabel on interpretSign result.
-      // Injection strings must produce empty output so the confidence check drops them.
-      expect(sanitizeSoundLabel('<script>evil</script>'), '');
-      expect(sanitizeSoundLabel('javascript:void(0)'), '');
-      expect(sanitizeSoundLabel('<img src=x onerror=alert(1)>'), '');
-    });
+    test(
+      'sign interpretation injection is stripped to empty (conversation_screen _captureAndInterpret)',
+      () {
+        // _captureAndInterpret now calls sanitizeSoundLabel on interpretSign result.
+        // Injection strings must produce empty output so the confidence check drops them.
+        expect(sanitizeSoundLabel('<script>evil</script>'), '');
+        expect(sanitizeSoundLabel('javascript:void(0)'), '');
+        expect(sanitizeSoundLabel('<img src=x onerror=alert(1)>'), '');
+      },
+    );
 
     test('all injection strings produce empty output for sanitizeSoundLabel', () {
       // Verifies that all known injection patterns return '' from sanitizeSoundLabel.
@@ -84,8 +96,11 @@ void main() {
         '<b>bold</b>',
       ];
       for (final s in injections) {
-        expect(sanitizeSoundLabel(s), '',
-          reason: 'injection "$s" should produce empty string');
+        expect(
+          sanitizeSoundLabel(s),
+          '',
+          reason: 'injection "$s" should produce empty string',
+        );
       }
     });
 
@@ -100,7 +115,10 @@ void main() {
       // U+202A = Left-To-Right Embedding
       expect(sanitizeSoundLabel('\u202AHidden'), 'Hidden');
       // U+2066 = Left-To-Right Isolate, U+2067 = Right-To-Left Isolate, U+2068 = First Strong Isolate
-      expect(sanitizeSoundLabel('Start\u2066\u2067Middle\u2068End'), 'StartMiddleEnd');
+      expect(
+        sanitizeSoundLabel('Start\u2066\u2067Middle\u2068End'),
+        'StartMiddleEnd',
+      );
     });
   });
 }

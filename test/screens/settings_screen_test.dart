@@ -215,12 +215,16 @@ void main() {
       final portField = tester
           .widgetList<TextField>(find.byType(TextField))
           .where((tf) => tf.controller?.text == '1');
-      expect(portField, isNotEmpty,
-          reason: 'Port 0 must be clamped to 1 in display');
+      expect(
+        portField,
+        isNotEmpty,
+        reason: 'Port 0 must be clamped to 1 in display',
+      );
     });
 
-    testWidgets('Port 99999 is clamped to 65535 on display load',
-        (tester) async {
+    testWidgets('Port 99999 is clamped to 65535 on display load', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({'ishara_port': 99999});
 
       await tester.pumpWidget(_wrap(const SettingsScreen()));
@@ -229,12 +233,16 @@ void main() {
       final portField = tester
           .widgetList<TextField>(find.byType(TextField))
           .where((tf) => tf.controller?.text == '65535');
-      expect(portField, isNotEmpty,
-          reason: 'Port 99999 must be clamped to 65535 in display');
+      expect(
+        portField,
+        isNotEmpty,
+        reason: 'Port 99999 must be clamped to 65535 in display',
+      );
     });
 
-    testWidgets('Replay Tutorial button clears ishara_onboarded key',
-        (tester) async {
+    testWidgets('Replay Tutorial button clears ishara_onboarded key', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({'ishara_onboarded': true});
 
       await tester.pumpWidget(_wrap(const SettingsScreen()));

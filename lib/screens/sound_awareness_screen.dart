@@ -13,10 +13,14 @@ import '../utils/constants.dart';
 /// Exported as a top-level function so it can be unit-tested in isolation.
 String sanitizeSoundLabel(String raw) {
   if (raw.isEmpty) return '';
-  var clean = raw.replaceAll(RegExp(r'[\x00-\x1F\x7F\u202A-\u202E\u2066-\u2069]'), '').trim();
+  var clean = raw
+      .replaceAll(RegExp(r'[\x00-\x1F\x7F\u202A-\u202E\u2066-\u2069]'), '')
+      .trim();
   if (clean.length > 80) clean = '${clean.substring(0, 80)}\u2026';
-  if (RegExp(r'<[^>]+>|javascript:|data:', caseSensitive: false)
-      .hasMatch(clean)) {
+  if (RegExp(
+    r'<[^>]+>|javascript:|data:',
+    caseSensitive: false,
+  ).hasMatch(clean)) {
     return '';
   }
   return clean;
@@ -149,7 +153,8 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
       // Use actual meanDecibel (_currentDecibel) as the noise floor proxy —
       // it reflects ambient level and avoids the fabricated db-20 constant.
       final noiseFloor = _currentDecibel;
-      final description = 'Sudden sound event: '
+      final description =
+          'Sudden sound event: '
           'peak ${db.toInt()} dB, '
           'noise floor ~${noiseFloor.toInt()} dB, '
           'duration approximately 1–3 seconds. '
@@ -532,8 +537,12 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
             ),
             child: const Column(
               children: [
-                const ExcludeSemantics(
-                  child: Icon(Icons.history, size: 48, color: AppColors.textSecondary),
+                ExcludeSemantics(
+                  child: Icon(
+                    Icons.history,
+                    size: 48,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 SizedBox(height: 16),
                 Text(

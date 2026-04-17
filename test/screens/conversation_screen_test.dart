@@ -307,97 +307,97 @@ void main() {
       },
     );
 
-    testWidgets(
-      'server STT injection payload is sanitized — no bubble added',
-      (tester) async {
-        // Mock /speech-to-text to return injection payload
-        ApiService().httpClient = MockClient((request) async {
-          if (request.url.path == '/ping') {
-            return http.Response(jsonEncode({'status': 'ok'}), 200);
-          }
-          if (request.url.path == '/speech-to-text') {
-            return http.Response(
-              jsonEncode({
-                'text': '<script>alert("xss")</script>',
-                'available': true,
-              }),
-              200,
-            );
-          }
-          return http.Response('not found', 404);
-        });
-        addTearDown(() => ApiService().httpClient = http.Client());
+    testWidgets('server STT injection payload is sanitized — no bubble added', (
+      tester,
+    ) async {
+      // Mock /speech-to-text to return injection payload
+      ApiService().httpClient = MockClient((request) async {
+        if (request.url.path == '/ping') {
+          return http.Response(jsonEncode({'status': 'ok'}), 200);
+        }
+        if (request.url.path == '/speech-to-text') {
+          return http.Response(
+            jsonEncode({
+              'text': '<script>alert("xss")</script>',
+              'available': true,
+            }),
+            200,
+          );
+        }
+        return http.Response('not found', 404);
+      });
+      addTearDown(() => ApiService().httpClient = http.Client());
 
-        final key = GlobalKey<ConversationScreenState>();
-        await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 1)); // let ping settle
+      final key = GlobalKey<ConversationScreenState>();
+      await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // let ping settle
 
-        // Invoke server-STT path with dummy audio + an injected fallback
-        // (both server response and fallback are injections → both strip to empty → no bubble)
-        await key.currentState!.testOnlyCallListenViaServerStt(
-          Uint8List.fromList('test'.codeUnits),
-          '<script>inject fallback</script>',
-        );
-        await tester.pump();
+      // Invoke server-STT path with dummy audio + an injected fallback
+      // (both server response and fallback are injections → both strip to empty → no bubble)
+      await key.currentState!.testOnlyCallListenViaServerStt(
+        Uint8List.fromList('test'.codeUnits),
+        '<script>inject fallback</script>',
+      );
+      await tester.pump();
 
-        // Injection payload strips to empty; no bubble added beyond system message
-        expect(
-          find.text('<script>alert("xss")</script>'),
-          findsNothing,
-          reason: 'Server STT injection must be stripped before display',
-        );
-        // Delete button absent = still only 1 message (system message)
-        expect(
-          find.byIcon(Icons.delete_outline),
-          findsNothing,
-          reason: 'Empty-after-sanitization result should add no bubble',
-        );
-      },
-    );
+      // Injection payload strips to empty; no bubble added beyond system message
+      expect(
+        find.text('<script>alert("xss")</script>'),
+        findsNothing,
+        reason: 'Server STT injection must be stripped before display',
+      );
+      // Delete button absent = still only 1 message (system message)
+      expect(
+        find.byIcon(Icons.delete_outline),
+        findsNothing,
+        reason: 'Empty-after-sanitization result should add no bubble',
+      );
+    });
 
-    testWidgets(
-      'sendFeedback called with sanitized sign when thumb-up tapped',
-      (tester) async {
-        // Use a taller screen so the camera preview + feedback section fit without overflow.
-        tester.view.physicalSize = const Size(800, 1600);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.reset);
+    testWidgets('sendFeedback called with sanitized sign when thumb-up tapped', (
+      tester,
+    ) async {
+      // Use a taller screen so the camera preview + feedback section fit without overflow.
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
 
-        String? capturedInterpretedSign;
-        ApiService().httpClient = MockClient((request) async {
-          if (request.url.path == '/feedback') {
-            final body = jsonDecode(request.body) as Map<String, dynamic>;
-            capturedInterpretedSign = body['interpreted_sign'] as String?;
-            return http.Response(jsonEncode({'status': 'ok'}), 200);
-          }
-          return http.Response('not found', 404);
-        });
-        addTearDown(() => ApiService().httpClient = http.Client());
+      String? capturedInterpretedSign;
+      ApiService().httpClient = MockClient((request) async {
+        if (request.url.path == '/feedback') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          capturedInterpretedSign = body['interpreted_sign'] as String?;
+          return http.Response(jsonEncode({'status': 'ok'}), 200);
+        }
+        return http.Response('not found', 404);
+      });
+      addTearDown(() => ApiService().httpClient = http.Client());
 
-        final key = GlobalKey<ConversationScreenState>();
-        await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
-        await tester.pump();
+      final key = GlobalKey<ConversationScreenState>();
+      await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
+      await tester.pump();
 
-        // Simulate a sign interpretation with a clean label
-        key.currentState!.simulateSignInterpretationForTest('Thank you', 0.95);
-        await tester.pump();
+      // Simulate a sign interpretation with a clean label
+      key.currentState!.simulateSignInterpretationForTest('Thank you', 0.95);
+      await tester.pump();
 
-        // Thumb-up button should now be visible
-        expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
+      // Thumb-up button should now be visible
+      expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
 
-        // Tap thumb-up
-        await tester.tap(find.byIcon(Icons.thumb_up_outlined));
-        await tester.pump(); // begin async onPressed
-        await tester.pump(const Duration(milliseconds: 500)); // let HTTP call resolve
+      // Tap thumb-up
+      await tester.tap(find.byIcon(Icons.thumb_up_outlined));
+      await tester.pump(); // begin async onPressed
+      await tester.pump(
+        const Duration(milliseconds: 500),
+      ); // let HTTP call resolve
 
-        // Verify the feedback API received the sanitized sign
-        expect(
-          capturedInterpretedSign,
-          'Thank you',
-          reason: 'sendFeedback must transmit the sanitized sign label',
-        );
-      },
-    );
+      // Verify the feedback API received the sanitized sign
+      expect(
+        capturedInterpretedSign,
+        'Thank you',
+        reason: 'sendFeedback must transmit the sanitized sign label',
+      );
+    });
   });
 }

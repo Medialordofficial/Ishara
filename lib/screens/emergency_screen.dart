@@ -526,84 +526,92 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     ),
                   )
                 else
-                  ..._chatMessages.map(
-                    (message) {
-                      // Exact match against the single error string emitted by the
-                      // emergency-chat catch block — avoids false positives for
-                      // user messages like "[my location is X]".
-                      const chatRelayError =
-                          '[Chat relay unavailable — call directly]';
-                      final isError = message == chatRelayError;
-                      final isOperator = message.startsWith('Operator: ');
-                      final isLeftAligned = isError || isOperator;
-                      return Semantics(
-                        label: isError
-                            ? 'Error: ${message.replaceAll('[', '').replaceAll(']', '')}'
-                            : isOperator
-                                ? message
-                                : 'You: $message',
-                        child: Align(
-                      alignment: isLeftAligned
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isError
-                              ? AppColors.warning.withValues(alpha: 0.15)
-                              : isOperator
-                                  ? AppColors.surface
-                                  : AppColors.primary,
-                          border: isError
-                              ? Border.all(color: AppColors.warning, width: 1.5)
-                              : null,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(20),
-                            topRight: const Radius.circular(20),
-                            bottomLeft: Radius.circular(isLeftAligned ? 6 : 20),
-                            bottomRight: Radius.circular(isLeftAligned ? 20 : 6),
+                  ..._chatMessages.map((message) {
+                    // Exact match against the single error string emitted by the
+                    // emergency-chat catch block — avoids false positives for
+                    // user messages like "[my location is X]".
+                    const chatRelayError =
+                        '[Chat relay unavailable — call directly]';
+                    final isError = message == chatRelayError;
+                    final isOperator = message.startsWith('Operator: ');
+                    final isLeftAligned = isError || isOperator;
+                    return Semantics(
+                      label: isError
+                          ? 'Error: ${message.replaceAll('[', '').replaceAll(']', '')}'
+                          : isOperator
+                          ? message
+                          : 'You: $message',
+                      child: Align(
+                        alignment: isLeftAligned
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (isError) ...[
-                              const Icon(Icons.warning_amber_rounded,
-                                  color: AppColors.warning, size: 16),
-                              const SizedBox(width: 6),
-                            ],
-                            Flexible(
-                              child: Text(
-                                message,
-                                style: TextStyle(
-                                  color: isError
-                                      ? AppColors.warning
-                                      : isOperator
-                                          ? AppColors.textPrimary
-                                          : Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
+                          decoration: BoxDecoration(
+                            color: isError
+                                ? AppColors.warning.withValues(alpha: 0.15)
+                                : isOperator
+                                ? AppColors.surface
+                                : AppColors.primary,
+                            border: isError
+                                ? Border.all(
+                                    color: AppColors.warning,
+                                    width: 1.5,
+                                  )
+                                : null,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(20),
+                              topRight: const Radius.circular(20),
+                              bottomLeft: Radius.circular(
+                                isLeftAligned ? 6 : 20,
+                              ),
+                              bottomRight: Radius.circular(
+                                isLeftAligned ? 20 : 6,
                               ),
                             ),
-                          ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isError) ...[
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: AppColors.warning,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Flexible(
+                                child: Text(
+                                  message,
+                                  style: TextStyle(
+                                    color: isError
+                                        ? AppColors.warning
+                                        : isOperator
+                                        ? AppColors.textPrimary
+                                        : Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ), // Align
+                      ), // Align
                     ); // Semantics
-                    },
-                  ),
+                  }),
               ],
             ),
           ),
@@ -623,16 +631,16 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     label: 'Type your emergency message',
                     textField: true,
                     child: TextField(
-                    controller: _chatController,
-                    decoration: const InputDecoration(
-                      hintText: 'Type message...',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      fillColor: Colors.transparent,
+                      controller: _chatController,
+                      decoration: const InputDecoration(
+                        hintText: 'Type message...',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        fillColor: Colors.transparent,
+                      ),
+                      onSubmitted: (_) => _sendChatMessage(),
                     ),
-                    onSubmitted: (_) => _sendChatMessage(),
-                  ),
                   ),
                 ),
               ),

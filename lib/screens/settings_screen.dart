@@ -39,7 +39,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final savedHost = prefs.getString('ishara_host');
     final savedPort = prefs.getInt('ishara_port');
     if (savedHost != null) _hostController.text = savedHost;
-    if (savedPort != null) _portController.text = savedPort.clamp(1, 65535).toString();
+    if (savedPort != null) {
+      _portController.text = savedPort.clamp(1, 65535).toString();
+    }
     final savedEmergency = prefs.getString('ishara_emergency_number');
     if (savedEmergency != null && savedEmergency.isNotEmpty) {
       _emergencyNumberController.text = savedEmergency;
@@ -51,15 +53,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _apiKeyController.text = secureApiKey;
     }
     // Apply saved settings to API service
-    await _api.updateBaseUrl(
-      _hostController.text.trim(),
-      port: _parsedPort(),
-    );
+    await _api.updateBaseUrl(_hostController.text.trim(), port: _parsedPort());
   }
 
   /// Returns a valid port in [1, 65535], defaulting to [ApiConfig.defaultPort].
   int _parsedPort() {
-    final parsed = int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort;
+    final parsed =
+        int.tryParse(_portController.text.trim()) ?? ApiConfig.defaultPort;
     return parsed.clamp(1, 65535);
   }
 
@@ -82,10 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _connectionStatus = '';
     });
 
-    await _api.updateBaseUrl(
-      _hostController.text.trim(),
-      port: _parsedPort(),
-    );
+    await _api.updateBaseUrl(_hostController.text.trim(), port: _parsedPort());
 
     // Save settings
     await _saveSettings();
@@ -421,7 +418,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (!context.mounted) return;
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute<void>(
-                    builder: (_) => const OnboardingScreen()),
+                  builder: (_) => const OnboardingScreen(),
+                ),
               );
             },
           ),

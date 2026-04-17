@@ -420,8 +420,7 @@ class ConversationScreenState extends State<ConversationScreen>
   Future<void> testOnlyCallListenViaServerStt(
     Uint8List audioBytes,
     String fallbackText,
-  ) =>
-      _listenViaServerStt(audioBytes, fallbackText);
+  ) => _listenViaServerStt(audioBytes, fallbackText);
 
   // ─── End test hooks ────────────────────────────────────────────────────────
 

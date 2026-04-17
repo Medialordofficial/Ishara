@@ -222,7 +222,8 @@ class ApiService {
   /// the server has a real STT engine configured (`ISHARA_STT_AVAILABLE=true`).
   /// When `available` is `false`, callers should fall back to on-device STT.
   Future<({String text, bool available})> speechToText(
-      Uint8List audioBytes) async {
+    Uint8List audioBytes,
+  ) async {
     await _ensureInitialized();
     return _retry(() async {
       final uri = Uri.parse('$_baseUrl/speech-to-text');
@@ -230,10 +231,7 @@ class ApiService {
       final response = await _client
           .post(
             uri,
-            headers: {
-              ..._authHeaders,
-              'Content-Type': 'application/json',
-            },
+            headers: {..._authHeaders, 'Content-Type': 'application/json'},
             body: jsonEncode({'audio_b64': audiob64}),
           )
           .timeout(const Duration(seconds: 30));

@@ -174,23 +174,23 @@ class _OnboardingPage {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ExcludeSemantics(child: Icon(icon, size: 96, color: AppColors.primary)),
+          ExcludeSemantics(
+            child: Icon(icon, size: 96, color: AppColors.primary),
+          ),
           const SizedBox(height: 32),
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .headlineMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             body,
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],

@@ -30,6 +30,14 @@ from pydantic import BaseModel, Field
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("ISHARA_MODEL", "gemma4")
 
+# ── Intelligent model routing ──────────────────────────────────────────────
+# Gemma 4 ships in multiple weight classes. Route tasks to the right size:
+#   FAST_MODEL  (e.g. gemma4:4b)  — low-latency text-only tasks
+#   FULL_MODEL  (e.g. gemma4:27b) — multimodal / safety-critical tasks
+# Both default to ISHARA_MODEL so single-model setups work with no changes.
+FAST_MODEL = os.getenv("ISHARA_FAST_MODEL", MODEL)   # classify-sound, chat
+FULL_MODEL = os.getenv("ISHARA_FULL_MODEL", MODEL)   # vision, emergency
+
 # Set ISHARA_STT_AVAILABLE=true when a server-side Whisper integration is deployed.
 # When false (default), the /speech-to-text endpoint returns available=False and
 # the Flutter app should fall back to on-device speech_to_text instead.
@@ -41,11 +49,15 @@ STT_AVAILABLE: bool = os.getenv("ISHARA_STT_AVAILABLE", "false").lower() == "tru
 class PingResponse(BaseModel):
     status: str
     model: str
+    fast_model: str = ""
+    full_model: str = ""
 
 class HealthResponse(BaseModel):
     status: str
     ollama: bool
     model: str
+    fast_model: str = ""
+    full_model: str = ""
 
 class SignResponse(BaseModel):
     sign: str
@@ -75,15 +87,16 @@ class EvaluateSignResponse(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Verify Ollama connection on startup."""
+    """Verify Ollama connection on startup and log model routing config."""
     try:
         async with httpx.AsyncClient() as client:
             r = await client.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-            models = [m["name"] for m in r.json().get("models", [])]
-            if any(MODEL in m for m in models):
-                logger.info("Ollama connected — %s ready", MODEL)
-            else:
-                logger.warning("Ollama connected but %s not found. Run: ollama pull %s", MODEL, MODEL)
+            available = [m["name"] for m in r.json().get("models", [])]
+            for label, m in (("fast", FAST_MODEL), ("full", FULL_MODEL)):
+                if any(m in a for a in available):
+                    logger.info("Ollama connected — %s model (%s) ready", label, m)
+                else:
+                    logger.warning("Ollama: %s model (%s) not found. Run: ollama pull %s", label, m, m)
     except Exception:
         logger.warning("Could not reach Ollama at %s. Start it with: ollama serve", OLLAMA_URL)
     yield
@@ -273,6 +286,7 @@ async def _chat(
     *,
     temperature: float = 0.1,
     messages: list[dict] | None = None,
+    model: str | None = None,
 ) -> str:
     """Send a prompt (optionally with an image) to Gemma 4 via Ollama.
 
@@ -280,9 +294,12 @@ async def _chat(
     and /api/generate for multimodal (image) requests.
     If `messages` is provided, they are passed directly as the conversation
     history array — enabling proper multi-turn role threading.
+    If `model` is None, automatically selects FULL_MODEL for multimodal
+    requests and FAST_MODEL for text-only requests (intelligent routing).
     Temperature defaults to 0.1 for deterministic safety-critical outputs.
     Retries once on timeout before raising HTTP 504.
     """
+    used_model = model or (FULL_MODEL if image_b64 else FAST_MODEL)
     last_exc: Exception | None = None
     global _circuit_fail_count, _circuit_open_at
     # Fast-fail when the circuit is open (Ollama persistently unreachable)
@@ -305,7 +322,7 @@ async def _chat(
                 if image_b64:
                     # Multimodal path — /api/generate (only endpoint that accepts images)
                     payload: dict = {
-                        "model": MODEL,
+                        "model": used_model,
                         "prompt": prompt,
                         "stream": False,
                         "images": [image_b64],
@@ -331,7 +348,7 @@ async def _chat(
                         {"role": "user", "content": prompt},
                     ]
                     payload = {
-                        "model": MODEL,
+                        "model": used_model,
                         "stream": False,
                         "options": {"temperature": temperature},
                         "messages": chat_messages,
@@ -366,11 +383,98 @@ async def _read_upload(upload: UploadFile) -> str:
     return base64.b64encode(data).decode("utf-8")
 
 
+# ─── Gemma 4 Native Function Calling ──────────────────────────────────────
+# Gemma 4 supports native function/tool calling via the Ollama /api/chat
+# `tools` parameter. We use this for structured classification tasks where
+# the output schema is known (e.g. sound classification), giving the model
+# explicit "function signatures" rather than asking it to emit raw JSON.
+# This showcases a key Gemma 4 capability absent in earlier Gemma generations.
+
+_SOUND_CLASSIFY_TOOL: dict = {
+    "type": "function",
+    "function": {
+        "name": "classify_ambient_sound",
+        "description": "Classify an ambient sound captured by a deaf user's phone and set alert urgency.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sound": {
+                    "type": "string",
+                    "enum": ["doorbell", "alarm", "car_horn", "dog_bark", "baby_cry",
+                             "siren", "speech", "appliance", "music", "knock", "other"],
+                    "description": "Sound category most closely matching the detected sound",
+                },
+                "level": {
+                    "type": "string",
+                    "enum": ["critical", "warning", "info"],
+                    "description": (
+                        "Urgency level: critical = immediate danger, "
+                        "warning = attention needed, info = safe to ignore"
+                    ),
+                },
+                "description": {
+                    "type": "string",
+                    "description": "One-sentence plain-English description for the deaf user",
+                },
+            },
+            "required": ["sound", "level", "description"],
+        },
+    },
+}
+
+
+async def _chat_with_tools(
+    prompt: str,
+    tools: list[dict],
+    *,
+    model: str | None = None,
+    temperature: float = 0.1,
+) -> dict | None:
+    """Call Gemma 4 with native tool/function definitions via Ollama /api/chat.
+
+    Returns the first tool_call arguments dict on success, or None if the model
+    did not invoke a tool (or if the request fails). Callers should always
+    provide a JSON-parse fallback for the None case.
+
+    This leverages Gemma 4's built-in function-calling capability — a feature
+    unique to the Gemma 4 model family — for strongly-typed structured outputs.
+    """
+    used_model = model or FAST_MODEL
+    messages: list[dict] = [
+        {
+            "role": "system",
+            "content": (
+                "You are Ishara AI, an assistant for deaf users. "
+                "Always call the provided function with the correct arguments."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ]
+    payload: dict = {
+        "model": used_model,
+        "messages": messages,
+        "tools": tools,
+        "stream": False,
+        "options": {"temperature": temperature},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
+            r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
+            r.raise_for_status()
+            msg = r.json().get("message", {})
+            tool_calls = msg.get("tool_calls", [])
+            if tool_calls:
+                return tool_calls[0].get("function", {}).get("arguments", {})
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_chat_with_tools failed (falling back to JSON parse): %s", exc)
+    return None
+
+
 # ─── Endpoints ─────────────────────────────────────────────
 
 @app.get("/ping", response_model=PingResponse)
 async def ping():
-    return PingResponse(status="ok", model=MODEL)
+    return PingResponse(status="ok", model=MODEL, fast_model=FAST_MODEL, full_model=FULL_MODEL)
 
 
 SIGN_LANGUAGE_SYSTEM = _sanitize_user_input(os.getenv("ISHARA_SIGN_LANGUAGE", "ASL (American Sign Language)"))
@@ -398,7 +502,7 @@ async def interpret_sign(image: UploadFile = File(...)):
         "{\"sign\": \"No sign detected\", \"confidence\": 0.0}  — empty or unclear frame\n"
         "Your reply (JSON only, no extra text):"
     )
-    raw = await _chat(prompt, b64)
+    raw = await _chat(prompt, b64, model=FULL_MODEL)  # multimodal → FULL_MODEL
     sign = raw.strip()
     confidence = 0.0
     try:
@@ -442,12 +546,34 @@ _SOUND_CATEGORIES = {
 async def classify_sound(req: SoundRequest):
     """Classify an ambient sound description for a deaf Sound Awareness user.
 
+    Primary path: Gemma 4 native function calling — the model fills a typed
+    schema directly, eliminating JSON-parse fragility and showcasing the
+    function-calling capability unique to the Gemma 4 model family.
+
+    Fallback path (if the model does not invoke the tool): prompt the model
+    for a JSON reply and parse it, matching behaviour from prior cycles.
+
     Maps LLM output to one of 11 known categories (doorbell, alarm, siren, etc.)
     with urgency level: critical, warning, or info.
     Falls back to 'other / info' if the LLM response is unrecognised.
     """
     safe_desc = _sanitize_user_input(req.description)
-    prompt = (
+    tool_prompt = (
+        f"A deaf person's phone detected this sound: '{safe_desc}'. "
+        "Call classify_ambient_sound to categorise it and set the urgency level."
+    )
+    # ── Primary: Gemma 4 native function calling ────────────────────────────
+    tool_args = await _chat_with_tools(tool_prompt, [_SOUND_CLASSIFY_TOOL], model=FAST_MODEL)
+    if tool_args:
+        raw_sound = str(tool_args.get("sound", "")).strip().lower()
+        sound = raw_sound if raw_sound in _SOUND_CATEGORIES else "other"
+        return SoundClassification(
+            sound=sound,
+            level=tool_args.get("level", "info"),
+            description=tool_args.get("description", ""),
+        )
+    # ── Fallback: JSON-parse path (Gemma 3 compat / tool-call not triggered) ─
+    fallback_prompt = (
         "You are helping a deaf person understand sounds around them. "
         f"The microphone detected this sound: '{safe_desc}'. "
         "Classify it as one of: doorbell, alarm, car_horn, dog_bark, "
@@ -455,7 +581,7 @@ async def classify_sound(req: SoundRequest):
         "Also rate urgency: critical, warning, or info. "
         "Reply in JSON: {\"sound\": \"...\", \"level\": \"...\", \"description\": \"...\"}"
     )
-    raw = await _chat(prompt)
+    raw = await _chat(fallback_prompt, model=FAST_MODEL)
     data = _parse_llm_json(raw)
     if data:
         raw_sound = str(data.get("sound", "")).strip().lower()
@@ -511,7 +637,7 @@ async def emergency_message(req: EmergencyRequest):
         "Include: type of emergency, request for help, note that the person is deaf "
         "and communicates via text. Keep it under 3 sentences."
     )
-    result = await _chat(prompt)
+    result = await _chat(prompt, model=FULL_MODEL)  # safety-critical → FULL_MODEL
     message = result.strip()
     # Validate output: must be non-empty and not a clear refusal/error.
     # Minimum length check ensures a substantive message reached TTS.
@@ -571,7 +697,7 @@ async def emergency_chat(req: ChatRequest):
     for h in req.history[-6:]:
         messages.append({"role": h.role, "content": _sanitize_user_input(h.content)})
     messages.append({"role": "user", "content": safe_msg})
-    result = await _chat("", temperature=0.7, messages=messages)
+    result = await _chat("", temperature=0.7, messages=messages, model=FAST_MODEL)
     return ChatResponse(reply=result.strip())
 
 
@@ -605,7 +731,7 @@ async def read_world(
             "3) Any safety-relevant information. "
             "Keep the description clear and concise."
         )
-    result = await _chat(prompt, b64)
+    result = await _chat(prompt, b64, model=FULL_MODEL)  # multimodal → FULL_MODEL
     return WorldReaderResponse(description=result.strip())
 
 
@@ -630,7 +756,7 @@ async def evaluate_sign(
         "If you can't clearly see the sign, ask them to try again with better lighting. "
         "Keep feedback to 2-3 sentences."
     )
-    result = await _chat(prompt, b64)
+    result = await _chat(prompt, b64, model=FULL_MODEL)  # multimodal → FULL_MODEL
     return EvaluateSignResponse(feedback=result.strip())
 
 
@@ -674,7 +800,7 @@ async def general_chat(req: GeneralChatRequest):
         messages.append({"role": h.role, "content": _sanitize_user_input(h.content)})
     # Append the current user message.
     messages.append({"role": "user", "content": safe_msg})
-    result = await _chat("", temperature=0.7, messages=messages)
+    result = await _chat("", temperature=0.7, messages=messages, model=FAST_MODEL)
     return ChatResponse(reply=result.strip())
 
 
@@ -687,7 +813,7 @@ async def health():
             ollama_ok = r.status_code == 200
     except Exception:
         ollama_ok = False
-    return HealthResponse(status="ok", ollama=ollama_ok, model=MODEL)
+    return HealthResponse(status="ok", ollama=ollama_ok, model=MODEL, fast_model=FAST_MODEL, full_model=FULL_MODEL)
 
 
 # ─── User Feedback ─────────────────────────────────────────

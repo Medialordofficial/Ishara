@@ -51,16 +51,19 @@ void main() {
       expect(find.text('Get Started'), findsOneWidget);
     });
 
-    testWidgets('IsharaApp routes to OnboardingScreen when showOnboarding is true',
-        (tester) async {
-      await tester.pumpWidget(const IsharaApp(showOnboarding: true));
-      await tester.pump();
+    testWidgets(
+      'IsharaApp routes to OnboardingScreen when showOnboarding is true',
+      (tester) async {
+        await tester.pumpWidget(const IsharaApp(showOnboarding: true));
+        await tester.pump();
 
-      expect(find.text('Welcome to Ishara'), findsOneWidget);
-    });
+        expect(find.text('Welcome to Ishara'), findsOneWidget);
+      },
+    );
 
-    testWidgets('IsharaApp routes to HomeScreen when showOnboarding is false',
-        (tester) async {
+    testWidgets('IsharaApp routes to HomeScreen when showOnboarding is false', (
+      tester,
+    ) async {
       await tester.pumpWidget(const IsharaApp(showOnboarding: false));
       await tester.pump();
 

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -93,7 +92,9 @@ void main() {
       );
     });
 
-    testWidgets('has send SOS semantic label for accessibility', (tester) async {
+    testWidgets('has send SOS semantic label for accessibility', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const EmergencyScreen()));
       await tester.pumpAndSettle();
 
@@ -102,8 +103,9 @@ void main() {
       expect(semantics, findsOneWidget);
     });
 
-    testWidgets('emergency type buttons have accessibility semantics',
-        (tester) async {
+    testWidgets('emergency type buttons have accessibility semantics', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const EmergencyScreen()));
       await tester.pumpAndSettle();
 
@@ -117,8 +119,9 @@ void main() {
       expect(find.text('Other'), findsOneWidget);
     });
 
-    testWidgets('selecting type visually marks button as selected',
-        (tester) async {
+    testWidgets('selecting type visually marks button as selected', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const EmergencyScreen()));
       await tester.pumpAndSettle();
 
@@ -147,8 +150,9 @@ void main() {
       expect(find.text('Send SOS'), findsOneWidget);
     });
 
-    testWidgets('cancelling confirmation dialog returns to setup',
-        (tester) async {
+    testWidgets('cancelling confirmation dialog returns to setup', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const EmergencyScreen()));
       await tester.pumpAndSettle();
 
@@ -166,37 +170,38 @@ void main() {
     });
 
     testWidgets(
-        'Send SOS button in dialog triggers Navigator pop and closes dialog',
-        (tester) async {
-      // The dialog close is triggered by Navigator.pop(ctx, true).
-      // We verify this by checking the dialog is dismissed after the tap +
-      // a pumpAndSettle, ignoring any subsequent async platform plugin calls
-      // (Geolocator, Vibration) that never complete in the test environment.
-      // We achieve this by overriding the button to just pop without side effects
-      // via testing the SEND SOS button semantics label presence.
-      await tester.pumpWidget(_wrap(const EmergencyScreen()));
-      await tester.pumpAndSettle();
+      'Send SOS button in dialog triggers Navigator pop and closes dialog',
+      (tester) async {
+        // The dialog close is triggered by Navigator.pop(ctx, true).
+        // We verify this by checking the dialog is dismissed after the tap +
+        // a pumpAndSettle, ignoring any subsequent async platform plugin calls
+        // (Geolocator, Vibration) that never complete in the test environment.
+        // We achieve this by overriding the button to just pop without side effects
+        // via testing the SEND SOS button semantics label presence.
+        await tester.pumpWidget(_wrap(const EmergencyScreen()));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Medical'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('SEND SOS'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Medical'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('SEND SOS'));
+        await tester.pumpAndSettle();
 
-      // Dialog is showing
-      expect(find.text('Confirm Emergency'), findsOneWidget);
+        // Dialog is showing
+        expect(find.text('Confirm Emergency'), findsOneWidget);
 
-      // Cancel the dialog — this is the reliably testable path
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+        // Cancel the dialog — this is the reliably testable path
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
 
-      // Dialog dismissed, back on setup screen
-      expect(find.text('Confirm Emergency'), findsNothing);
-      expect(find.text('Select Emergency Type'), findsOneWidget);
-    });
+        // Dialog dismissed, back on setup screen
+        expect(find.text('Confirm Emergency'), findsNothing);
+        expect(find.text('Select Emergency Type'), findsOneWidget);
+      },
+    );
 
-    testWidgets(
-        'SEND SOS button in dialog is styled with danger color',
-        (tester) async {
+    testWidgets('SEND SOS button in dialog is styled with danger color', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const EmergencyScreen()));
       await tester.pumpAndSettle();
 
@@ -218,33 +223,39 @@ void main() {
     });
 
     testWidgets(
-        'active emergency screen layout — SOS Sent text visible after mock send',
-        (tester) async {
-      // We directly push the screen with _emergencySent=true by navigating to a
-      // special state. Since we cannot easily bypass platform plugins in _sendEmergency,
-      // this test verifies the active emergency layout is visible in the widget tree
-      // when emergencyMessage API succeeds. We verify by checking the label IS present
-      // in the widget tree via semantic labels on the setup screen buttons.
-      await tester.pumpWidget(_wrap(const EmergencyScreen()));
-      await tester.pumpAndSettle();
+      'active emergency screen layout — SOS Sent text visible after mock send',
+      (tester) async {
+        // We directly push the screen with _emergencySent=true by navigating to a
+        // special state. Since we cannot easily bypass platform plugins in _sendEmergency,
+        // this test verifies the active emergency layout is visible in the widget tree
+        // when emergencyMessage API succeeds. We verify by checking the label IS present
+        // in the widget tree via semantic labels on the setup screen buttons.
+        await tester.pumpWidget(_wrap(const EmergencyScreen()));
+        await tester.pumpAndSettle();
 
-      // Verify setup screen elements are present (tests the pre-send state)
-      expect(find.text('Medical'), findsOneWidget);
-      expect(find.text('Police'), findsOneWidget);
-      expect(find.text('Fire'), findsOneWidget);
-      expect(find.text('Disaster'), findsOneWidget);
-      expect(find.text('Other'), findsOneWidget);
-      expect(find.bySemanticsLabel('Send SOS emergency alert'), findsOneWidget);
-    });
+        // Verify setup screen elements are present (tests the pre-send state)
+        expect(find.text('Medical'), findsOneWidget);
+        expect(find.text('Police'), findsOneWidget);
+        expect(find.text('Fire'), findsOneWidget);
+        expect(find.text('Disaster'), findsOneWidget);
+        expect(find.text('Other'), findsOneWidget);
+        expect(
+          find.bySemanticsLabel('Send SOS emergency alert'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('chat bubbles render with correct semantics labels',
-        (tester) async {
+    testWidgets('chat bubbles render with correct semantics labels', (
+      tester,
+    ) async {
       // Use initialEmergencySent:true to bypass platform plugins
       // (Geolocator, Vibration) that are unavailable in test environments.
       ApiService().httpClient = MockClient((_) async => http.Response('', 503));
 
       await tester.pumpWidget(
-          _wrap(const EmergencyScreen(initialEmergencySent: true)));
+        _wrap(const EmergencyScreen(initialEmergencySent: true)),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -253,9 +264,11 @@ void main() {
       expect(textFields, findsWidgets);
       // Semantics widget with our label exists in the widget tree.
       expect(
-        find.byWidgetPredicate((w) =>
-            w is Semantics &&
-            (w.properties.label?.contains('emergency message') ?? false)),
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.label?.contains('emergency message') ?? false),
+        ),
         findsOneWidget,
       );
 
@@ -269,8 +282,9 @@ void main() {
 
       // User message Semantics label (added immediately by setState)
       expect(
-        find.byWidgetPredicate((w) =>
-            w is Semantics && (w.properties.label == 'You: Help!')),
+        find.byWidgetPredicate(
+          (w) => w is Semantics && (w.properties.label == 'You: Help!'),
+        ),
         findsOneWidget,
       );
       // Also verify text is visually present
@@ -281,16 +295,22 @@ void main() {
       // The async timing of retries makes this assertion flaky in test envs.
     });
 
-    testWidgets('operator reply renders with correct Semantics label',
-        (tester) async {
+    testWidgets('operator reply renders with correct Semantics label', (
+      tester,
+    ) async {
       // Use initialEmergencySent:true so we start in the active-emergency
       // state without triggering Geolocator/Vibration platform channels.
-      ApiService().httpClient = MockClient((_) async => http.Response(
-          '{"reply": "Help is on the way."}', 200,
-          headers: {'content-type': 'application/json'}));
+      ApiService().httpClient = MockClient(
+        (_) async => http.Response(
+          '{"reply": "Help is on the way."}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
 
       await tester.pumpWidget(
-          _wrap(const EmergencyScreen(initialEmergencySent: true)));
+        _wrap(const EmergencyScreen(initialEmergencySent: true)),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -306,15 +326,18 @@ void main() {
       }
 
       expect(
-        find.byWidgetPredicate((w) =>
-            w is Semantics && (w.properties.label == 'You: Need help!')),
+        find.byWidgetPredicate(
+          (w) => w is Semantics && (w.properties.label == 'You: Need help!'),
+        ),
         findsOneWidget,
       );
       // Operator reply Semantics label
       expect(
-        find.byWidgetPredicate((w) =>
-            w is Semantics &&
-            (w.properties.label?.startsWith('Operator:') == true)),
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              (w.properties.label?.startsWith('Operator:') == true),
+        ),
         findsOneWidget,
       );
     });

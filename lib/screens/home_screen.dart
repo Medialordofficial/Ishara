@@ -9,6 +9,8 @@ import 'learn_signs_screen.dart';
 import 'settings_screen.dart';
 import 'sign_dictionary_screen.dart';
 import 'sound_awareness_screen.dart';
+import 'text_chat_screen.dart';
+import 'type_to_speak_screen.dart';
 import 'world_reader_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -74,6 +76,16 @@ class _HomeScreenState extends State<HomeScreen> {
       title: AppStrings.learnSignsMode,
       icon: Icons.school_outlined,
       builder: () => const LearnSignsScreen(),
+    ),
+    _ModeEntry(
+      title: 'Type to Speak',
+      icon: Icons.record_voice_over_rounded,
+      builder: () => const TypeToSpeakScreen(),
+    ),
+    _ModeEntry(
+      title: 'Text Chat',
+      icon: Icons.chat_rounded,
+      builder: () => const TextChatScreen(),
     ),
     _ModeEntry(
       title: 'Sign Dictionary',

@@ -72,10 +72,16 @@ def print_gpu_info() -> tuple[bool, bool]:
 
 # ── Configuration ──────────────────────────────────────────────────────────
 
-# Base model: Unsloth's pre-quantized Gemma 4 mirror (no HF login required).
-# google/gemma-4-4b-it is a gated model — using Unsloth's copy avoids auth errors.
-# Override: ISHARA_BASE_MODEL=google/gemma-4-4b-it (add HF_TOKEN if you do this)
-BASE_MODEL = os.getenv("ISHARA_BASE_MODEL", "unsloth/gemma-4-4b-it-bnb-4bit")
+# Base model: Unsloth's pre-quantized Gemma 4 E4B mirror (no HF login required).
+# Gemma 4 ships as E2B/E4B (edge, ~2B/4B effective params), 31B (dense), and
+# 26B-a4b (MoE). E4B-it is the 4B-scale instruction-tuned variant that fits a
+# Colab T4 in 4-bit. Override with ISHARA_BASE_MODEL to swap, e.g.:
+#   ISHARA_BASE_MODEL=unsloth/gemma-4-E2B-it-unsloth-bnb-4bit  (smaller / faster)
+#   ISHARA_BASE_MODEL=unsloth/gemma-4-31B-it-unsloth-bnb-4bit  (A100 / H100)
+BASE_MODEL = os.getenv(
+    "ISHARA_BASE_MODEL",
+    "unsloth/gemma-4-E4B-it-unsloth-bnb-4bit",
+)
 
 # LoRA rank — higher = more capacity, more VRAM. 16 is a good default.
 LORA_RANK = int(os.getenv("ISHARA_LORA_RANK", "16"))
@@ -89,12 +95,19 @@ NUM_EPOCHS = int(os.getenv("ISHARA_TRAIN_EPOCHS", "3"))
 # Path to the JSONL training dataset.
 # Resolution order:
 #   1. ISHARA_DATASET_PATH env var (explicit override)
-#   2. Same directory as this script (repo layout: training/asl_dataset.jsonl)
-#   3. Current working directory (Colab flat-upload: /content/asl_dataset.jsonl)
+#   2. Same directory as this script — prefers the combined dataset
+#      (ASL single-turn + multi-turn deaf conversations) if present
+#   3. Falls back to the ASL-only dataset
+#   4. Current working directory (Colab flat-upload)
 def _find_dataset() -> Path:
-    if (p := Path(__file__).parent / "asl_dataset.jsonl").exists():
-        return p
-    return Path.cwd() / "asl_dataset.jsonl"
+    here = Path(__file__).parent
+    for name in ("ishara_combined.jsonl", "asl_dataset.jsonl"):
+        if (p := here / name).exists():
+            return p
+    for name in ("ishara_combined.jsonl", "asl_dataset.jsonl"):
+        if (p := Path.cwd() / name).exists():
+            return p
+    return here / "asl_dataset.jsonl"
 
 DATASET_PATH = Path(os.getenv("ISHARA_DATASET_PATH", "") or _find_dataset())
 
@@ -122,11 +135,29 @@ def load_and_validate_dataset(path: Path) -> list[dict]:
             try:
                 obj  = json.loads(raw)
                 msgs = obj.get("messages", [])
-                assert len(msgs) == 3,          "expected 3 messages (system/user/assistant)"
-                assert msgs[0]["role"] == "system"
-                assert msgs[1]["role"] == "user"
-                assert msgs[2]["role"] == "assistant"
-                json.loads(msgs[2]["content"])  # assistant JSON must be parseable
+                # Accept two shapes:
+                #  (a) Single-turn ASL: system/user/assistant where the
+                #      assistant content is a parseable JSON payload.
+                #  (b) Multi-turn conversation: system followed by alternating
+                #      user/assistant text turns (>= 3 messages total).
+                assert len(msgs) >= 3, "expected at least system + user + assistant"
+                assert msgs[0]["role"] == "system", "first message must be system"
+                # Remaining messages must alternate user / assistant.
+                for i, m in enumerate(msgs[1:], start=1):
+                    expected = "user" if i % 2 == 1 else "assistant"
+                    assert m["role"] == expected, (
+                        f"message {i} role={m['role']!r}, expected {expected!r}"
+                    )
+                    assert isinstance(m.get("content"), str) and m["content"], (
+                        f"message {i} has empty content"
+                    )
+                # Single-turn ASL records keep their JSON-payload contract.
+                if len(msgs) == 3:
+                    try:
+                        json.loads(msgs[2]["content"])
+                    except json.JSONDecodeError:
+                        # Not JSON — treat as a short free-text conversation.
+                        pass
                 records.append(obj)
             except Exception as exc:
                 errors.append(f"  line {lineno}: {exc}")

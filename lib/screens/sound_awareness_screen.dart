@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:vibration/vibration.dart';
 import '../models/sound_alert.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
@@ -210,17 +211,30 @@ class _SoundAwarenessScreenState extends State<SoundAwarenessScreen>
 
     NotificationService().soundAlert(alert.label);
 
+    // Distinct vibration patterns so deaf users can feel the difference:
+    //   critical: rapid triple-pulse (alarm/siren feel)
+    //   warning:  double-pulse (attention)
+    //   info:     single short buzz
     switch (alert.level) {
       case AlertLevel.critical:
         HapticFeedback.heavyImpact();
+        Vibration.vibrate(
+          pattern: [0, 200, 100, 200, 100, 400],
+          intensities: [0, 255, 0, 255, 0, 255],
+        );
         _flashScreen(AppColors.danger);
         break;
       case AlertLevel.warning:
         HapticFeedback.mediumImpact();
+        Vibration.vibrate(
+          pattern: [0, 150, 120, 150],
+          intensities: [0, 200, 0, 200],
+        );
         _flashScreen(AppColors.warning);
         break;
       case AlertLevel.info:
         HapticFeedback.lightImpact();
+        Vibration.vibrate(duration: 100, amplitude: 128);
         _flashScreen(AppColors.info);
         break;
     }

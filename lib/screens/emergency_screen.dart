@@ -243,6 +243,94 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     }
   }
 
+  /// One-tap panic: auto-sends "medical" SOS with GPS + pre-written context.
+  /// No type selection needed — designed for when you can't sign or speak.
+  Future<void> _panicSend() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_rounded, color: AppColors.danger, size: 28),
+            SizedBox(width: 8),
+            Text('Panic SOS'),
+          ],
+        ),
+        content: const Text(
+          'This will immediately send an emergency alert with your location '
+          'and a message stating you are deaf and need urgent help.\n\n'
+          'Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('SEND NOW'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() {
+      _selectedType = 'medical';
+      _isSending = true;
+    });
+    HapticFeedback.heavyImpact();
+
+    final hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator == true) {
+      Vibration.vibrate(pattern: [0, 500, 200, 500, 200, 500]);
+    }
+
+    double lat = 0.0;
+    double lng = 0.0;
+    try {
+      final position = await _getLocation();
+      if (position != null) {
+        lat = position.latitude;
+        lng = position.longitude;
+        _locationInfo =
+            'Location: ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+      } else {
+        _locationInfo = 'Location unavailable';
+      }
+    } catch (_) {
+      _locationInfo = 'Location unavailable';
+    }
+
+    try {
+      final result = await _api.emergencyMessage(
+        latitude: lat,
+        longitude: lng,
+        emergencyType: 'medical',
+      );
+
+      setState(() {
+        _emergencySent = true;
+        _generatedMessage =
+            result['message'] ?? 'PANIC: Deaf person needs immediate help.';
+        _isSending = false;
+      });
+
+      NotificationService().emergencyConfirm(_generatedMessage);
+      await _tts.speak(_generatedMessage);
+    } catch (_) {
+      setState(() {
+        _isSending = false;
+        _emergencySent = true;
+        _generatedMessage =
+            'PANIC: Deaf person needs immediate medical help. '
+            'Cannot speak or hear. $_locationInfo';
+      });
+      await _tts.speak(_generatedMessage);
+    }
+  }
+
   void _reset() {
     setState(() {
       _selectedType = null;
@@ -383,6 +471,69 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           ),
                         ),
                 ),
+              ),
+            ),
+            // ── Panic Button: one-tap, no selection needed ──
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.danger.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'Can\'t select a type?',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: Semantics(
+                      button: true,
+                      label:
+                          'Panic button. Sends emergency alert immediately without selecting a type.',
+                      child: ElevatedButton.icon(
+                        onPressed: _isSending ? null : _panicSend,
+                        icon: const Icon(Icons.touch_app_rounded, size: 22),
+                        label: const Text(
+                          'PANIC — SEND HELP NOW',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.warning,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          elevation: 4,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Auto-sends location + "I am deaf and need help"',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           ],

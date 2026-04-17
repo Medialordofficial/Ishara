@@ -59,6 +59,8 @@ class AppStrings {
   static const String emergencyMode = 'Emergency SOS';
   static const String worldReaderMode = 'World Reader';
   static const String learnSignsMode = 'Learn Signs';
+  static const String typeToSpeakMode = 'Type to Speak';
+  static const String textChatMode = 'Text Chat';
 }
 
 class ApiConfig {

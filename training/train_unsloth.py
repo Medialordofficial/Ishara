@@ -86,12 +86,20 @@ MAX_SEQ_LEN = int(os.getenv("ISHARA_MAX_SEQ_LEN", "512"))
 NUM_EPOCHS = int(os.getenv("ISHARA_TRAIN_EPOCHS", "3"))
 
 # Path to the JSONL training dataset.
-DATASET_PATH = Path(os.getenv("ISHARA_DATASET_PATH",
-                               Path(__file__).parent / "asl_dataset.jsonl"))
+# Resolution order:
+#   1. ISHARA_DATASET_PATH env var (explicit override)
+#   2. Same directory as this script (repo layout: training/asl_dataset.jsonl)
+#   3. Current working directory (Colab flat-upload: /content/asl_dataset.jsonl)
+def _find_dataset() -> Path:
+    if (p := Path(__file__).parent / "asl_dataset.jsonl").exists():
+        return p
+    return Path.cwd() / "asl_dataset.jsonl"
+
+DATASET_PATH = Path(os.getenv("ISHARA_DATASET_PATH", "") or _find_dataset())
 
 # Output directory for the LoRA adapter weights.
 OUTPUT_DIR = Path(os.getenv("ISHARA_OUTPUT_DIR",
-                              Path(__file__).parent / "ishara-asl-gemma4-lora"))
+                              str(Path(__file__).parent / "ishara-asl-gemma4-lora")))
 
 # HuggingFace repo to push weights to (set to "" to skip push).
 HF_REPO = os.getenv("ISHARA_HF_REPO", "")

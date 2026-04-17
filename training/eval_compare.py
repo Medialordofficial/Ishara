@@ -119,8 +119,8 @@ def load_model_and_tokenizer(adapter_dir: str | None):
 
 def generate(model, tokenizer, user_prompt: str) -> str:
     msgs = [
-        {"role": "system", "content": SYS_PROMPT},
-        {"role": "user", "content": user_prompt},
+        {"role": "system", "content": [{"type": "text", "text": SYS_PROMPT}]},
+        {"role": "user", "content": [{"type": "text", "text": user_prompt}]},
     ]
     inputs = tokenizer.apply_chat_template(
         msgs,

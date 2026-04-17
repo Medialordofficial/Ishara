@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -191,10 +192,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(
-        find.text('Server STT active — routing speech'),
-        findsNothing,
-      );
+      expect(find.text('Server STT active — routing speech'), findsNothing);
     });
 
     testWidgets(
@@ -252,8 +250,9 @@ void main() {
       },
     );
 
-    testWidgets('TextField Semantics does not use excludeSemantics',
-        (tester) async {
+    testWidgets('TextField Semantics does not use excludeSemantics', (
+      tester,
+    ) async {
       // Regression guard: ensures excludeSemantics:true is NOT on the TextField
       // wrapper, which would strip text-value/cursor/editing-action nodes from
       // the accessibility tree.
@@ -262,10 +261,12 @@ void main() {
 
       // Find all Semantics widgets that wrap a TextField
       final semanticsWidgets = tester
-          .widgetList<Semantics>(find.ancestor(
-            of: find.byType(TextField),
-            matching: find.byType(Semantics),
-          ))
+          .widgetList<Semantics>(
+            find.ancestor(
+              of: find.byType(TextField),
+              matching: find.byType(Semantics),
+            ),
+          )
           .toList();
 
       for (final s in semanticsWidgets) {
@@ -278,5 +279,125 @@ void main() {
         );
       }
     });
+
+    testWidgets(
+      'sign interpretation result is displayed and feedback buttons appear',
+      (tester) async {
+        // Use a taller screen so the camera preview + feedback section fit without overflow.
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final key = GlobalKey<ConversationScreenState>();
+        await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
+        await tester.pump();
+
+        // No feedback buttons initially (no sign interpreted yet)
+        expect(find.byIcon(Icons.thumb_up_outlined), findsNothing);
+
+        // Simulate a clean sign interpretation result via test hook
+        key.currentState!.simulateSignInterpretationForTest('Hello', 0.9);
+        await tester.pump();
+
+        // Feedback buttons appear once a sign is displayed
+        expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
+        expect(find.byIcon(Icons.thumb_down_outlined), findsOneWidget);
+        // Feedback row references the interpreted sign (confirms sign is stored + displayed)
+        expect(find.text('Last: "Hello"'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'server STT injection payload is sanitized — no bubble added',
+      (tester) async {
+        // Mock /speech-to-text to return injection payload
+        ApiService().httpClient = MockClient((request) async {
+          if (request.url.path == '/ping') {
+            return http.Response(jsonEncode({'status': 'ok'}), 200);
+          }
+          if (request.url.path == '/speech-to-text') {
+            return http.Response(
+              jsonEncode({
+                'text': '<script>alert("xss")</script>',
+                'available': true,
+              }),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        addTearDown(() => ApiService().httpClient = http.Client());
+
+        final key = GlobalKey<ConversationScreenState>();
+        await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1)); // let ping settle
+
+        // Invoke server-STT path with dummy audio + an injected fallback
+        // (both server response and fallback are injections → both strip to empty → no bubble)
+        await key.currentState!.testOnlyCallListenViaServerStt(
+          Uint8List.fromList('test'.codeUnits),
+          '<script>inject fallback</script>',
+        );
+        await tester.pump();
+
+        // Injection payload strips to empty; no bubble added beyond system message
+        expect(
+          find.text('<script>alert("xss")</script>'),
+          findsNothing,
+          reason: 'Server STT injection must be stripped before display',
+        );
+        // Delete button absent = still only 1 message (system message)
+        expect(
+          find.byIcon(Icons.delete_outline),
+          findsNothing,
+          reason: 'Empty-after-sanitization result should add no bubble',
+        );
+      },
+    );
+
+    testWidgets(
+      'sendFeedback called with sanitized sign when thumb-up tapped',
+      (tester) async {
+        // Use a taller screen so the camera preview + feedback section fit without overflow.
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        String? capturedInterpretedSign;
+        ApiService().httpClient = MockClient((request) async {
+          if (request.url.path == '/feedback') {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            capturedInterpretedSign = body['interpreted_sign'] as String?;
+            return http.Response(jsonEncode({'status': 'ok'}), 200);
+          }
+          return http.Response('not found', 404);
+        });
+        addTearDown(() => ApiService().httpClient = http.Client());
+
+        final key = GlobalKey<ConversationScreenState>();
+        await tester.pumpWidget(_wrap(ConversationScreen(key: key)));
+        await tester.pump();
+
+        // Simulate a sign interpretation with a clean label
+        key.currentState!.simulateSignInterpretationForTest('Thank you', 0.95);
+        await tester.pump();
+
+        // Thumb-up button should now be visible
+        expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
+
+        // Tap thumb-up
+        await tester.tap(find.byIcon(Icons.thumb_up_outlined));
+        await tester.pump(); // begin async onPressed
+        await tester.pump(const Duration(milliseconds: 500)); // let HTTP call resolve
+
+        // Verify the feedback API received the sanitized sign
+        expect(
+          capturedInterpretedSign,
+          'Thank you',
+          reason: 'sendFeedback must transmit the sanitized sign label',
+        );
+      },
+    );
   });
 }

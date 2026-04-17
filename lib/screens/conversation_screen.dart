@@ -15,10 +15,11 @@ class ConversationScreen extends StatefulWidget {
   const ConversationScreen({super.key});
 
   @override
-  State<ConversationScreen> createState() => _ConversationScreenState();
+  ConversationScreenState createState() => ConversationScreenState();
 }
 
-class _ConversationScreenState extends State<ConversationScreen>
+// State class is public to allow @visibleForTesting access in widget tests.
+class ConversationScreenState extends State<ConversationScreen>
     with TickerProviderStateMixin {
   CameraController? _cameraController;
   final ApiService _api = ApiService();
@@ -169,10 +170,7 @@ class _ConversationScreenState extends State<ConversationScreen>
         _currentWords = '';
         // Consistent with onResult: use server path when available.
         if (_sttServerAvailable) {
-          _listenViaServerStt(
-            Uint8List.fromList(captured.codeUnits),
-            captured,
-          );
+          _listenViaServerStt(Uint8List.fromList(captured.codeUnits), captured);
         } else {
           _addHearingMessage(sanitizeSoundLabel(captured));
         }
@@ -304,7 +302,9 @@ class _ConversationScreenState extends State<ConversationScreen>
 
       final bytes = await image.readAsBytes();
       final result = await _api.interpretSign(bytes);
-      final interpretation = sanitizeSoundLabel((result['sign'] as String?) ?? '');
+      final interpretation = sanitizeSoundLabel(
+        (result['sign'] as String?) ?? '',
+      );
       final confidence = (result['confidence'] as double?) ?? 0.0;
 
       // Only announce and speak results above the confidence threshold
@@ -395,6 +395,35 @@ class _ConversationScreenState extends State<ConversationScreen>
       }
     });
   }
+
+  // ─── Test hooks ────────────────────────────────────────────────────────────
+  // These methods are annotated @visibleForTesting so that widget tests can
+  // exercise paths that are normally triggered by camera or microphone input,
+  // which cannot be mocked without platform channel stubs.
+
+  /// Simulates a sign interpretation result (camera path → server → display).
+  /// Allows widget tests to put the UI into the "sign interpreted" state so
+  /// that the feedback buttons are visible and testable.
+  @visibleForTesting
+  void simulateSignInterpretationForTest(String sign, double confidence) {
+    setState(() {
+      _lastSign = sign;
+      _lastConfidence = confidence;
+      _messages.add(ChatMessage(text: sign, sender: MessageSender.deaf));
+    });
+  }
+
+  /// Directly invokes [_listenViaServerStt] with the given [fallbackText].
+  /// Lets widget tests exercise the server-STT sanitization path without
+  /// needing a live microphone or speech-recognition platform channel.
+  @visibleForTesting
+  Future<void> testOnlyCallListenViaServerStt(
+    Uint8List audioBytes,
+    String fallbackText,
+  ) =>
+      _listenViaServerStt(audioBytes, fallbackText);
+
+  // ─── End test hooks ────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -687,7 +716,8 @@ class _ConversationScreenState extends State<ConversationScreen>
                                       color: _lastConfidence >= 0.7
                                           ? AppColors.success
                                           : _lastConfidence >=
-                                                PoseThresholds.interpretConfidence
+                                                PoseThresholds
+                                                    .interpretConfidence
                                           ? AppColors.warning
                                           : AppColors.danger,
                                     ),
@@ -720,21 +750,21 @@ class _ConversationScreenState extends State<ConversationScreen>
                             color: AppColors.success,
                           ),
                           onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final safeSign = sanitizeSoundLabel(_lastSign);
-                              await _api.sendFeedback(
-                                interpretedSign: safeSign,
-                                correctSign: safeSign,
+                            final messenger = ScaffoldMessenger.of(context);
+                            final safeSign = sanitizeSoundLabel(_lastSign);
+                            await _api.sendFeedback(
+                              interpretedSign: safeSign,
+                              correctSign: safeSign,
+                            );
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Thanks for the feedback!'),
+                                  duration: Duration(seconds: 1),
+                                ),
                               );
-                              if (mounted) {
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Thanks for the feedback!'),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              }
-                            },
+                            }
+                          },
                         ),
                         IconButton(
                           tooltip: 'Report incorrect interpretation',
@@ -768,8 +798,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                             color: AppColors.success,
                           ),
                         ),
-                        backgroundColor:
-                            AppColors.success.withValues(alpha: 0.1),
+                        backgroundColor: AppColors.success.withValues(
+                          alpha: 0.1,
+                        ),
                         side: BorderSide(
                           color: AppColors.success.withValues(alpha: 0.3),
                         ),
@@ -906,7 +937,9 @@ class _ConversationScreenState extends State<ConversationScreen>
                         children: [
                           ExcludeSemantics(
                             child: Icon(
-                              _isInterpreting ? Icons.stop : Icons.sign_language,
+                              _isInterpreting
+                                  ? Icons.stop
+                                  : Icons.sign_language,
                               color: Colors.white,
                               size: 22,
                             ),

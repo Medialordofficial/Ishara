@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.11.0] — Fix Cycle 38
+
+### Testing
+- `conversation_screen.dart`: `_ConversationScreenState` renamed to `ConversationScreenState` (public) and annotated `@visibleForTesting` test-hook methods added — `simulateSignInterpretationForTest` and `testOnlyCallListenViaServerStt` — enabling widget tests for camera-dependent paths without requiring a physical device
+- `conversation_screen_test.dart`: test 20 added — `simulateSignInterpretationForTest` correctly stores last sign and shows feedback buttons
+- `conversation_screen_test.dart`: test 21 added — server STT injection payload is stripped by `sanitizeSoundLabel`; no chat bubble is added when both server response and fallback are injections
+- `conversation_screen_test.dart`: test 22 added — thumb-up feedback tap calls `sendFeedback` with the sanitized sign label via `MockClient`
+
+### Documentation
+- `CONTRIBUTING.md`: test baseline updated to 259 Flutter tests (+ 83 backend = 342 total)
+
+---
+
 ## [3.10.0] — Fix Cycle 37
 
 ### Code Quality

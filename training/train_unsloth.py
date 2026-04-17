@@ -33,7 +33,13 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
+
+try:
+    import torch
+except ImportError:
+    torch = None  # type: ignore[assignment]
 
 # ── Unsloth + HuggingFace imports ─────────────────────────────────────────
 try:
@@ -46,6 +52,23 @@ except ImportError:
 
 from datasets import Dataset
 from trl import SFTTrainer, SFTConfig
+
+
+# ── GPU / VRAM diagnostics ─────────────────────────────────────────────────
+
+def print_gpu_info() -> tuple[bool, bool]:
+    """Print GPU info and return (fp16, bf16) flags for the trainer."""
+    if torch is None or not torch.cuda.is_available():
+        print("WARNING: No CUDA GPU detected. Training will be very slow on CPU.")
+        return False, False
+    props = torch.cuda.get_device_properties(0)
+    vram_gb = props.total_memory / 1e9
+    bf16_ok = torch.cuda.is_bf16_supported()
+    print(f"GPU   : {props.name}  ({vram_gb:.1f} GB VRAM)")
+    print(f"dtype : {'bfloat16' if bf16_ok else 'float16'}")
+    if vram_gb < 10:
+        print("WARNING: < 10 GB VRAM — consider reducing LORA_RANK or MAX_SEQ_LEN")
+    return not bf16_ok, bf16_ok
 
 # ── Configuration ──────────────────────────────────────────────────────────
 
@@ -74,16 +97,49 @@ OUTPUT_DIR = Path(os.getenv("ISHARA_OUTPUT_DIR",
 HF_REPO = os.getenv("ISHARA_HF_REPO", "")
 
 
-def load_dataset_from_jsonl(path: Path) -> Dataset:
-    """Load the JSONL chat-format dataset into a HuggingFace Dataset."""
-    records = []
+def load_and_validate_dataset(path: Path) -> list[dict]:
+    """Load JSONL, validate schema, and return a list of records."""
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Dataset not found: {path}\n"
+            "Run training from the repo root or set ISHARA_DATASET_PATH."
+        )
+    records, errors = [], []
     with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                records.append(json.loads(line))
-    print(f"Loaded {len(records)} training examples from {path}")
-    return Dataset.from_list(records)
+        for lineno, raw in enumerate(f, 1):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj  = json.loads(raw)
+                msgs = obj.get("messages", [])
+                assert len(msgs) == 3,          "expected 3 messages (system/user/assistant)"
+                assert msgs[0]["role"] == "system"
+                assert msgs[1]["role"] == "user"
+                assert msgs[2]["role"] == "assistant"
+                json.loads(msgs[2]["content"])  # assistant JSON must be parseable
+                records.append(obj)
+            except Exception as exc:
+                errors.append(f"  line {lineno}: {exc}")
+    if errors:
+        print(f"Dataset validation — {len(errors)} bad lines (skipped):")
+        for e in errors[:5]:
+            print(e)
+    print(f"Dataset: {len(records)} valid examples loaded from {path}")
+    return records
+
+
+def split_dataset(records: list[dict], eval_fraction: float = 0.1, seed: int = 42):
+    """Return (train_dataset, eval_dataset) as HuggingFace Dataset objects."""
+    import random
+    random.seed(seed)
+    shuffled = records[:]
+    random.shuffle(shuffled)
+    n_eval        = max(1, int(len(shuffled) * eval_fraction))
+    eval_records  = shuffled[:n_eval]
+    train_records = shuffled[n_eval:]
+    print(f"Split: {len(train_records)} train / {len(eval_records)} eval")
+    return Dataset.from_list(train_records), Dataset.from_list(eval_records)
 
 
 def apply_chat_template(dataset: Dataset, tokenizer) -> Dataset:
@@ -119,8 +175,8 @@ def build_model_and_tokenizer():
             "q_proj", "k_proj", "v_proj", "o_proj",
             "gate_proj", "up_proj", "down_proj",
         ],
-        lora_alpha=LORA_RANK,
-        lora_dropout=0.0,
+        lora_alpha=LORA_RANK * 2,  # alpha = 2x rank is a reliable default
+        lora_dropout=0.05,
         bias="none",
         use_gradient_checkpointing="unsloth",   # Unsloth's memory-efficient checkpointing
         random_state=42,
@@ -134,35 +190,70 @@ def build_model_and_tokenizer():
     return model, tokenizer
 
 
-def train(model, tokenizer, dataset: Dataset):
+def train(model, tokenizer, train_dataset: Dataset, eval_dataset: Dataset,
+          fp16: bool, bf16: bool):
     """Fine-tune with SFTTrainer (supervised fine-tuning)."""
+    # Effective batch size = per_device (2) x grad_accum (4) = 8
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
-        train_dataset=dataset,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         dataset_text_field="text",
         max_seq_length=MAX_SEQ_LEN,
         dataset_num_proc=2,
+        packing=True,       # pack short sequences together — faster training
         args=SFTConfig(
-            output_dir=str(OUTPUT_DIR),
+            output_dir=str(OUTPUT_DIR / "checkpoints"),
             per_device_train_batch_size=2,
+            per_device_eval_batch_size=2,
             gradient_accumulation_steps=4,
-            warmup_steps=5,
+            warmup_ratio=0.05,      # 5% warmup (scales with dataset size)
             num_train_epochs=NUM_EPOCHS,
             learning_rate=2e-4,
-            logging_steps=1,
-            optim="adamw_8bit",         # 8-bit Adam — halves optimizer memory
+            fp16=fp16,
+            bf16=bf16,
+            logging_steps=5,
+            eval_strategy="epoch",
+            save_strategy="epoch",
+            save_total_limit=2,
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_loss",
+            greater_is_better=False,
+            optim="adamw_8bit",      # 8-bit Adam — halves optimizer memory
             weight_decay=0.01,
-            lr_scheduler_type="linear",
+            lr_scheduler_type="cosine",
+            max_grad_norm=1.0,       # gradient clipping for stability
+            neftune_noise_alpha=5,   # NEFTune noise — better generalisation on small datasets
             seed=42,
-            report_to="none",           # set to "wandb" for experiment tracking
+            report_to="none",        # set to "wandb" for experiment tracking
         ),
     )
 
-    print(f"Training on {len(dataset)} examples for {NUM_EPOCHS} epoch(s)...")
+    print(f"Training: {len(train_dataset)} train / {len(eval_dataset)} eval examples")
+    print(f"Epochs: {NUM_EPOCHS}  |  LoRA rank: {LORA_RANK}  |  Packing: enabled")
     trainer_stats = trainer.train()
-    print(f"Training complete. Peak VRAM: {trainer_stats.metrics.get('train_runtime', '?')}s")
+    runtime = trainer_stats.metrics.get("train_runtime", 0)
+    loss    = trainer_stats.metrics.get("train_loss", "?")
+    print(f"Training complete in {runtime:.0f}s — final loss: {loss}")
+    if torch is not None and torch.cuda.is_available():
+        peak_gb = torch.cuda.max_memory_allocated() / 1e9
+        print(f"Peak VRAM used: {peak_gb:.2f} GB")
     return trainer_stats
+
+
+def save_gguf(model, tokenizer):
+    """Export a Q4_K_M GGUF for direct use with Ollama."""
+    gguf_dir = OUTPUT_DIR.parent / "ishara-asl-gemma4-gguf"
+    gguf_dir.mkdir(parents=True, exist_ok=True)
+    print("Exporting GGUF (Q4_K_M) — this takes a few minutes...")
+    model.save_pretrained_gguf(str(gguf_dir), tokenizer, quantization_method="q4_k_m")
+    print(f"GGUF saved to: {gguf_dir}")
+    print(
+        "\nTo use with Ollama:\n"
+        "  ollama create ishara-asl-gemma4 -f Modelfile\n"
+        "  ISHARA_FULL_MODEL=ishara-asl-gemma4 python backend/server.py"
+    )
 
 
 def save_and_push(model, tokenizer):
@@ -255,21 +346,38 @@ educational coaching, and accessibility assistance via the Ishara app.
         print("To publish manually: huggingface-cli upload <username>/ishara-asl-gemma4 ./ishara-asl-gemma4-lora/")
 
 
+SAVE_GGUF = os.getenv("ISHARA_SAVE_GGUF", "0") == "1"
+
+
 def main():
     print("=" * 60)
-    print("Ishara — Gemma 4 Fine-Tuning with Unsloth")
+    print("  Ishara — Gemma 4 Fine-Tuning with Unsloth")
+    print("=" * 60)
     print(f"Base model : {BASE_MODEL}")
-    print(f"LoRA rank  : {LORA_RANK}")
+    print(f"LoRA rank  : {LORA_RANK}  (alpha: {LORA_RANK * 2})")
     print(f"Epochs     : {NUM_EPOCHS}")
     print(f"Dataset    : {DATASET_PATH}")
     print(f"Output     : {OUTPUT_DIR}")
+    print(f"GGUF       : {'yes (Q4_K_M)' if SAVE_GGUF else 'no (set ISHARA_SAVE_GGUF=1 to enable)'}")
+    print(f"HF push    : {HF_REPO or '(skipped — set ISHARA_HF_REPO to enable)'}")
     print("=" * 60)
 
-    dataset = load_dataset_from_jsonl(DATASET_PATH)
+    fp16, bf16 = print_gpu_info()
+
+    records = load_and_validate_dataset(DATASET_PATH)
+    if len(records) < 10:
+        print("ERROR: Dataset has fewer than 10 valid examples. Aborting.")
+        sys.exit(1)
+    train_ds, eval_ds = split_dataset(records, eval_fraction=0.1)
+
     model, tokenizer = build_model_and_tokenizer()
-    dataset = apply_chat_template(dataset, tokenizer)
-    train(model, tokenizer, dataset)
+    train_ds = apply_chat_template(train_ds, tokenizer)
+    eval_ds  = apply_chat_template(eval_ds,  tokenizer)
+    train(model, tokenizer, train_ds, eval_ds, fp16=fp16, bf16=bf16)
     save_and_push(model, tokenizer)
+
+    if SAVE_GGUF:
+        save_gguf(model, tokenizer)
 
     print("\nNext steps:")
     print("1. Upload weights: huggingface-cli upload <you>/ishara-asl-gemma4 ./ishara-asl-gemma4-lora/")

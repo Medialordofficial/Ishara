@@ -124,13 +124,15 @@ def generate(model, tokenizer, user_prompt: str) -> str:
     ]
     inputs = tokenizer.apply_chat_template(
         msgs,
+        tokenize=True,
         return_tensors="pt",
         add_generation_prompt=True,
+        return_dict=True,
     ).to(model.device)
 
     with torch.no_grad():
         out = model.generate(
-            input_ids=inputs,
+            **inputs,
             max_new_tokens=MAX_NEW_TOKENS,
             do_sample=False,            # deterministic for fair comparison
             temperature=1.0,

@@ -72,9 +72,10 @@ def print_gpu_info() -> tuple[bool, bool]:
 
 # ── Configuration ──────────────────────────────────────────────────────────
 
-# Base model: Gemma 4 4B instruction-tuned (best size for LoRA on free Colab)
-# Switch to "google/gemma-4-27b-it" for the full-weight variant.
-BASE_MODEL = os.getenv("ISHARA_BASE_MODEL", "google/gemma-4-4b-it")
+# Base model: Unsloth's pre-quantized Gemma 4 mirror (no HF login required).
+# google/gemma-4-4b-it is a gated model — using Unsloth's copy avoids auth errors.
+# Override: ISHARA_BASE_MODEL=google/gemma-4-4b-it (add HF_TOKEN if you do this)
+BASE_MODEL = os.getenv("ISHARA_BASE_MODEL", "unsloth/gemma-4-4b-it-bnb-4bit")
 
 # LoRA rank — higher = more capacity, more VRAM. 16 is a good default.
 LORA_RANK = int(os.getenv("ISHARA_LORA_RANK", "16"))

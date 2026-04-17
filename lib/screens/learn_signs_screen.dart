@@ -21,7 +21,30 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
   int _currentSignIndex = 0;
   String _feedback = '';
   String _selectedCategory = 'Greetings & Basics';
+  String? _selectedDifficulty; // null = All levels
   late AnimationController _bounceController;
+
+  static const List<Map<String, dynamic>> _difficultyFilters = [
+    {'label': 'All Levels', 'value': null, 'icon': '📚', 'color': null},
+    {
+      'label': 'Beginner',
+      'value': 'Beginner',
+      'icon': '🌱',
+      'color': 0xFF15803D,
+    },
+    {
+      'label': 'Intermediate',
+      'value': 'Intermediate',
+      'icon': '⚡',
+      'color': 0xFFB45309,
+    },
+    {
+      'label': 'Advanced',
+      'value': 'Advanced',
+      'icon': '🏆',
+      'color': 0xFFB91C1C,
+    },
+  ];
 
   // Gamification
   final ProgressService _progressService = ProgressService();
@@ -34,9 +57,11 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
 
   List<SignEntry> get _currentSigns {
     try {
-      return SignDictionary.categories
+      final signs = SignDictionary.categories
           .firstWhere((c) => c.name == _selectedCategory)
           .signs;
+      if (_selectedDifficulty == null) return signs;
+      return signs.where((s) => s.difficulty == _selectedDifficulty).toList();
     } catch (_) {
       return SignDictionary.categories.first.signs;
     }
@@ -279,6 +304,65 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                 },
               ),
             ),
+            const SizedBox(height: 10),
+
+            // Difficulty filter row
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: _difficultyFilters.length,
+                itemBuilder: (context, index) {
+                  final filter = _difficultyFilters[index];
+                  final selected = _selectedDifficulty == filter['value'];
+                  final colorVal = filter['color'] as int?;
+                  final activeColor = colorVal != null
+                      ? Color(colorVal)
+                      : AppColors.primary;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Semantics(
+                      button: true,
+                      label: '${filter['label']} difficulty filter',
+                      selected: selected,
+                      child: InkWell(
+                        onTap: () => setState(() {
+                          _selectedDifficulty = filter['value'] as String?;
+                          _currentSignIndex = 0;
+                          _feedback = '';
+                        }),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected ? activeColor : AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: selected ? activeColor : AppColors.border,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            '${filter['icon']} ${filter['label']}',
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 16),
 
             // Main content - scrollable
@@ -376,6 +460,9 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
                               fontWeight: FontWeight.w800,
                             ),
                           ),
+                          const SizedBox(height: 6),
+                          // Difficulty badge
+                          _DifficultyBadge(difficulty: sign.difficulty),
                           const SizedBox(height: 8),
                           Text(
                             sign.description,
@@ -635,6 +722,57 @@ class _LearnSignsScreenState extends State<LearnSignsScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small pill badge showing difficulty level with appropriate colour.
+class _DifficultyBadge extends StatelessWidget {
+  final String difficulty;
+  const _DifficultyBadge({required this.difficulty});
+
+  Color get _color {
+    switch (difficulty) {
+      case 'Intermediate':
+        return const Color(0xFFB45309); // Amber-700
+      case 'Advanced':
+        return const Color(0xFFB91C1C); // Red-700
+      default:
+        return const Color(0xFF15803D); // Green-700 (Beginner)
+    }
+  }
+
+  String get _icon {
+    switch (difficulty) {
+      case 'Intermediate':
+        return '⚡';
+      case 'Advanced':
+        return '🏆';
+      default:
+        return '🌱';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$difficulty difficulty',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: _color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _color.withValues(alpha: 0.4)),
+        ),
+        child: Text(
+          '$_icon $difficulty',
+          style: TextStyle(
+            color: _color,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );

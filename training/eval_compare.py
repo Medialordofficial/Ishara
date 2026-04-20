@@ -148,41 +148,80 @@ def generate(model, tokenizer, user_prompt: str) -> str:
     return full.strip()
 
 
-def free_model(model) -> None:
+def free_model(model, tokenizer=None) -> None:
+    import gc
+    try:
+        model.cpu()
+    except Exception:
+        pass
     del model
+    if tokenizer is not None:
+        del tokenizer
+    gc.collect()
+    gc.collect()
     torch.cuda.empty_cache()
+    torch.cuda.ipc_collect()
+
+
+def run_pass(prompts: list[str], adapter_dir: str | None, label: str) -> list[str]:
+    """Run one pass over all prompts and return the outputs."""
+    model, tokenizer = load_model_and_tokenizer(adapter_dir=adapter_dir)
+    outputs: list[str] = []
+    for i, p in enumerate(prompts, 1):
+        print(f"\n[{i}/{len(prompts)}] {p}")
+        out = generate(model, tokenizer, p)
+        outputs.append(out)
+        print(f"{label} → {out[:200]}{'…' if len(out) > 200 else ''}")
+    free_model(model, tokenizer)
+    return outputs
 
 
 def main() -> None:
     random.seed(0)
     prompts = HOLDOUT_PROMPTS[:NUM_PROMPTS]
-    print(f"Running {len(prompts)} prompts through BASE then ISHARA…\n")
+
+    # Cache file lets us split runs across two python invocations so
+    # the T4 VRAM is fully clean for each pass. Pass 1 writes it; pass 2
+    # reads it and produces the final report.
+    cache_file = Path("/tmp/ishara_base_outputs.json")
+    only = os.getenv("ISHARA_ONLY", "").lower()  # "base" | "ishara" | ""
 
     # ---- Pass 1: BASE -------------------------------------------------
-    print("=" * 60)
-    print("Pass 1/2: BASE model")
-    print("=" * 60)
-    model, tokenizer = load_model_and_tokenizer(adapter_dir=None)
-    base_outputs: list[str] = []
-    for i, p in enumerate(prompts, 1):
-        print(f"\n[{i}/{len(prompts)}] {p}")
-        out = generate(model, tokenizer, p)
-        base_outputs.append(out)
-        print(f"BASE → {out[:200]}{'…' if len(out) > 200 else ''}")
-    free_model(model)
+    if only in ("", "base") and not cache_file.exists():
+        print("=" * 60)
+        print("Pass 1/2: BASE model")
+        print("=" * 60)
+        base_outputs = run_pass(prompts, adapter_dir=None, label="BASE")
+        cache_file.write_text(json.dumps({"prompts": prompts, "outputs": base_outputs}))
+        print(f"\n[saved base outputs to {cache_file}]")
+        if only == "base":
+            return
+        # In normal mode, exit here and ask user to rerun for pass 2.
+        # This guarantees a clean VRAM state for the LoRA pass.
+        print("\n" + "=" * 60)
+        print("Base pass complete. Rerun the SAME command to do pass 2.")
+        print("(Splitting into two python processes keeps T4 VRAM clean.)")
+        print("=" * 60)
+        return
+
+    if not cache_file.exists():
+        raise SystemExit(
+            f"Expected base outputs cache at {cache_file} but found nothing. "
+            "Run pass 1 first (unset ISHARA_ONLY or set it to 'base')."
+        )
+    cached = json.loads(cache_file.read_text())
+    base_outputs = cached["outputs"]
+    if cached["prompts"] != prompts:
+        raise SystemExit(
+            "Prompt list changed since base pass. Delete the cache and rerun:\n"
+            f"    rm {cache_file}"
+        )
 
     # ---- Pass 2: FINE-TUNED ------------------------------------------
-    print("\n" + "=" * 60)
+    print("=" * 60)
     print("Pass 2/2: ISHARA fine-tuned model")
     print("=" * 60)
-    model, tokenizer = load_model_and_tokenizer(adapter_dir=ADAPTER_DIR)
-    ishara_outputs: list[str] = []
-    for i, p in enumerate(prompts, 1):
-        print(f"\n[{i}/{len(prompts)}] {p}")
-        out = generate(model, tokenizer, p)
-        ishara_outputs.append(out)
-        print(f"ISHARA → {out[:200]}{'…' if len(out) > 200 else ''}")
-    free_model(model)
+    ishara_outputs = run_pass(prompts, adapter_dir=ADAPTER_DIR, label="ISHARA")
 
     # ---- Write side-by-side report -----------------------------------
     lines = [

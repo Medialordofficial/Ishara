@@ -89,22 +89,36 @@ LORA_RANK = int(os.getenv("ISHARA_LORA_RANK", "16"))
 # Max sequence length. ASL descriptions are short; 512 is sufficient.
 MAX_SEQ_LEN = int(os.getenv("ISHARA_MAX_SEQ_LEN", "512"))
 
-# Training epochs. Dataset is small so 3 epochs is enough before overfitting.
-NUM_EPOCHS = int(os.getenv("ISHARA_TRAIN_EPOCHS", "3"))
+# Training epochs. Eval loss bottoms at epoch 2 on this dataset; epoch 3
+# overfits. Default = 2.
+NUM_EPOCHS = int(os.getenv("ISHARA_TRAIN_EPOCHS", "2"))
+
+# Learning rate. Lower = less risk of catastrophic forgetting on small
+# focused dataset.
+LEARNING_RATE = float(os.getenv("ISHARA_LR", "1e-4"))
+
+# Focused mode: train ONLY on the ASL JSON-envelope task. Base Gemma 4
+# already handles free-form deaf/non-speaking conversation very well, so
+# fine-tuning on multi-turn data risks regressing those skills. Set
+# ISHARA_FOCUSED=0 to use the combined (ASL + conversations) dataset.
+FOCUSED = os.getenv("ISHARA_FOCUSED", "1") == "1"
 
 # Path to the JSONL training dataset.
 # Resolution order:
 #   1. ISHARA_DATASET_PATH env var (explicit override)
-#   2. Same directory as this script — prefers the combined dataset
-#      (ASL single-turn + multi-turn deaf conversations) if present
-#   3. Falls back to the ASL-only dataset
-#   4. Current working directory (Colab flat-upload)
+#   2. If FOCUSED=1: prefers asl_dataset.jsonl (single-turn JSON only)
+#   3. Otherwise prefers ishara_combined.jsonl (ASL + conversations)
+#   4. Falls back to whichever exists
 def _find_dataset() -> Path:
     here = Path(__file__).parent
-    for name in ("ishara_combined.jsonl", "asl_dataset.jsonl"):
+    if FOCUSED:
+        order = ("asl_dataset.jsonl", "ishara_combined.jsonl")
+    else:
+        order = ("ishara_combined.jsonl", "asl_dataset.jsonl")
+    for name in order:
         if (p := here / name).exists():
             return p
-    for name in ("ishara_combined.jsonl", "asl_dataset.jsonl"):
+    for name in order:
         if (p := Path.cwd() / name).exists():
             return p
     return here / "asl_dataset.jsonl"
@@ -112,8 +126,15 @@ def _find_dataset() -> Path:
 DATASET_PATH = Path(os.getenv("ISHARA_DATASET_PATH", "") or _find_dataset())
 
 # Output directory for the LoRA adapter weights.
-OUTPUT_DIR = Path(os.getenv("ISHARA_OUTPUT_DIR",
-                              str(Path(__file__).parent / "ishara-asl-gemma4-lora")))
+# Defaults to /content/drive/MyDrive/ishara-asl-gemma4-lora when running in
+# Colab with Drive mounted, so the adapter survives session disconnects.
+def _default_output_dir() -> Path:
+    drive_root = Path("/content/drive/MyDrive")
+    if drive_root.exists():
+        return drive_root / "ishara-asl-gemma4-lora"
+    return Path(__file__).parent / "ishara-asl-gemma4-lora"
+
+OUTPUT_DIR = Path(os.getenv("ISHARA_OUTPUT_DIR", "") or _default_output_dir())
 
 # HuggingFace repo to push weights to (set to "" to skip push).
 HF_REPO = os.getenv("ISHARA_HF_REPO", "")
@@ -250,7 +271,7 @@ def train(model, tokenizer, train_dataset: Dataset, eval_dataset: Dataset,
             gradient_accumulation_steps=4,
             warmup_ratio=0.05,      # 5% warmup (scales with dataset size)
             num_train_epochs=NUM_EPOCHS,
-            learning_rate=2e-4,
+            learning_rate=LEARNING_RATE,
             fp16=fp16,
             bf16=bf16,
             logging_steps=5,
@@ -395,7 +416,8 @@ def main():
     print("=" * 60)
     print(f"Base model : {BASE_MODEL}")
     print(f"LoRA rank  : {LORA_RANK}  (alpha: {LORA_RANK * 2})")
-    print(f"Epochs     : {NUM_EPOCHS}")
+    print(f"Epochs     : {NUM_EPOCHS}    LR: {LEARNING_RATE}")
+    print(f"Mode       : {'FOCUSED (ASL JSON only)' if FOCUSED else 'COMBINED (ASL + conversations)'}")
     print(f"Dataset    : {DATASET_PATH}")
     print(f"Output     : {OUTPUT_DIR}")
     print(f"GGUF       : {'yes (Q4_K_M)' if SAVE_GGUF else 'no (set ISHARA_SAVE_GGUF=1 to enable)'}")

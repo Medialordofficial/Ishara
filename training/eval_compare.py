@@ -150,28 +150,38 @@ def generate(model, tokenizer, user_prompt: str) -> str:
 
 def free_model(model, tokenizer=None) -> None:
     import gc
-    try:
-        model.cpu()
-    except Exception:
-        pass
     del model
     if tokenizer is not None:
         del tokenizer
     gc.collect()
     gc.collect()
     torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
+    try:
+        torch.cuda.ipc_collect()
+    except Exception:
+        pass
 
 
-def run_pass(prompts: list[str], adapter_dir: str | None, label: str) -> list[str]:
-    """Run one pass over all prompts and return the outputs."""
+def run_pass(
+    prompts: list[str],
+    adapter_dir: str | None,
+    label: str,
+    cache_file: Path | None = None,
+) -> list[str]:
+    """Run one pass over all prompts and return the outputs.
+
+    If cache_file is given, write the partial outputs after every prompt
+    so a Ctrl+C or disconnect doesn't lose work.
+    """
     model, tokenizer = load_model_and_tokenizer(adapter_dir=adapter_dir)
     outputs: list[str] = []
     for i, p in enumerate(prompts, 1):
-        print(f"\n[{i}/{len(prompts)}] {p}")
+        print(f"\n[{i}/{len(prompts)}] {p}", flush=True)
         out = generate(model, tokenizer, p)
         outputs.append(out)
-        print(f"{label} → {out[:200]}{'…' if len(out) > 200 else ''}")
+        print(f"{label} → {out[:200]}{'…' if len(out) > 200 else ''}", flush=True)
+        if cache_file is not None:
+            cache_file.write_text(json.dumps({"prompts": prompts[: len(outputs)], "outputs": outputs}))
     free_model(model, tokenizer)
     return outputs
 
@@ -186,42 +196,43 @@ def main() -> None:
     cache_file = Path("/tmp/ishara_base_outputs.json")
     only = os.getenv("ISHARA_ONLY", "").lower()  # "base" | "ishara" | ""
 
+    def base_complete() -> bool:
+        if not cache_file.exists():
+            return False
+        try:
+            data = json.loads(cache_file.read_text())
+            return data.get("prompts") == prompts and len(data.get("outputs", [])) == len(prompts)
+        except Exception:
+            return False
+
     # ---- Pass 1: BASE -------------------------------------------------
-    if only in ("", "base") and not cache_file.exists():
+    if only in ("", "base") and not base_complete():
         print("=" * 60)
         print("Pass 1/2: BASE model")
         print("=" * 60)
-        base_outputs = run_pass(prompts, adapter_dir=None, label="BASE")
-        cache_file.write_text(json.dumps({"prompts": prompts, "outputs": base_outputs}))
+        run_pass(prompts, adapter_dir=None, label="BASE", cache_file=cache_file)
         print(f"\n[saved base outputs to {cache_file}]")
         if only == "base":
             return
-        # In normal mode, exit here and ask user to rerun for pass 2.
-        # This guarantees a clean VRAM state for the LoRA pass.
         print("\n" + "=" * 60)
         print("Base pass complete. Rerun the SAME command to do pass 2.")
         print("(Splitting into two python processes keeps T4 VRAM clean.)")
         print("=" * 60)
         return
 
-    if not cache_file.exists():
+    if not base_complete():
         raise SystemExit(
             f"Expected base outputs cache at {cache_file} but found nothing. "
             "Run pass 1 first (unset ISHARA_ONLY or set it to 'base')."
         )
-    cached = json.loads(cache_file.read_text())
-    base_outputs = cached["outputs"]
-    if cached["prompts"] != prompts:
-        raise SystemExit(
-            "Prompt list changed since base pass. Delete the cache and rerun:\n"
-            f"    rm {cache_file}"
-        )
+    base_outputs = json.loads(cache_file.read_text())["outputs"]
 
     # ---- Pass 2: FINE-TUNED ------------------------------------------
     print("=" * 60)
     print("Pass 2/2: ISHARA fine-tuned model")
     print("=" * 60)
-    ishara_outputs = run_pass(prompts, adapter_dir=ADAPTER_DIR, label="ISHARA")
+    ishara_cache = Path("/tmp/ishara_lora_outputs.json")
+    ishara_outputs = run_pass(prompts, adapter_dir=ADAPTER_DIR, label="ISHARA", cache_file=ishara_cache)
 
     # ---- Write side-by-side report -----------------------------------
     lines = [

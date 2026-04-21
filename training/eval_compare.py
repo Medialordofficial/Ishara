@@ -105,8 +105,19 @@ def load_model_and_tokenizer(adapter_dir: str | None):
     )
     tokenizer = get_chat_template(tokenizer, chat_template="gemma-3")
 
-    if adapter_dir and Path(adapter_dir).exists():
-        # PEFT-style adapter load
+    if adapter_dir is not None:
+        adapter_path = Path(adapter_dir)
+        if not adapter_path.exists():
+            raise FileNotFoundError(
+                f"LoRA adapter directory does not exist: {adapter_dir}\n"
+                "The Colab session likely reset and wiped /content/. "
+                "Retrain the adapter (run train_unsloth.py) before running pass 2."
+            )
+        if not (adapter_path / "adapter_config.json").exists():
+            raise FileNotFoundError(
+                f"{adapter_dir} exists but contains no adapter_config.json. "
+                "This is not a valid PEFT/LoRA adapter directory."
+            )
         from peft import PeftModel
         model = PeftModel.from_pretrained(model, adapter_dir)
         print(f"[loaded] base + LoRA adapter from {adapter_dir}")

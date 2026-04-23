@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/api_service.dart';
 import 'services/notification_service.dart';
 import 'utils/theme.dart';
 import 'utils/constants.dart';
@@ -34,6 +35,12 @@ void main() async {
   }
 
   themeNotifier.value = savedThemeMode;
+
+  // Fire-and-forget wake-up ping for the backend. Hugging Face Spaces sleep
+  // after inactivity to save GPU cost; this kicks off the cold-start in
+  // parallel with the app launching so the first user action doesn't block.
+  // ignore: discarded_futures
+  ApiService().warmUp();
 
   runApp(IsharaApp(showOnboarding: !onboarded));
 }

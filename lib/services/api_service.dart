@@ -94,7 +94,11 @@ class ApiService {
   Map<String, String> get _authHeaders =>
       _apiKey != null && _apiKey!.isNotEmpty ? {'X-API-Key': _apiKey!} : {};
 
-  Future<void> updateBaseUrl(String host, {int port = 8000, bool https = false}) async {
+  Future<void> updateBaseUrl(
+    String host, {
+    int port = 8000,
+    bool https = false,
+  }) async {
     // Accept full URLs like "https://xyz.trycloudflare.com" by stripping the scheme.
     var cleanHost = host.trim();
     var useHttps = https;
@@ -409,6 +413,29 @@ class ApiService {
       _lastPingOk = response.statusCode == 200;
       return _lastPingOk;
     } catch (_) {
+      _lastPingOk = false;
+      return false;
+    }
+  }
+
+  /// Wake a sleeping Hugging Face Space (or any cold backend) by hitting
+  /// `/health` with a long timeout. Hugging Face Spaces auto-sleep after
+  /// inactivity to save GPU cost; the next request triggers a wake-up that
+  /// can take 30-90 seconds. Call this once at app start so the first real
+  /// user action doesn't block on cold-start.
+  ///
+  /// Returns `true` once the backend reports healthy, `false` on timeout.
+  /// Safe to call repeatedly — it never throws.
+  Future<bool> warmUp({Duration timeout = const Duration(seconds: 120)}) async {
+    await _ensureInitialized();
+    try {
+      final response = await _client
+          .get(Uri.parse('$_baseUrl/health'), headers: _authHeaders)
+          .timeout(timeout);
+      _lastPingOk = response.statusCode == 200;
+      return _lastPingOk;
+    } catch (e) {
+      dev.log('warmUp failed: $e', name: 'ApiService');
       _lastPingOk = false;
       return false;
     }

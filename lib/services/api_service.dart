@@ -47,8 +47,9 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     final savedHost = prefs.getString('ishara_host');
     final savedPort = prefs.getInt('ishara_port');
+    final savedScheme = prefs.getString('ishara_scheme') ?? 'http';
     if (savedHost != null) {
-      _baseUrl = 'http://$savedHost:${savedPort ?? 8000}';
+      _baseUrl = '$savedScheme://$savedHost:${savedPort ?? 8000}';
     }
     final savedEmergency = prefs.getString('ishara_emergency_number');
     if (savedEmergency != null && savedEmergency.isNotEmpty) {
@@ -93,9 +94,36 @@ class ApiService {
   Map<String, String> get _authHeaders =>
       _apiKey != null && _apiKey!.isNotEmpty ? {'X-API-Key': _apiKey!} : {};
 
-  Future<void> updateBaseUrl(String host, {int port = 8000}) async {
-    _baseUrl = 'http://$host:$port';
-    if (!host.contains('localhost') && !host.contains('127.0.0.1')) {
+  Future<void> updateBaseUrl(String host, {int port = 8000, bool https = false}) async {
+    // Accept full URLs like "https://xyz.trycloudflare.com" by stripping the scheme.
+    var cleanHost = host.trim();
+    var useHttps = https;
+    var schemeWasExplicit = false;
+    if (cleanHost.startsWith('https://')) {
+      useHttps = true;
+      schemeWasExplicit = true;
+      cleanHost = cleanHost.substring(8);
+    } else if (cleanHost.startsWith('http://')) {
+      useHttps = false;
+      schemeWasExplicit = true;
+      cleanHost = cleanHost.substring(7);
+    }
+    cleanHost = cleanHost.replaceAll(RegExp(r'/+$'), '');
+    // If user pasted "host:port" extract the port.
+    final hostPortMatch = RegExp(r'^(.+):(\d+)$').firstMatch(cleanHost);
+    var resolvedPort = port;
+    if (hostPortMatch != null) {
+      cleanHost = hostPortMatch.group(1)!;
+      resolvedPort = int.parse(hostPortMatch.group(2)!);
+    } else if (schemeWasExplicit && useHttps && port == 8000) {
+      // Sensible default: HTTPS hosts (e.g. tunnels) speak on 443.
+      resolvedPort = 443;
+    }
+    final scheme = useHttps ? 'https' : 'http';
+    _baseUrl = '$scheme://$cleanHost:$resolvedPort';
+    if (!useHttps &&
+        !cleanHost.contains('localhost') &&
+        !cleanHost.contains('127.0.0.1')) {
       dev.log(
         'WARNING: Using plain HTTP on a non-local network is insecure. '
         'Configure HTTPS in production.',
@@ -103,8 +131,9 @@ class ApiService {
       );
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('ishara_host', host);
-    await prefs.setInt('ishara_port', port);
+    await prefs.setString('ishara_host', cleanHost);
+    await prefs.setInt('ishara_port', resolvedPort);
+    await prefs.setString('ishara_scheme', scheme);
   }
 
   String get baseUrl => _baseUrl;

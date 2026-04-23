@@ -23,14 +23,15 @@ REPO_RAW="https://raw.githubusercontent.com/Medialordofficial/Ishara/main"
 echo "=========================================="
 echo "[1/6] Mount Google Drive (for adapter persistence)"
 echo "=========================================="
-python - <<'PY'
-try:
-    from google.colab import drive
-    drive.mount('/content/drive')
-    print("Drive mounted at /content/drive")
-except Exception as exc:
-    print(f"WARNING: Drive mount skipped ({exc}). Adapter will NOT survive disconnect.")
-PY
+echo "NOTE: Drive must be mounted from a notebook cell BEFORE running this script."
+echo "      In a separate cell run:"
+echo "          from google.colab import drive; drive.mount('/content/drive')"
+echo "      Otherwise the adapter saves to /content/training/ (lost on disconnect)."
+if [ -d /content/drive/MyDrive ]; then
+  echo "  ✓ /content/drive/MyDrive is present — adapter will persist"
+else
+  echo "  ⚠ Drive NOT mounted — adapter will go to /content/training/ (volatile)"
+fi
 
 echo
 echo "=========================================="

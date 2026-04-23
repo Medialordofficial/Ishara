@@ -29,6 +29,9 @@ from pydantic import BaseModel, Field
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("ISHARA_MODEL", "gemma4")
+# Inference timeout in seconds. First cold-start of a multi-GB model on a
+# Mac can take 60-90s; raise as needed.
+OLLAMA_TIMEOUT = float(os.getenv("ISHARA_OLLAMA_TIMEOUT", "180"))
 
 # ── Intelligent model routing ──────────────────────────────────────────────
 # Gemma 4 ships in multiple weight classes. Route tasks to the right size:
@@ -318,7 +321,7 @@ async def _chat(
             _circuit_fail_count = CIRCUIT_FAILURE_THRESHOLD - 1  # one more failure → re-open
     for attempt in range(2):  # 1 retry on transient timeout
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(OLLAMA_TIMEOUT, connect=5)) as client:
                 if image_b64:
                     # Multimodal path — /api/generate (only endpoint that accepts images)
                     payload: dict = {
@@ -458,7 +461,7 @@ async def _chat_with_tools(
         "options": {"temperature": temperature},
     }
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(30, connect=5)) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(OLLAMA_TIMEOUT, connect=5)) as client:
             r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
             r.raise_for_status()
             msg = r.json().get("message", {})

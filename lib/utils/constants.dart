@@ -64,7 +64,9 @@ class AppStrings {
 }
 
 class ApiConfig {
-  static const String defaultHost = '192.168.1.100';
+  // Default to this Mac's LAN IP so a phone on the same Wi-Fi reaches the backend.
+  // Override at runtime from the in-app Settings screen (host + port).
+  static const String defaultHost = '192.168.2.118';
   static const int defaultPort = 8000;
   static String get baseUrl => 'http://$defaultHost:$defaultPort';
 }

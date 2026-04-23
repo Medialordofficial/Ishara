@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_exceptions.dart';
+import '../utils/constants.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -24,7 +25,7 @@ class ApiService {
   }
   ApiService._internal();
 
-  String _baseUrl = 'http://192.168.1.100:8000';
+  String _baseUrl = ApiConfig.baseUrl;
   bool _initialized = false;
 
   /// Whether the last ping succeeded (used for offline detection).

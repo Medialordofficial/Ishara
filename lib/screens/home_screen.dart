@@ -13,15 +13,52 @@ import 'text_chat_screen.dart';
 import 'type_to_speak_screen.dart';
 import 'world_reader_screen.dart';
 
-// Mockup-matched palette.
+// Mockup-matched palette. Brightness-aware: bg/card/ink/sub flip in dark mode
+// while accent colors remain vibrant on both. Resolve via [_palette(context)].
+class _PaletteData {
+  final Color bg;
+  final Color card;
+  final Color ink;
+  final Color sub;
+  final Color shadow;
+  final List<Color> bannerGradient;
+  const _PaletteData({
+    required this.bg,
+    required this.card,
+    required this.ink,
+    required this.sub,
+    required this.shadow,
+    required this.bannerGradient,
+  });
+}
+
+const _PaletteData _paletteLight = _PaletteData(
+  bg: Color(0xFFF6F4FF),
+  card: Colors.white,
+  ink: Color(0xFF1B1F3B),
+  sub: Color(0xFF7C84A3),
+  shadow: Color(0xFF8C9AB5),
+  bannerGradient: [Color(0xFFE8E2FF), Color(0xFFF1E5FF)],
+);
+
+const _PaletteData _paletteDark = _PaletteData(
+  bg: Color(0xFF0F1220),
+  card: Color(0xFF1A1F2E),
+  ink: Color(0xFFE8EAF0),
+  sub: Color(0xFF8B92AB),
+  shadow: Color(0xFF000000),
+  bannerGradient: [Color(0xFF2A2645), Color(0xFF3A2A55)],
+);
+
+_PaletteData _palette(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? _paletteDark
+    : _paletteLight;
+
 class _Palette {
-  static const bg = Color(0xFFF6F4FF); // Soft lavender background
-  static const card = Colors.white;
-  static const ink = Color(0xFF1B1F3B);
-  static const sub = Color(0xFF7C84A3);
-  static const accentStart = Color(0xFF6C7BFF); // Indigo
-  static const accentEnd = Color(0xFF8B5CF6); // Violet
-  // Tile accent tints
+  // Accent colors — same in both light and dark.
+  static const accentStart = Color(0xFF6C7BFF);
+  static const accentEnd = Color(0xFF8B5CF6);
   static const blue = Color(0xFF4F7BFF);
   static const violet = Color(0xFF8B5CF6);
   static const red = Color(0xFFFF4D5E);
@@ -148,8 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Scaffold(
-      backgroundColor: _Palette.bg,
+      backgroundColor: p.bg,
       extendBody: true,
       body: SafeArea(
         bottom: false,
@@ -244,6 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----- EXPLORE (search) TAB ----------------------------------------------
 
   Widget _buildExploreTab(BuildContext context) {
+    final p = _palette(context);
     final results = SignDictionary.search(_searchQuery);
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -254,10 +293,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Sign Dictionary',
                   style: TextStyle(
-                    color: _Palette.ink,
+                    color: p.ink,
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.4,
@@ -266,8 +305,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '${SignDictionary.allSigns.length} signs • ${SignDictionary.categories.length} categories',
-                  style: const TextStyle(
-                    color: _Palette.sub,
+                  style: TextStyle(
+                    color: p.sub,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -324,30 +363,31 @@ class _HomeScreenState extends State<HomeScreen> {
   // ----- PROFILE (settings) TAB --------------------------------------------
 
   Widget _buildProfileTab(BuildContext context) {
+    final p = _palette(context);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Profile',
                       style: TextStyle(
-                        color: _Palette.ink,
+                        color: p.ink,
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.4,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       'Personalize Ishara',
                       style: TextStyle(
-                        color: _Palette.sub,
+                        color: p.sub,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -432,6 +472,7 @@ class _GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -441,8 +482,8 @@ class _GreetingHeader extends StatelessWidget {
             children: [
               Text(
                 greeting,
-                style: const TextStyle(
-                  color: _Palette.ink,
+                style: TextStyle(
+                  color: p.ink,
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                   letterSpacing: -0.2,
@@ -450,15 +491,15 @@ class _GreetingHeader extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               RichText(
-                text: const TextSpan(
+                text: TextSpan(
                   style: TextStyle(
-                    color: _Palette.ink,
+                    color: p.ink,
                     fontSize: 38,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -1.0,
                     height: 1.05,
                   ),
-                  children: [
+                  children: const [
                     TextSpan(text: 'Welcome '),
                     TextSpan(
                       text: 'back',
@@ -471,10 +512,10 @@ class _GreetingHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'How can I help you today?',
                 style: TextStyle(
-                  color: _Palette.sub,
+                  color: p.sub,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
@@ -505,8 +546,9 @@ class _LogoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     final dot = serverChecking
-        ? _Palette.sub
+        ? p.sub
         : (serverOnline ? const Color(0xFF22C55E) : const Color(0xFFEF4444));
     return Semantics(
       button: true,
@@ -527,11 +569,11 @@ class _LogoBadge extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: p.card,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF8C9AB5).withValues(alpha: 0.18),
+                      color: p.shadow.withValues(alpha: 0.18),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -557,7 +599,7 @@ class _LogoBadge extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: dot,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: p.card, width: 2),
                   ),
                 ),
               ),
@@ -585,15 +627,16 @@ class _AskAnythingBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Container(
       height: 64,
       padding: const EdgeInsets.fromLTRB(18, 6, 8, 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: p.card,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8C9AB5).withValues(alpha: 0.15),
+            color: p.shadow.withValues(alpha: 0.15),
             blurRadius: 22,
             offset: const Offset(0, 10),
             spreadRadius: -2,
@@ -612,16 +655,16 @@ class _AskAnythingBar extends StatelessWidget {
                 controller: controller,
                 onSubmitted: onSubmit,
                 textInputAction: TextInputAction.send,
-                style: const TextStyle(
-                  color: _Palette.ink,
+                style: TextStyle(
+                  color: p.ink,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isCollapsed: true,
                   hintText: 'Ask anything...',
                   hintStyle: TextStyle(
-                    color: _Palette.sub,
+                    color: p.sub,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -703,6 +746,7 @@ class _GridTileState extends State<_GridTile> {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     final accent = widget.tile.accent;
     return Semantics(
       button: true,
@@ -720,11 +764,11 @@ class _GridTileState extends State<_GridTile> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
             decoration: BoxDecoration(
-              color: _Palette.card,
+              color: p.card,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8C9AB5).withValues(alpha: 0.14),
+                  color: p.shadow.withValues(alpha: 0.14),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                   spreadRadius: -4,
@@ -747,8 +791,8 @@ class _GridTileState extends State<_GridTile> {
                 Text(
                   widget.tile.title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _Palette.ink,
+                  style: TextStyle(
+                    color: p.ink,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.2,
@@ -760,8 +804,8 @@ class _GridTileState extends State<_GridTile> {
                 Text(
                   widget.tile.subtitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _Palette.sub,
+                  style: TextStyle(
+                    color: p.sub,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -787,6 +831,7 @@ class _IsharaAIBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Semantics(
       button: true,
       label:
@@ -797,10 +842,10 @@ class _IsharaAIBanner extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFFE8E2FF), Color(0xFFF1E5FF)],
+              colors: p.bannerGradient,
             ),
             boxShadow: [
               BoxShadow(
@@ -840,20 +885,20 @@ class _IsharaAIBanner extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Discover the power of',
                       style: TextStyle(
-                        color: _Palette.ink,
+                        color: p.ink,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Ishara AI ',
                           style: TextStyle(
-                            color: _Palette.ink,
+                            color: p.ink,
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.3,
@@ -863,10 +908,10 @@ class _IsharaAIBanner extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    const Text(
+                    Text(
                       'Your intelligent sign language assistant',
                       style: TextStyle(
-                        color: _Palette.sub,
+                        color: p.sub,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -942,6 +987,7 @@ class _MockupBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return SafeArea(
       top: false,
       child: Padding(
@@ -950,11 +996,11 @@ class _MockupBottomNav extends StatelessWidget {
           height: 72,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: p.card,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8C9AB5).withValues(alpha: 0.18),
+                color: p.shadow.withValues(alpha: 0.18),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
                 spreadRadius: -2,
@@ -1012,7 +1058,7 @@ class _MockupBottomNav extends StatelessWidget {
                           children: [
                             Icon(
                               item.icon,
-                              color: isSelected ? Colors.white : _Palette.sub,
+                              color: isSelected ? Colors.white : p.sub,
                               size: 24,
                             ),
                             AnimatedSize(
@@ -1063,8 +1109,9 @@ class _StatusDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     final color = checking
-        ? _Palette.sub
+        ? p.sub
         : (online ? const Color(0xFF22C55E) : const Color(0xFFEF4444));
     final label = checking ? 'Checking' : (online ? 'Online' : 'Offline');
     return Semantics(
@@ -1127,13 +1174,14 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: p.card,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8C9AB5).withValues(alpha: 0.15),
+            color: p.shadow.withValues(alpha: 0.15),
             blurRadius: 18,
             offset: const Offset(0, 8),
             spreadRadius: -2,
@@ -1147,21 +1195,15 @@ class _SearchField extends StatelessWidget {
         child: TextField(
           controller: controller,
           onChanged: onChanged,
+          style: TextStyle(color: p.ink),
           decoration: InputDecoration(
             hintText: 'Search signs, phrases, alphabet…',
-            hintStyle: const TextStyle(
-              color: _Palette.sub,
-              fontWeight: FontWeight.w500,
-            ),
+            hintStyle: TextStyle(color: p.sub, fontWeight: FontWeight.w500),
             border: InputBorder.none,
             icon: const Icon(Icons.search_rounded, color: _Palette.accentEnd),
             suffixIcon: value.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(
-                      Icons.cancel_rounded,
-                      color: _Palette.sub,
-                      size: 20,
-                    ),
+                    icon: Icon(Icons.cancel_rounded, color: p.sub, size: 20),
                     tooltip: 'Clear search',
                     onPressed: onClear,
                   )
@@ -1180,6 +1222,7 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Semantics(
       button: true,
       label: '${category.name} category, ${category.signs.length} signs',
@@ -1189,11 +1232,11 @@ class _CategoryTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: p.card,
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8C9AB5).withValues(alpha: 0.12),
+                color: p.shadow.withValues(alpha: 0.12),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
                 spreadRadius: -3,
@@ -1223,8 +1266,8 @@ class _CategoryTile extends StatelessWidget {
                   children: [
                     Text(
                       category.name,
-                      style: const TextStyle(
-                        color: _Palette.ink,
+                      style: TextStyle(
+                        color: p.ink,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1232,8 +1275,8 @@ class _CategoryTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${category.signs.length} signs',
-                      style: const TextStyle(
-                        color: _Palette.sub,
+                      style: TextStyle(
+                        color: p.sub,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1241,7 +1284,7 @@ class _CategoryTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: _Palette.sub),
+              Icon(Icons.chevron_right_rounded, color: p.sub),
             ],
           ),
         ),
@@ -1256,14 +1299,15 @@ class _SignResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: p.card,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8C9AB5).withValues(alpha: 0.10),
+            color: p.shadow.withValues(alpha: 0.10),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1298,8 +1342,8 @@ class _SignResultTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   sign.description,
-                  style: const TextStyle(
-                    color: _Palette.sub,
+                  style: TextStyle(
+                    color: p.sub,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1321,6 +1365,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = _palette(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1332,17 +1377,13 @@ class _EmptyState extends StatelessWidget {
               color: _Palette.accentEnd.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.search_off_rounded,
-              size: 32,
-              color: _Palette.sub,
-            ),
+            child: Icon(Icons.search_off_rounded, size: 32, color: p.sub),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No signs found',
             style: TextStyle(
-              color: _Palette.ink,
+              color: p.ink,
               fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
@@ -1353,8 +1394,8 @@ class _EmptyState extends StatelessWidget {
             child: Text(
               'Try a different word for "$query"',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _Palette.sub,
+              style: TextStyle(
+                color: p.sub,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),

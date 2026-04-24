@@ -36,6 +36,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSavedSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    // One-time migration: clear legacy local-IP defaults (e.g. 192.168.1.x:8000)
+    // so the form shows the Hugging Face Space defaults from ApiConfig.
+    const prefsVersionKey = 'ishara_prefs_v';
+    const currentPrefsVersion = 2;
+    final storedVersion = prefs.getInt(prefsVersionKey) ?? 1;
+    if (storedVersion < currentPrefsVersion) {
+      await prefs.remove('ishara_host');
+      await prefs.remove('ishara_port');
+      await prefs.remove('ishara_scheme');
+      await prefs.setInt(prefsVersionKey, currentPrefsVersion);
+    }
     final savedHost = prefs.getString('ishara_host');
     final savedPort = prefs.getInt('ishara_port');
     if (savedHost != null) _hostController.text = savedHost;
@@ -52,8 +63,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (secureApiKey != null && secureApiKey.isNotEmpty) {
       _apiKeyController.text = secureApiKey;
     }
-    // Apply saved settings to API service
-    await _api.updateBaseUrl(_hostController.text.trim(), port: _parsedPort());
+    // Apply saved settings to API service. Auto-enable HTTPS for port 443
+    // or any *.hf.space host so the form defaults connect to the HF Space.
+    final host = _hostController.text.trim();
+    final port = _parsedPort();
+    final useHttps = port == 443 || host.endsWith('.hf.space');
+    await _api.updateBaseUrl(host, port: port, https: useHttps);
   }
 
   /// Returns a valid port in [1, 65535], defaulting to [ApiConfig.defaultPort].
@@ -82,7 +97,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _connectionStatus = '';
     });
 
-    await _api.updateBaseUrl(_hostController.text.trim(), port: _parsedPort());
+    final host = _hostController.text.trim();
+    final port = _parsedPort();
+    final useHttps = port == 443 || host.endsWith('.hf.space');
+    await _api.updateBaseUrl(host, port: port, https: useHttps);
 
     // Save settings
     await _saveSettings();

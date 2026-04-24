@@ -45,11 +45,25 @@ class ApiService {
     if (_initialized) return;
     _initialized = true;
     final prefs = await SharedPreferences.getInstance();
+    // One-time migration: clear legacy local-IP defaults so users get the
+    // Hugging Face Space backend instead of a stale 192.168.x.x:8000.
+    const prefsVersionKey = 'ishara_prefs_v';
+    const currentPrefsVersion = 2;
+    final storedVersion = prefs.getInt(prefsVersionKey) ?? 1;
+    if (storedVersion < currentPrefsVersion) {
+      await prefs.remove('ishara_host');
+      await prefs.remove('ishara_port');
+      await prefs.remove('ishara_scheme');
+      await prefs.setInt(prefsVersionKey, currentPrefsVersion);
+    }
     final savedHost = prefs.getString('ishara_host');
     final savedPort = prefs.getInt('ishara_port');
-    final savedScheme = prefs.getString('ishara_scheme') ?? 'http';
+    final savedScheme =
+        prefs.getString('ishara_scheme') ??
+        (ApiConfig.defaultHttps ? 'https' : 'http');
     if (savedHost != null) {
-      _baseUrl = '$savedScheme://$savedHost:${savedPort ?? 8000}';
+      _baseUrl =
+          '$savedScheme://$savedHost:${savedPort ?? ApiConfig.defaultPort}';
     }
     final savedEmergency = prefs.getString('ishara_emergency_number');
     if (savedEmergency != null && savedEmergency.isNotEmpty) {

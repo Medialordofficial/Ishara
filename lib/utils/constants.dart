@@ -64,11 +64,14 @@ class AppStrings {
 }
 
 class ApiConfig {
-  // Default to this Mac's LAN IP so a phone on the same Wi-Fi reaches the backend.
+  // Default to the always-on Hugging Face Space running Gemma 4.
   // Override at runtime from the in-app Settings screen (host + port).
-  static const String defaultHost = '192.168.2.118';
-  static const int defaultPort = 8000;
-  static String get baseUrl => 'http://$defaultHost:$defaultPort';
+  static const String defaultHost = 'medialord-ishara.hf.space';
+  static const int defaultPort = 443;
+  static const bool defaultHttps = true;
+  static String get baseUrl =>
+      '${defaultHttps ? 'https' : 'http'}://$defaultHost'
+      '${(defaultHttps && defaultPort == 443) || (!defaultHttps && defaultPort == 80) ? '' : ':$defaultPort'}';
 }
 
 /// Thresholds for on-device pose detection scoring.
